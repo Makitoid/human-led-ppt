@@ -1,8 +1,4 @@
-<p align="center"><img src="assets/icon.svg" alt="human-led-ppt logo" width="100" height="100"></p>
-
-<h1 align="center">human-led-ppt</h1>
-
-<p align="center">A Human-Led, AI-Assisted Design System for Single-File HTML Presentations</p>
+<h1 align="center"><img src="assets/banner.svg" alt="human-led-ppt — a human-led, agent-assisted design system for single-file HTML presentations" width="1280"></h1>
 
 **English** · [中文](README_zh-cn.md) · [日本語](README_ja.md)
 

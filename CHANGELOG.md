@@ -58,6 +58,12 @@ The full version history lives here; the README keeps only a short summary of th
   `CHANGELOG.md` plus `CHANGELOG_zh-cn.md` / `CHANGELOG_ja.md`, leaving each README a short release
   summary. While splitting, the English side's missing `v1.2` heading was restored — its v1.2 entries
   had been sitting under the v1.3 heading, contradicting the Chinese side.
+- **A README banner, drawn from the skill's own tokens.** `assets/banner.svg` (1280×420) replaces the
+  icon + title + tagline block at the head of all three READMEs, and carries the wordmark, the two-line
+  positioning, a five-step rail that physically **breaks** at the review gate before *build*, and two
+  stacked 16:9 slide cards whose chart peak an amber ring circles — the ring overshoots the edge of the
+  card on purpose. Plain SVG: no web fonts, no network requests, no gradients, so the banner obeys the
+  same constraint as the decks. `assets/icon.svg` stays the skill's logo.
 - **`references/ja/`, a full Japanese mirror of the step documents.** The same eight step documents and
   the same 17 files in `02-presets/` as `references/{zh,en}/`, structure for structure and without
   summarising; `SKILL.md` gained Japanese trigger words in its `description`, the `資料まとめ` /

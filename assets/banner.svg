@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" width="1280" height="420" role="img" aria-labelledby="bnTitle bnDesc">
+  <title id="bnTitle">human-led-ppt</title>
+  <desc id="bnDesc">A paper-coloured plate carrying the wordmark human-led-ppt and the line "A human-led, agent-assisted design system for single-file HTML presentations". Below it, a five-step rail — topic, style, evidence, skeleton, build — broken by a review gate before build. On the right, two stacked 16:9 slide cards; the chart on the front card rises to a peak that an amber hand-drawn ring circles, and the ring overshoots the edge of the card.</desc>
+  <!-- palette: this skill's own deck-shell tokens — paper #F7F5F0 · ink #14281F · accent #0F766E · annotation #B45309 -->
+  <!-- No web fonts, no network requests, no gradients: the banner obeys the same rule as the decks it advertises. -->
+  <style>
+    svg{
+      --plate:#F7F5F0; --sheet:#FDFCFA; --ink:#14281F; --soft:#5B6B62;
+      --accent:#0F766E; --hand:#B45309; --hair:rgba(20,40,31,.18);
+      font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+    }
+    text{fill:var(--ink)}
+    .plate{fill:var(--plate)}
+    .edge{fill:none;stroke:var(--ink);stroke-opacity:.14;stroke-width:1}
+    .mark{font-size:68px;font-weight:700;letter-spacing:-2px}
+    .lead{font-size:22.5px;fill-opacity:.85}
+    .contract{font-size:17px;fill:var(--soft)}
+    .stepno{font-size:13px;font-weight:600;fill:var(--soft);font-variant-numeric:tabular-nums}
+    .steplabel{font-size:16px;font-weight:600}
+    .gate{font-size:13px;font-weight:600;fill:var(--accent)}
+    .rule{stroke:var(--hair);stroke-width:1}
+    .tick{stroke:var(--hair);stroke-width:1.5}
+    .bar{stroke:var(--accent);stroke-width:3;stroke-linecap:round}
+    .card{fill:var(--sheet);stroke:var(--ink);stroke-opacity:.17;stroke-width:1}
+    .back{fill:var(--accent);fill-opacity:.07;stroke:var(--ink);stroke-opacity:.11;stroke-width:1}
+    .chart{fill:none;stroke:var(--accent);stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+    .peak{fill:var(--accent)}
+    .ring{fill:none;stroke:var(--hand);stroke-width:9;stroke-linecap:round}
+    .pageno{font-size:12.5px;fill:var(--ink);fill-opacity:.45;font-variant-numeric:tabular-nums;letter-spacing:.4px}
+  </style>
+
+  <!-- the plate: reads as a slide on any README theme, light or dark -->
+  <rect class="plate" x="0" y="0" width="1280" height="420" rx="18"/>
+  <rect class="edge" x=".5" y=".5" width="1279" height="419" rx="17.5"/>
+
+  <!-- the deck: the next slide behind, and the one being marked up -->
+  <rect class="back" x="812" y="52" width="372" height="208" rx="12"/>
+  <rect x="844" y="78" width="104" height="11" rx="5.5" fill="var(--ink)" fill-opacity=".17"/>
+
+  <rect class="card" x="752" y="120" width="432" height="243" rx="12"/>
+  <rect x="782" y="152" width="152" height="15" rx="7.5" fill="var(--ink)"/>
+  <rect x="782" y="178" width="100" height="10" rx="5" fill="var(--ink)" fill-opacity=".3"/>
+  <polyline class="chart" points="790,300 858,282 926,292 1000,254 1074,264 1146,230"/>
+  <circle class="peak" cx="1146" cy="230" r="7.5"/>
+  <rect x="782" y="316" width="372" height="1" fill="var(--ink)" fill-opacity=".12"/>
+  <text class="pageno" x="1154" y="341" text-anchor="end">4 / 12</text>
+
+  <!-- the human mark: circled the number that matters, on screen, while talking — one loop past the start, and past the frame -->
+  <g transform="translate(1146 230) rotate(-20)">
+    <path class="ring" d="M-30 -44 C -2 -58 38 -46 56 -6 C 66 30 36 56 2 52 C -34 48 -56 30 -52 4 C -48 -26 -34 -50 -8 -50 C 14 -50 26 -47 32 -38"/>
+  </g>
+
+  <!-- identity -->
+  <text class="mark" x="56" y="118">human-led-ppt</text>
+  <text class="lead" x="56" y="170">A human-led, agent-assisted design system for</text>
+  <text class="lead" x="56" y="198">single-file HTML presentations.</text>
+  <text class="contract" x="56" y="246">Every number traces back to a source file;</text>
+  <text class="contract" x="56" y="268">nothing becomes HTML until you approve the skeleton.</text>
+
+  <!-- the five steps, and the one gate that is never skipped: the rail stops, and only your approval resumes it -->
+  <line class="rule" x1="56" y1="340" x2="478" y2="340"/>
+  <line class="rule" x1="507" y1="340" x2="650" y2="340"/>
+  <g class="tick">
+    <line x1="56" y1="333" x2="56" y2="347"/>
+    <line x1="172" y1="333" x2="172" y2="347"/>
+    <line x1="288" y1="333" x2="288" y2="347"/>
+    <line x1="404" y1="333" x2="404" y2="347"/>
+    <line x1="560" y1="333" x2="560" y2="347"/>
+  </g>
+  <line class="bar" x1="488" y1="326" x2="488" y2="354"/>
+  <line class="bar" x1="498" y1="326" x2="498" y2="354"/>
+  <g class="stepno">
+    <text x="56" y="325">1</text>
+    <text x="172" y="325">2</text>
+    <text x="288" y="325">3</text>
+    <text x="404" y="325">4</text>
+    <text x="560" y="325">5</text>
+  </g>
+  <text class="gate" x="493" y="325" text-anchor="middle">you approve</text>
+  <g class="steplabel">
+    <text x="56" y="363">topic</text>
+    <text x="172" y="363">style</text>
+    <text x="288" y="363">evidence</text>
+    <text x="404" y="363">skeleton</text>
+    <text x="560" y="363">build</text>
+  </g>
+</svg>

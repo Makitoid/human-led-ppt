@@ -1,8 +1,4 @@
-<p align="center"><img src="assets/icon.svg" alt="human-led-ppt 标识" width="100" height="100"></p>
-
-<h1 align="center">human-led-ppt</h1>
-
-<p align="center">以人为主导、AI为辅助的单文件HTML-PPT设计系统</p>
+<h1 align="center"><img src="assets/banner.svg" alt="human-led-ppt —— 以人为主导、AI 为辅助的单文件 HTML-PPT 设计系统" width="1280"></h1>
 
 [English](README.md) · **中文** · [日本語](README_ja.md)
 
