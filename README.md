@@ -1,4 +1,8 @@
-# <img src="assets/icon.svg" alt="human-led-ppt logo" width="36" height="36" valign="middle"> human-led-ppt
+<p align="center"><img src="assets/icon.svg" alt="human-led-ppt logo" width="100" height="100"></p>
+
+<h1 align="center">human-led-ppt</h1>
+
+<p align="center">A Human-Led, AI-Assisted Design System for Single-File HTML Presentations</p>
 
 **English** · [中文](README_zh-cn.md) · [日本語](README_ja.md)
 
@@ -8,7 +12,7 @@ A **human-led, agent-assisted** design system for single-file HTML presentations
 
 ## What it solves
 
-The agent is not allowed to jump straight into writing slides. Topic, narrative, visual direction, evidence and per-slide structure are pinned down in five steps, each producing a document you can read and correct; only the approved skeleton becomes HTML. So the result carries no invented numbers, no improvised layout, and none of the navigation your audience expects is missing.
+This skill builds an HTML deck in five steps. A single skeleton document pins down topic, narrative, style, evidence and per-slide structure across those steps, each leaving a file you can read and correct; only the approved skeleton becomes HTML. So the result stays strictly under the author's control and intent — no invented numbers, no improvised layout, and none of the navigation your audience expects is missing.
 
 Every number and claim that reaches the HTML has to trace back to the source file. That is the core contract, and it is what the five steps exist to enforce.
 
@@ -47,6 +51,17 @@ Both are **purely additive** — they never edit the slides — but each brings 
 - **Presenter mode** (`assets/presenter-overlay.html`) keeps card layout in `localStorage` keyed by the deck URL — the prompts themselves live in the HTML's `notes`; it needs popup permission, and `N` raises an in-page prompt bar when the popup is blocked. Prompts never print, never reach the PDF, and are never visible in the audience window.
 - Enabled together, the presenter window's current-slide card takes ink directly, and strokes sync across both windows in real time (last write wins, undo crosses windows too).
 - A preview is the same file reopened with `?preview=N`, so entrance animations and count-ups inside a preview run once, at load.
+
+## Feature showcase
+
+![Finished deck](/pic/1.png)
+
+![Annotation system](/pic/2.png)
+
+![Deck overview](/pic/3.png)
+
+![Presenter mode](/pic/4.png)
+
 
 ## Known limitations
 
