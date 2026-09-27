@@ -1,0 +1,669 @@
+<!--
+  human-led-ppt skill · 第 8 步 演讲者模式 / presenter mode (optional, additive block)
+  ============================================================================
+  这是什么：按 `S` 弹出一个独立演讲者窗口，顶部是一条固定横幅（计时 / 页码 /
+  上一页 / 下一页 / 重置），下面四张磁吸卡——当前页 / 下一页 / 提示词 /
+  总览（全部幻灯片的滚轮胶片条，点哪页跳哪页）；观众窗保持原样，两窗双向同步
+  翻页。按 `N` 则在当前窗口下方拉出一条提词抽屉（弹窗被拦截时的退路）。
+  What this is: `S` opens a separate presenter window — a fixed top banner (timer,
+  page counter, prev / next / reset) plus four magnetic cards — current slide /
+  next slide / speaker prompt / all-slide overview (a wheel-scrollable filmstrip,
+  click to jump) — while the audience window stays as-is; both windows page in
+  sync. `N` pulls a prompt drawer inside the current window (the fallback when
+  popups are blocked).
+
+  装法：node assets/assemble.cjs deck.src.html deck.html --presenter assets/presenter-overlay.html
+  它只加自己的 DOM/CSS/JS，不改页面、不改 deck-shell.css/js。它依赖交互壳的两样东西：
+  `window.__deck`（index/total/go）与 `?preview=N` 预览模式。放在 deck-shell 之后执行。
+
+  批注联动（稿子同时装了 --ink 时才有）：当前页卡片的 iframe 放开 pointer-events，
+  卡片头部多一枚「批注」按钮，直接在预览里开/关墨水层；笔迹同步走 ink 层的修订号协议
+  （ink:change 事件 / {type:'ink-store'} / {type:'ink-cmd',cmd:'store'}），双窗最后写入者胜。
+  壳的 Q 快捷键面板打开时，本层把自己的键位注册进 window.__deckHelp。
+
+  交付前只需要重写下面两个配置块：
+    CONFIG 1 · COPY      —— 界面文案（卡片标题、空提示、底部提示条）
+    CONFIG 2 · CANVAS/TOKEN_MAP —— 画布尺寸与本稿 token 名
+  卡片的颜色**不是**内置的：它在打开演讲者窗的那一刻读本稿 :root 的实际色值，按底色亮度
+  自动选深/浅两套卡片配方，所以工具窗和这份 PPT 天生同色系。不足 4.5:1 的颜色会自动退回
+  默认值并写一条 console.warn——配色要测不要猜，这条也照样适用。
+-->
+
+<style>
+/* ---------- audience-side only: prompt drawer + notice (the popup styles live
+              inside the generated presenter document) ---------- */
+#pv-drawer{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:1200;
+  width:min(1120px,94vw);max-height:44vh;overflow:auto;display:none;
+  box-sizing:border-box;padding:16px 26px 20px;font-size:19px;line-height:1.8;
+  border-radius:14px 14px 0 0;border:1px solid var(--pv-rule,rgba(128,128,128,.35));
+  border-bottom:none;background:var(--pv-panel,#15181C);color:var(--pv-ink,#E8EAED);
+  box-shadow:0 -12px 40px rgba(0,0,0,.35)}
+#pv-drawer.open{display:block}
+#pv-drawer .pv-h{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;opacity:.65;margin:0 0 10px}
+#pv-drawer .pv-h b{font-weight:700}
+#pv-drawer .pv-x{margin-left:auto;border:1px solid var(--pv-rule,rgba(128,128,128,.35));
+  background:transparent;color:inherit;border-radius:6px;font:inherit;font-size:11px;
+  padding:3px 9px;cursor:pointer;letter-spacing:.08em}
+#pv-drawer p{margin:0 0 .75em}
+#pv-drawer strong{color:var(--pv-warn,#D9A05B)}
+#pv-drawer em{color:var(--pv-accent,#7AA2D9);font-style:normal}
+#pv-drawer code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;
+  background:rgba(128,128,128,.16);padding:1px 6px;border-radius:4px}
+#pv-drawer .pv-empty{opacity:.5;font-style:italic}
+#pv-drawer .pv-idx{font-variant-numeric:tabular-nums}
+#pv-notice{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:1300;
+  display:none;max-width:80vw;padding:12px 20px;border-radius:10px;font-size:15px;line-height:1.6;
+  background:var(--pv-panel,#15181C);color:var(--pv-ink,#E8EAED);
+  border:1px solid var(--pv-warn,#D9A05B)}
+#pv-notice.show{display:block}
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ======================= CONFIG BLOCK 1 · COPY =======================
+     Every string the presenter window and the drawer show to the speaker.
+     Re-author for this deck: 提示词 card title, the empty-prompt line, the key
+     hints. Language is auto-picked from <html lang> (zh / ja / en); keep the three
+     objects in sync — if you only ever ship one language, delete the others. */
+  var COPY = {
+    zh: {
+      cardCur: '当前页', cardNext: '下一页', cardPrompt: '提示词', cardOvw: '总览',
+      winTitle: '演讲者视图',
+      promptMeta: '本页主张', slideWord: '页', elapsed: '已讲',
+      empty: '（这一页还没有提示词 — 见骨架 §7）',
+      endOfDeck: '— 已是最后一页 —',
+      hintPage: '翻页', hintReset: '重置计时', hintClose: '关闭',
+      hintWheelKbd: '滚轮', hintWheel: '横扫总览 · 点击任意页跳过去',
+      hintDrag: '拖动卡片标题栏移动 · 拖动右下角改变大小 · 位置自动记住',
+      resetLayout: '重置布局', btnPrev: '← 上一页', btnNext: '下一页 →', btnReset: '⏱ 重置',
+      blocked: '演讲者窗口被浏览器拦截了。允许弹出窗口后再按 S；或按 N 在页面下方用提词条。',
+      drawer: '提词条', close: '关闭 (Esc)',
+      noShell: '未检测到 deck-shell（window.__deck 不存在），演讲者模式未启用。',
+      tokenMiss: '这些 token 在本稿 :root 里没找到，已回落到默认值：',
+      contrastSwap: '这些颜色和卡片底色对比不足 4.5:1，已换成默认值（请检查本稿配色）：',
+      inkBtn: '批注', inkBtnOn: '批注中',
+      inkTip: '直接在左边这张当前页上批注，笔迹实时同步到听众那一屏；快捷键 Q 看全部键位',
+      helpSec: '演讲者模式',
+      helpRows: [['S', '打开 / 关闭演讲者窗'], ['N', '页面下方提词条（弹窗被拦时）'], ['Esc', '关提词条']]
+    },
+    ja: {
+      cardCur: '現在のページ', cardNext: '次のページ', cardPrompt: 'プロンプト', cardOvw: '総覧',
+      winTitle: '発表者ウィンドウ',
+      promptMeta: 'このページの主張', slideWord: 'ページ', elapsed: '全',
+      empty: '（このページのプロンプトはまだありません —— 骨子 §7 を参照）',
+      endOfDeck: '—— デッキの最後 ——',
+      hintPage: 'ページ送り', hintReset: 'タイマーをリセット', hintClose: '閉じる',
+      hintWheelKbd: 'ホイール', hintWheel: '総覧を横スクロール · クリックで任意のページへ',
+      hintDrag: 'ヘッダーをドラッグで移動 · 右下の角でサイズ変更 · 位置は自動記憶',
+      resetLayout: 'レイアウトをリセット', btnPrev: '← 前へ', btnNext: '次へ →', btnReset: '⏱ リセット',
+      blocked: '発表者ウィンドウがブラウザにブロックされました。ポップアップを許可してから S を押し直すか、N でページ下部のプロンプトバーを使ってください。',
+      drawer: 'プロンプトバー', close: '閉じる (Esc)',
+      noShell: 'deck-shell が見つかりません（window.__deck が無い）—— 発表者モードは無効です。',
+      tokenMiss: 'これらの token はこのデッキの :root に無いので既定値にフォールバックしました：',
+      contrastSwap: 'これらの色はカードの下地との比較が 4.5:1 未満のため既定値に置き換えました（このデッキの配色を確認してください）：',
+      inkBtn: '注記', inkBtnOn: '注記中',
+      inkTip: '左の現在のページに直接書き込めます。筆跡は聴衆側へリアルタイムに同期します。Q ですべてのキー操作を表示。',
+      helpSec: '発表者モード',
+      helpRows: [['S', '発表者ウィンドウを開く / 閉じる'], ['N', 'ページ下部のプロンプトバー（ポップアップがブロックされたとき）'], ['Esc', 'プロンプトバーを閉じる']]
+    },
+    en: {
+      cardCur: 'Current', cardNext: 'Next', cardPrompt: 'Prompt', cardOvw: 'Overview',
+      winTitle: 'Presenter view',
+      promptMeta: 'Claim', slideWord: 'slide', elapsed: 'elapsed',
+      empty: '(no prompt for this slide yet — see skeleton §7)',
+      endOfDeck: '— END OF DECK —',
+      hintPage: 'navigate', hintReset: 'reset timer', hintClose: 'close',
+      hintWheelKbd: 'Wheel', hintWheel: 'scroll the overview · click a slide to jump',
+      hintDrag: 'drag a card header to move · drag its bottom-right corner to resize · layout is remembered',
+      resetLayout: 'Reset layout', btnPrev: '← Prev', btnNext: 'Next →', btnReset: '⏱ Reset',
+      blocked: 'The browser blocked the presenter window. Allow popups and press S, or press N for the in-page prompt bar.',
+      drawer: 'Prompt bar', close: 'close (Esc)',
+      noShell: 'deck-shell not detected (window.__deck missing) — presenter mode disabled.',
+      tokenMiss: 'These tokens were absent from this deck\'s :root; defaults used: ',
+      contrastSwap: 'These colours fell below 4.5:1 against this deck\'s panel and were replaced: ',
+      inkBtn: 'Annotate', inkBtnOn: 'Inking',
+      inkTip: 'Draw straight on the current-slide card; strokes sync live to the audience screen. Press Q for all shortcuts.',
+      helpSec: 'Presenter mode',
+      helpRows: [['S', 'open / close the presenter window'], ['N', 'in-page prompt bar (when popups are blocked)'], ['Esc', 'close the prompt bar']]
+    }
+  };
+
+  /* ======================= CONFIG BLOCK 2 · canvas + token map =========
+     CANVAS must equal this deck's logical canvas (deck-shell defaults 1280×720);
+     the previews scale by exactly this number, so a wrong value means wrong size
+     inside the cards, not a wrong-looking slide. TOKEN_MAP names where this deck
+     keeps its palette — rename here rather than editing the reader below. */
+  var CANVAS = { w: 1280, h: 720 };
+  var TOKEN_MAP = {
+    bg: '--bg', panel: '--panel', ink: '--ink', muted: '--muted',
+    accent: '--accent', warn: '--warn', rule: '--rule'
+  };
+
+  /* ================= do not edit below this line ====================== */
+
+  var LANG = (function () {
+    var l = (document.documentElement.lang || (navigator.language || '')).toLowerCase();
+    return /^zh/.test(l) ? 'zh' : /^ja/.test(l) ? 'ja' : 'en';
+  })();
+  var T = COPY[LANG];
+  var deck = window.__deck;
+  if (!deck) { console.warn('[presenter] ' + T.noShell); return; }
+
+  var slides = [].slice.call(document.querySelectorAll('#stage > .slide'));
+  var pw = null, drawer = null, noticeEl = null, noticeTimer = null;
+
+  function cs() { return getComputedStyle(document.documentElement); }
+
+  /* resolve this deck's palette right now — the presenter window borrows it,
+     which is why the tool window can never drift from the deck it belongs to */
+  function resolveTokens() {
+    var s = cs(), out = {}, missing = [];
+    Object.keys(TOKEN_MAP).forEach(function (k) {
+      var v = s.getPropertyValue(TOKEN_MAP[k]).trim();
+      if (!v) { missing.push(TOKEN_MAP[k]); v = null; }
+      out[k] = v;
+    });
+    var bodyFont = getComputedStyle(document.body).fontFamily || 'system-ui,sans-serif';
+    return { pal: out, missing: missing, font: bodyFont };
+  }
+
+  function toRGB(v) {
+    if (!v) return null;
+    if (v.charAt(0) === '#') {
+      var hex = v.slice(1);
+      if (hex.length === 3) hex = hex.charAt(0) + hex.charAt(0) + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
+      var n = parseInt(hex.slice(0, 6), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+    var m = /\d+(\.\d+)?/g.exec(v);
+    if (!m) return null;
+    var p = v.match(/\d+(\.\d+)?/g) || [];
+    return [+p[0], +p[1], +p[2]];
+  }
+  function lum(rgb) {
+    if (!rgb) return null;
+    var c = rgb.map(function (v) { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+    return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+  }
+
+  function captionOf(s) {
+    var k = s.querySelector('.kicker') || s.querySelector('.act');
+    var h = s.querySelector('h1, h2');
+    var a = k ? k.textContent.replace(/\s+/g, ' ').trim() : '';
+    var b = h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
+    return (a && b ? a + ' · ' + b : (a || b)).slice(0, 60) || ('#' + (slides.indexOf(s) + 1));
+  }
+  function notesOf(s) {
+    var n = s.querySelector('.notes, aside.notes');
+    return n ? n.innerHTML : '';
+  }
+
+  function deckUrl() { return location.href.split('#')[0].split('?')[0]; }
+  function embed(v) { return JSON.stringify(v).replace(/</g, '\\u003c'); }
+
+  function showNotice(msg) {
+    if (!noticeEl) {
+      noticeEl = document.createElement('div');
+      noticeEl.id = 'pv-notice';
+      noticeEl.addEventListener('click', function (e) { e.stopPropagation(); }, false);
+      document.body.appendChild(noticeEl);
+    }
+    noticeEl.textContent = msg;
+    noticeEl.classList.add('show');
+    if (noticeTimer) clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(function () { noticeEl.classList.remove('show'); }, 6500);
+  }
+
+  /* ---------------- prompt drawer (N) : same-window fallback ------------- */
+  function ensureDrawer() {
+    if (drawer) return drawer;
+    drawer = document.createElement('div');
+    drawer.id = 'pv-drawer';
+    drawer.innerHTML = '<p class="pv-h"><b></b><span class="pv-idx"></span>' +
+      '<button class="pv-x" type="button"></button></p><div class="pv-b"></div>';
+    // stopPropagation on the drawer itself: a click bubbling to document would
+    // otherwise be read by deck-shell as "click the left/right half" → page turn
+    ['click', 'dblclick', 'touchstart', 'touchend'].forEach(function (ev) {
+      drawer.addEventListener(ev, function (e) { e.stopPropagation(); }, false);
+    });
+    drawer.querySelector('.pv-x').addEventListener('click', function () { toggleDrawer(false); });
+    document.body.appendChild(drawer);
+    return drawer;
+  }
+  function fillDrawer() {
+    if (!drawer) return;
+    var i = deck.index;
+    drawer.querySelector('.pv-h b').textContent = T.drawer;
+    drawer.querySelector('.pv-idx').textContent = (i + 1) + ' / ' + deck.total;
+    drawer.querySelector('.pv-x').textContent = T.close;
+    drawer.querySelector('.pv-b').innerHTML = notesOf(slides[i]) || '<p class="pv-empty">' + T.empty + '</p>';
+  }
+  function toggleDrawer(force) {
+    var el = ensureDrawer();
+    var open = (force === undefined) ? !el.classList.contains('open') : !!force;
+    el.classList.toggle('open', open);
+    if (open) fillDrawer();
+  }
+
+  /* ---------------- presenter window ------------------------------------ */
+  function openPresenter() {
+    var ctx = buildContext();
+    var html = buildHTML(ctx);
+    try {
+      pw = window.open('', 'human-led-ppt-presenter', 'width=1400,height=880,left=60,top=40');
+    } catch (e) { pw = null; }
+    if (!pw) { showNotice(T.blocked); return; }
+    try {
+      pw.document.open(); pw.document.write(html); pw.document.close();
+    } catch (e) { pw = null; showNotice(T.blocked); return; }
+    if (ctx.missing.length) console.warn('[presenter] ' + T.tokenMiss + ctx.missing.join(', '));
+    if (ctx.swaps && ctx.swaps.length) console.warn('[presenter] ' + T.contrastSwap + ctx.swaps.join(', '));
+  }
+  function closePresenter() { if (pw && !pw.closed) { try { pw.close(); } catch (e) {} } pw = null; }
+  function pushToPresenter(i) {
+    if (pw && !pw.closed) { try { pw.postMessage({ type: 'deck-goto', idx: i }, '*'); } catch (e) {} }
+  }
+
+  function buildContext() {
+    var r = resolveTokens();
+    var bgRGB = toRGB(r.pal.bg);
+    r.mode = (lum(bgRGB) !== null && lum(bgRGB) < 0.22) ? 'dark' : 'light';
+    r.meta = slides.map(function (s, i) { return { title: captionOf(s), notes: notesOf(s) }; });
+    r.canvas = CANVAS;
+    r.copy = {
+      cardCur: T.cardCur, cardNext: T.cardNext, cardPrompt: T.cardPrompt, cardOvw: T.cardOvw,
+      promptMeta: T.promptMeta, elapsed: T.elapsed, empty: T.empty, endOfDeck: T.endOfDeck,
+      hintPage: T.hintPage, hintReset: T.hintReset, hintClose: T.hintClose, hintDrag: T.hintDrag,
+      resetLayout: T.resetLayout, btnPrev: T.btnPrev, btnNext: T.btnNext, btnReset: T.btnReset,
+      slideWord: T.slideWord, winTitle: T.winTitle,
+      inkBtn: T.inkBtn, inkBtnOn: T.inkBtnOn, inkTip: T.inkTip
+    };
+    r.deckTitle = document.title || '';
+    r.deckUrl = deckUrl();
+    r.idx = deck.index;
+    r.total = deck.total;
+    r.lang = LANG === 'zh' ? 'zh-CN' : LANG === 'ja' ? 'ja' : 'en';
+    r.hasInk = !!(window.InkOverlay && window.InkOverlay.state);   /* annotation relay only makes sense with the ink layer */
+    return r;
+  }
+
+  /* the presenter document is written into a blank popup, so it inherits this
+     window's origin (matters on file://, where an absolute URL would not) */
+  function buildHTML(c) {
+    var p = c.pal;
+    var DARK = c.mode === 'dark';
+    function pal(k, darkV, lightV) { return p[k] || (DARK ? darkV : lightV); }
+    /* the card surface is what every other colour has to clear, so resolve it first */
+    var cardBg = pal('panel', '#181C21', '#FFFFFF');
+    /* measured guard: a deck whose --accent (or --ink/--muted/--warn) is too close to
+       its own panel colour would give an unreadable prompt card — the same invisible-text
+       failure the shell warns about. Fall back to the mode default instead of shipping it. */
+    function safe(v, fb) {
+      var a = toRGB(v), b = toRGB(cardBg);
+      if (!a || !b) return v || fb;
+      var la = lum(a), lb = lum(b);
+      return (Math.max(la, lb) + .05) / (Math.min(la, lb) + .05) >= 4.5 ? v : fb;
+    }
+    var fbInk = DARK ? '#E8EAED' : '#1B1B1B', fbMut = DARK ? '#9AA0A9' : '#5C5F66',
+        fbAcc = DARK ? '#7AA2D9' : '#1F4FD8', fbWarn = DARK ? '#D9A05B' : '#8A5A00';
+    var swaps = [];
+    function guarded(k, v, fb) {
+      var out = safe(v, fb);
+      if (out !== v) swaps.push(TOKEN_MAP[k] + ' ' + v + '→' + fb);
+      return out;
+    }
+    var cssVars = [
+      '--s-bg:' + (DARK ? '#0E1013' : '#EDEDE9'),
+      '--s-card:' + cardBg,
+      '--s-ink:' + guarded('ink', pal('ink', fbInk, fbInk), fbInk),
+      '--s-mut:' + guarded('muted', pal('muted', fbMut, fbMut), fbMut),
+      '--s-accent:' + guarded('accent', pal('accent', fbAcc, fbAcc), fbAcc),
+      '--s-warn:' + guarded('warn', pal('warn', fbWarn, fbWarn), fbWarn),
+      '--s-rule:' + pal('rule', 'rgba(255,255,255,.14)', 'rgba(0,0,0,.14)'),
+      '--font:' + c.font
+    ].join(';');
+    c.swaps = swaps;
+
+    var body = '<!DOCTYPE html><html lang="' + c.lang + '"><head><meta charset="utf-8">' +
+      '<title>' + T.winTitle + ' · ' + String(c.deckTitle).replace(/[<>]/g, '') + '</title><style>' +
+      PRESENTER_CSS.split('/*__VARS__*/').join(cssVars) +
+      '</style></head><body><div id="banner"><span id="t-clock">00:00</span>' +
+      '<span class="b-meta"><span>' + T.slideWord + '</span><b id="t-count">–</b>' +
+      '<span>' + T.elapsed + '</span><b id="t-total">–</b></span>' +
+      '<span class="b-btns"><button id="b-prev">' + T.btnPrev + '</button>' +
+      '<button id="b-next">' + T.btnNext + '</button>' +
+      '<button id="b-reset">' + T.btnReset + '</button></span></div><div id="stage">' +
+      card('cur', c.copy.cardCur, 'var(--s-accent)', '<iframe id="if-cur"></iframe>',
+           c.hasInk ? '<button id="b-ink" type="button" title="' + c.copy.inkTip.replace(/"/g, '&quot;') + '"></button>' : '') +
+      card('nxt', c.copy.cardNext, '#BC8CFF', '<iframe id="if-nxt"></iframe>') +
+      card('pmt', c.copy.cardPrompt, 'var(--s-warn)', '<div id="pmt-body" class="scroller"></div>') +
+      card('ovw', c.copy.cardOvw, '#54C08A', '<div id="ovw-strip"></div>') +
+      '</div><div id="hint">' +
+      '<span><kbd>← →</kbd> ' + T.hintPage + '</span>' +
+      '<span><kbd>R</kbd> ' + T.hintReset + '</span>' +
+      '<span><kbd>Esc</kbd> ' + T.hintClose + '</span>' +
+      '<span><kbd>' + T.hintWheelKbd + '</kbd> ' + T.hintWheel + '</span>' +
+      '<span class="drag">' + T.hintDrag + '</span>' +
+      '<button id="b-layout">' + T.resetLayout + '</button>' +
+      '</div><script>window.__P=' + embed(c) + ';<' + '/script><script>' + PRESENTER_JS + '<' + '/script></body></html>';
+    return body;
+  }
+
+  function card(id, title, dot, inner, headBtn) {
+    return '<section class="pcard" id="c-' + id + '">' +
+      '<header class="phead" data-drag><i style="background:' + dot + '"></i>' +
+      '<span class="ptitle">' + title + '</span><span class="pmeta" id="m-' + id + '"></span>' +
+      (headBtn || '') + '</header>' +
+      '<div class="pbody">' + inner + '</div><span class="pgrip" data-resize></span></section>';
+  }
+
+  /* ---- generated presenter document: CSS (static) ---- */
+  var PRESENTER_CSS = [
+    '*{margin:0;padding:0;box-sizing:border-box}',
+    ':root{/*__VARS__*/}',
+    'html,body{width:100%;height:100%;overflow:hidden;background:var(--s-bg);color:var(--s-ink);',
+    '  font-family:var(--font);-webkit-font-smoothing:antialiased}',
+    '#stage{position:absolute;left:0;right:0;top:52px;bottom:34px;overflow:hidden}',
+    '.pcard{position:absolute;display:flex;flex-direction:column;overflow:hidden;',
+    '  background:var(--s-card);border:1px solid var(--s-rule);border-radius:12px;',
+    '  box-shadow:0 10px 34px rgba(0,0,0,.34);min-width:200px;min-height:110px}',
+    '/* default geometry: the cards must be usable before any JS runs, so layout',
+    '   is not only computed — applyLayout() overrides these with px */',
+    '#c-cur{left:14px;top:14px;width:calc(58% - 21px);height:calc(66% - 21px)}',
+    '#c-nxt{left:calc(58% + 7px);top:14px;width:calc(42% - 21px);height:calc(40% - 21px)}',
+    '#c-pmt{left:calc(58% + 7px);top:calc(40% + 7px);width:calc(42% - 21px);height:calc(60% - 21px)}',
+    '#c-ovw{left:14px;top:calc(66% + 7px);width:calc(58% - 21px);height:calc(34% - 21px)}',
+    '.phead{display:flex;align-items:center;gap:9px;padding:7px 11px;flex:none;cursor:move;',
+    '  background:rgba(128,128,128,.10);border-bottom:1px solid var(--s-rule);user-select:none}',
+    '.phead i{width:8px;height:8px;border-radius:50%;flex:none}',
+    '.ptitle{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;opacity:.8;flex:1}',
+    '.pmeta{font-size:11px;opacity:.55;font-variant-numeric:tabular-nums}',
+    '.pbody{flex:1;position:relative;overflow:hidden;min-height:0}',
+    '.pbody iframe{position:absolute;top:0;left:0;border:0;transform-origin:top left;',
+    '  pointer-events:none;background:var(--s-bg)}',
+    '/* annotation relay: only the current-slide card takes the pointer — the deck file',
+    '   inside it carries the ink layer, so drawing there is the deck\'s own engine */',
+    '#c-cur .pbody iframe{pointer-events:auto}',
+    '#b-ink{flex:none;font:inherit;font-size:11px;color:inherit;cursor:pointer;border-radius:6px;',
+    '  padding:2px 9px;letter-spacing:.08em;background:transparent;border:1px solid var(--s-rule);opacity:.75}',
+    '#b-ink:hover,#b-ink:focus-visible{opacity:1;border-color:var(--s-accent);color:var(--s-accent)}',
+    '#b-ink.on{opacity:1;border-color:var(--s-accent);color:var(--s-accent);background:rgba(128,128,128,.14)}',
+    '.pcard.moved,.pcard.sized{z-index:9000;border-color:var(--s-accent);transition:none}',
+    '#c-pmt .pbody{padding:14px 18px;overflow-y:auto;font-size:19px;line-height:1.85}',
+    '#pmt-body p{margin:0 0 .8em}',
+    '#pmt-body strong{color:var(--s-warn)}',
+    '#pmt-body em{color:var(--s-accent);font-style:normal}',
+    '#pmt-body code{font-family:ui-monospace,Menlo,monospace;font-size:.9em;',
+    '  background:rgba(128,128,128,.16);padding:1px 6px;border-radius:4px}',
+    '#pmt-body .empty{opacity:.5;font-style:italic}',
+    '.scroller{scrollbar-width:thin}',
+    '/* ---- overview filmstrip: one 16:9 slot per slide, iframes mounted on demand ---- */',
+    '#c-ovw .pbody{padding:0}',
+    '#ovw-strip{position:absolute;inset:0;display:flex;align-items:center;gap:10px;',
+    '  padding:10px 12px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}',
+    '.ovw-item{position:relative;flex:none;border:1px solid var(--s-rule);border-radius:8px;',
+    '  overflow:hidden;cursor:pointer;background:var(--s-bg)}',
+    '.ovw-item:hover{border-color:var(--s-accent)}',
+    '.ovw-item.cur{border-color:var(--s-accent);box-shadow:0 0 0 2px var(--s-accent)}',
+    '.ovw-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;',
+    '  justify-content:center;gap:6px;padding:8px;text-align:center}',
+    '.ovw-ph b{font-size:15px;font-variant-numeric:tabular-nums;opacity:.85}',
+    '.ovw-ph span{font-size:11px;opacity:.55;line-height:1.4;max-height:2.8em;overflow:hidden}',
+    '/* ---- fixed top banner: timer + counter + paging, deliberately not a card ---- */',
+    '#banner{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;',
+    '  gap:14px;padding:0 16px;border-bottom:1px solid var(--s-rule);background:rgba(128,128,128,.08)}',
+    '#t-clock{font-size:26px;font-weight:700;letter-spacing:.04em;font-variant-numeric:tabular-nums}',
+    '.b-meta{display:flex;align-items:center;gap:8px;font-size:12px;opacity:.7}',
+    '.b-meta b{font-size:14px;font-variant-numeric:tabular-nums;opacity:1}',
+    '.b-btns{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}',
+    '.b-btns button{font:inherit;font-size:12px;color:inherit;cursor:pointer;border-radius:7px;',
+    '  padding:6px 11px;background:rgba(128,128,128,.12);border:1px solid var(--s-rule)}',
+    '.b-btns button:hover{border-color:var(--s-accent);color:var(--s-accent)}',
+    '.pgrip{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;',
+    '  background:linear-gradient(135deg,transparent 46%,var(--s-mut) 46%,var(--s-mut) 56%,',
+    '  transparent 56%,transparent 68%,var(--s-mut) 68%,var(--s-mut) 78%,transparent 78%);opacity:.6}',
+    '.pgrip:hover{opacity:1}',
+    '#hint{position:absolute;left:0;right:0;bottom:0;height:34px;display:flex;align-items:center;',
+    '  gap:16px;padding:0 14px;font-size:11px;opacity:.8;border-top:1px solid var(--s-rule);',
+    '  background:rgba(128,128,128,.08)}',
+    '#hint kbd{font-family:ui-monospace,Menlo,monospace;border:1px solid var(--s-rule);',
+    '  border-radius:4px;padding:1px 5px;font-size:10px}',
+    '#hint .drag{margin-left:6px;opacity:.7}',
+    '#b-layout{margin-left:auto;font:inherit;font-size:11px;color:inherit;cursor:pointer;',
+    '  background:transparent;border:1px solid var(--s-rule);border-radius:5px;padding:3px 9px}',
+    'body.dragging *{user-select:none}',
+    '@media (prefers-reduced-motion: reduce){.pcard{transition:none}}'
+  ].join('\n');
+
+  /* ---- generated presenter document: behaviour (static; reads window.__P) -- */
+  var PRESENTER_JS = [
+    '(function(){',
+    'var C=window.__P, idx=C.idx, total=C.total, ready={cur:false,nxt:false};',
+    'var ifCur=document.getElementById("if-cur"), ifNxt=document.getElementById("if-nxt");',
+    'var pmt=document.getElementById("pmt-body");',
+    'var IDS=["c-cur","c-nxt","c-pmt","c-ovw"], MINW=200, MINH=110;',
+    'var KEY="pv.v2|"+C.deckUrl, inkOn=false;',
+    'function el(i){return document.getElementById(i)}',
+    'function setInkChip(v){var b=el("b-ink");if(!b)return;inkOn=!!v;b.classList.toggle("on",inkOn);',
+    '  b.textContent=inkOn?C.copy.inkBtnOn:C.copy.inkBtn;}',
+    'function sendInk(m){send(ifCur.contentWindow,m)}',
+    'function send(w,m){try{w&&w.postMessage(m,"*")}catch(e){}}',
+    '/* the host deck is window.opener in a real popup; when the presenter document is',
+    '   embedded instead (iframe), fall back to parent. Never self: parent===window. */',
+    'function peer(){if(window.opener)return window.opener;',
+    '  try{if(window.parent!==window)return window.parent}catch(e){}return null}',
+    'function tellHost(m){try{var h=peer();h&&h.postMessage(m,"*")}catch(e){}}',
+    '/* ---- layout: remember where the speaker put the cards ---- */',
+    '/* banner(52) + hint(34) = 86px are chrome, not card territory */',
+    'function base(){var w=Math.max(640,innerWidth),h=Math.max(360,innerHeight-86);',
+    '  var a=Math.round(w*0.58),b=Math.round(h*0.66);',
+    '  return {"c-cur":{x:14,y:14,w:a-28,h:b-21},"c-nxt":{x:a+7,y:14,w:w-a-21,h:Math.round(h*0.40)-21},',
+    '          "c-pmt":{x:a+7,y:Math.round(h*0.40)+7,w:w-a-21,h:h-Math.round(h*0.40)-21},',
+    '          "c-ovw":{x:14,y:b+7,w:a-28,h:h-b-21}}}',
+    'function clean(L){if(!L)return null;var vw=Math.max(MINW,innerWidth),vh=Math.max(MINH,innerHeight-86),o={};',
+    '  for(var i=0;i<IDS.length;i++){var l=L[IDS[i]];if(!l)return null;',
+    '    var w=Math.min(Math.max(+l.w||0,MINW),vw),h=Math.min(Math.max(+l.h||0,MINH),vh);',
+    '    var x=Math.min(Math.max(+l.x||0,0),Math.max(0,vw-MINW)),y=Math.min(Math.max(+l.y||0,0),Math.max(0,vh-MINH));',
+    '    if(![w,h,x,y].every(isFinite))return null;o[IDS[i]]={x:x,y:y,w:w,h:h}}return o}',
+    'function read(){var s=null;try{s=JSON.parse(localStorage.getItem(KEY))}catch(e){}return clean(s)||base()}',
+    'function save(){var o={};IDS.forEach(function(i){var n=el(i);o[i]={x:parseInt(n.style.left,10)||0,',
+    '  y:parseInt(n.style.top,10)||0,w:parseInt(n.style.width,10)||300,h:parseInt(n.style.height,10)||200}});',
+    '  try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}',
+    'function apply(L){IDS.forEach(function(i){var n=el(i),l=L[i];if(!n||!l)return;',
+    '  n.style.left=l.x+"px";n.style.top=l.y+"px";n.style.width=l.w+"px";n.style.height=l.h+"px"});scaleAll()}',
+    '/* ---- the preview is the deck itself at 1280x720, scaled into the card ---- */',
+    'function scaleOne(f){if(!f||f.style.display==="none")return;var b=f.parentElement;',
+    '  var cw=b.clientWidth,ch=b.clientHeight;if(!cw||!ch)return;',
+    '  var s=Math.min(cw/C.canvas.w,ch/C.canvas.h);f.style.transform="scale("+s+")";',
+    '  f.style.width=C.canvas.w+"px";f.style.height=C.canvas.h+"px";',
+    '  f.style.left=Math.max(0,(cw-C.canvas.w*s)/2)+"px";f.style.top=Math.max(0,(ch-C.canvas.h*s)/2)+"px"}',
+    'function scaleAll(){scaleOne(ifCur);scaleOne(ifNxt);sizeOvw()}',
+    'addEventListener("resize",scaleAll)',
+    '/* ---- overview filmstrip: every slide as a ?preview=N thumbnail, virtualized ---- */',
+    'var strip=el("ovw-strip"), items=[], mounted={}, OVWG=10, OVWCAP=8, itemW=160, itemH=90, ovwShown=-1;',
+    'function ovwBuild(){for(var i=0;i<total;i++){(function(n){',
+    '  var it=document.createElement("div");it.className="ovw-item";it.setAttribute("data-i",n);',
+    '  var ph=document.createElement("div");ph.className="ovw-ph";',
+    '  var pb=document.createElement("b");pb.textContent=n+1;',
+    '  var ps=document.createElement("span");ps.textContent=(C.meta[n]||{}).title||"";',
+    '  ph.appendChild(pb);ph.appendChild(ps);it.appendChild(ph);',
+    '  it.addEventListener("click",function(){nav(n)});strip.appendChild(it);items.push(it)})(i)}',
+    '  strip.addEventListener("wheel",function(e){e.preventDefault();',
+    '    strip.scrollLeft+=(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY);',
+    '    virtualize()},{passive:false});',
+    '  strip.addEventListener("scroll",function(){virtualize()});',
+    '  sizeOvw()}',
+    'function sizeOvw(){if(!items.length)return;',
+    '  var h=Math.max(60,strip.clientHeight-20),s=h/C.canvas.h;itemH=h;itemW=Math.round(C.canvas.w*s);',
+    '  for(var i=0;i<items.length;i++){var it=items[i];it.style.width=itemW+"px";it.style.height=itemH+"px";',
+    '    var f=it.querySelector("iframe");if(f)scaleOne(f)}virtualize()}',
+    'function virtualize(){if(!items.length)return;',
+    '  var slot=itemW+OVWG, lo=Math.max(0,Math.floor(strip.scrollLeft/slot)-1),',
+    '    hi=Math.min(total-1,Math.ceil((strip.scrollLeft+strip.clientWidth)/slot)+1);',
+    '  var want=[];for(var i=lo;i<=hi;i++)want.push(i);',
+    '  var ctr=(strip.scrollLeft+strip.clientWidth/2)/slot;',
+    '  want.sort(function(a,b){return Math.abs(a-ctr)-Math.abs(b-ctr)});',
+    '  var keep={};want.slice(0,OVWCAP).forEach(function(i){keep[i]=1});',
+    '  Object.keys(mounted).forEach(function(k){if(!keep[k]){mounted[k].remove();delete mounted[k]}});',
+    '  Object.keys(keep).forEach(function(k){if(mounted[k])return;',
+    '    var f=document.createElement("iframe");f.src=C.deckUrl+"?preview="+(+k+1);',
+    '    items[k].appendChild(f);mounted[k]=f;scaleOne(f)})}',
+    'function ovwSync(){if(!items.length)return;',
+    '  for(var i=0;i<items.length;i++)items[i].classList.toggle("cur",i===idx);',
+    '  /* only re-centre on a real page change — browsing the strip must not snap back */',
+    '  if(ovwShown!==idx){ovwShown=idx;',
+    '    var want=Math.max(0,items[idx].offsetLeft-(strip.clientWidth-itemW)/2);',
+    '    if(strip.scrollTo)strip.scrollTo({left:want,behavior:"smooth"});else strip.scrollLeft=want}',
+    '  virtualize()}',
+    '/* ---- navigation ---- */',
+    'function fill(){var m=C.meta[idx]||{title:"",notes:""};',
+    '  el("m-cur").textContent=(idx+1)+" / "+total+" · "+m.title;',
+    '  el("m-pmt").textContent=C.copy.promptMeta+" "+(idx+1);',
+    '  pmt.innerHTML=m.notes|| \'<p class="empty">\'+C.copy.empty+"</p>";',
+    '  el("t-count").textContent=(idx+1)+" / "+total;el("t-total").textContent=total+" "+C.copy.slideWord;',
+    '  el("m-ovw").textContent=(idx+1)+" / "+total;',
+    '  var nb=ifNxt.parentElement, end=nb.querySelector(".pend");',
+    '  if(idx+1<total){ifCur.style.display="";ifNxt.style.display="";',
+    '    if(end)end.remove();el("m-nxt").textContent=(idx+2)+" / "+total+" · "+(C.meta[idx+1]||{}).title;',
+    '    send(ifNxt.contentWindow,{type:"preview-goto",idx:idx+1});scaleOne(ifNxt)}',
+    '  else{ifNxt.style.display="none";el("m-nxt").textContent="END";',
+    '    if(!end){end=document.createElement("div");end.className="pend";',
+    '      end.style.cssText="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:.45;font-size:14px;letter-spacing:.12em";',
+    '      end.textContent=C.copy.endOfDeck;nb.appendChild(end)}}',
+    '  send(ifCur.contentWindow,{type:"preview-goto",idx:idx});scaleOne(ifCur);ovwSync()}',
+    'function nav(n,fromHost){n=Math.max(0,Math.min(total-1,n));if(n===idx&&fromHost!=="boot")return;idx=n;fill();',
+    '  if(!fromHost)tellHost({type:"presenter-goto",idx:n});}',
+    'addEventListener("message",function(e){var d=e.data;if(!d)return;',
+    '  if(d.type==="preview-ready"){var f=e.source===ifCur.contentWindow?ifCur:(e.source===ifNxt.contentWindow?ifNxt:null);',
+    '    if(f){ready[f===ifCur?"cur":"nxt"]=true;scaleOne(f);send(f.contentWindow,{type:"preview-goto",idx:f===ifCur?idx:idx+1});',
+    '      if(f===ifCur&&C.hasInk)send(f.contentWindow,{type:"ink-cmd",cmd:"ask"});return}',
+    '    for(var mk in mounted){if(mounted[mk].contentWindow===e.source){scaleOne(mounted[mk]);return}}return}',
+    '  if(d.type==="ink-state"){if(e.source===ifCur.contentWindow)setInkChip(d.on);return}',
+    '  if(d.type==="ink-cmd"&&d.cmd==="store"){tellHost({type:"ink-store",store:d.store,rev:d.rev});return}',
+    '  if(d.type==="ink-store"){var m={type:"ink-cmd",cmd:"store",store:d.store,rev:d.rev};send(ifCur.contentWindow,m);send(ifNxt.contentWindow,m);return}',
+    '  if(d.type==="deck-goto"){nav(d.idx,"host")}})',
+    '/* ---- drag + resize ---- */',
+    'Array.prototype.forEach.call(document.querySelectorAll("[data-drag]"),function(h){',
+    '  h.addEventListener("mousedown",function(ev){if(ev.button!==0)return;',
+    '    if(ev.target.closest&&ev.target.closest("button"))return;var c=h.closest(".pcard");',
+    '    ev.preventDefault();c.classList.add("moved");document.body.classList.add("dragging");',
+    '    var sx=ev.clientX,sy=ev.clientY,ox=c.offsetLeft,oy=c.offsetTop;',
+    '    function mv(e){c.style.left=Math.max(0,Math.min(innerWidth-90,ox+e.clientX-sx))+"px";',
+    '      c.style.top=Math.max(0,Math.min(innerHeight-98,oy+e.clientY-sy))+"px"}',
+    '    function up(){c.classList.remove("moved");document.body.classList.remove("dragging");',
+    '      document.removeEventListener("mousemove",mv);document.removeEventListener("mouseup",up);save()}',
+    '    document.addEventListener("mousemove",mv);document.addEventListener("mouseup",up)})});',
+    'Array.prototype.forEach.call(document.querySelectorAll("[data-resize]"),function(g){',
+    '  g.addEventListener("mousedown",function(ev){if(ev.button!==0)return;var c=g.closest(".pcard");',
+    '    ev.preventDefault();ev.stopPropagation();c.classList.add("sized");document.body.classList.add("dragging");',
+    '    var sx=ev.clientX,sy=ev.clientY,ow=c.offsetWidth,oh=c.offsetHeight;',
+    '    function mv(e){c.style.width=Math.max(MINW,ow+e.clientX-sx)+"px";',
+    '      c.style.height=Math.max(MINH,oh+e.clientY-sy)+"px";',
+    '      if(c.id==="c-ovw"){sizeOvw()}else{var f=c.querySelector("iframe");if(f)scaleOne(f)}}',
+    '    function up(){c.classList.remove("sized");document.body.classList.remove("dragging");',
+    '      document.removeEventListener("mousemove",mv);document.removeEventListener("mouseup",up);scaleAll();save()}',
+    '    document.addEventListener("mousemove",mv);document.addEventListener("mouseup",up)})});',
+    '/* ---- timer ---- */',
+    'var t0=Date.now();',
+    'function tick(){var s=Math.floor((Date.now()-t0)/1000);',
+    '  el("t-clock").textContent=("0"+Math.floor(s/60)).slice(-2)+":"+("0"+(s%60)).slice(-2)}',
+    'setInterval(tick,1000);tick();',
+    'function resetTimer(){t0=Date.now();el("t-clock").textContent="00:00"}',
+    '/* ---- controls ---- */',
+    'if(el("b-ink")){setInkChip(false);el("b-ink").addEventListener("click",function(){setInkChip(!inkOn);sendInk({type:"ink-cmd",cmd:"on",arg:inkOn})})}',
+    'el("b-prev").addEventListener("click",function(){nav(idx-1)});',
+    'el("b-next").addEventListener("click",function(){nav(idx+1)});',
+    'el("b-reset").addEventListener("click",resetTimer);',
+    'el("b-layout").addEventListener("click",function(){try{localStorage.removeItem(KEY)}catch(e){}apply(base());save()});',
+    'document.addEventListener("keydown",function(e){if(e.ctrlKey||e.metaKey||e.altKey)return;',
+    '  switch(e.key){case "ArrowRight":case "ArrowDown":case " ":case "PageDown":e.preventDefault();nav(idx+1);break;',
+    '    case "ArrowLeft":case "ArrowUp":case "PageUp":e.preventDefault();nav(idx-1);break;',
+    '    case "Home":nav(0);break;case "End":nav(total-1);break;',
+    '    case "r":case "R":resetTimer();break;case "Escape":window.close();break}});',
+    '/* ---- boot: lay out first, then load each iframe exactly once ---- */',
+    'apply(read());ovwBuild();fill();',
+    'try{ifCur.src=C.deckUrl+"?preview="+(idx+1);',
+    '  if(idx+1<total)ifNxt.src=C.deckUrl+"?preview="+(idx+2)}catch(e){console.error("[presenter] iframe:",e)}',
+    'tellHost({type:"presenter-open"})',
+    '})()'
+  ].join('\n');
+
+  /* ---------------- audience-side wiring --------------------------------- */
+  function applyTokensToAudience() {
+    var r = resolveTokens(), st = document.documentElement.style;
+    [['--pv-panel', 'panel'], ['--pv-ink', 'ink'], ['--pv-mut', 'muted'],
+     ['--pv-accent', 'accent'], ['--pv-warn', 'warn'], ['--pv-rule', 'rule']].forEach(function (pair) {
+      var v = r.pal[pair[1]];
+      if (v) st.setProperty(pair[0], v);
+    });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 's' || e.key === 'S') {
+      if (deck.preview) return;
+      e.preventDefault(); e.stopPropagation();
+      openPresenter();
+      return;
+    }
+    if (e.key === 'n' || e.key === 'N') {
+      if (deck.preview) return;
+      e.preventDefault(); e.stopPropagation();
+      toggleDrawer();
+      return;
+    }
+    if (e.key === 'Escape' && drawer && drawer.classList.contains('open')) { toggleDrawer(false); }
+  }, true);
+
+  window.addEventListener('deck:go', function (e) {
+    pushToPresenter(e.detail.index);
+    if (drawer && drawer.classList.contains('open')) fillDrawer();
+  });
+
+  /* ink relay: while the presenter window is open, strokes drawn in EITHER window
+     must land in both. The ink layer fires 'ink:change' on every save here, and the
+     presenter window forwards its own preview strokes back as {type:'ink-store'};
+     revisions inside the ink layer make this last-write-wins without echo loops. */
+  function pushInk() {
+    var s = window.InkOverlay && window.InkOverlay.state ? window.InkOverlay.state() : null;
+    if (s && pw && !pw.closed) { try { pw.postMessage({ type: 'ink-store', store: s.store, rev: s.rev }, '*'); } catch (e) {} }
+  }
+  window.addEventListener('ink:change', function (e) {
+    if (pw && !pw.closed) { try { pw.postMessage({ type: 'ink-store', store: e.detail.store, rev: e.detail.rev }, '*'); } catch (err) {} }
+  });
+
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d) return;
+    if (d.type === 'presenter-goto') {
+      if (d.idx !== deck.index) deck.go(d.idx);
+    } else if (d.type === 'presenter-open') {
+      pushToPresenter(deck.index);
+      pushInk();
+    } else if (d.type === 'presenter-close') {
+      pw = null;
+    } else if (d.type === 'ink-store') {
+      if (window.InkOverlay && window.InkOverlay.applyRemote) window.InkOverlay.applyRemote(d.store, d.rev);
+    }
+  });
+
+  /* register this layer's keys with the shell's Q panel (see deck-shell.js) */
+  if (window.__deckHelp) window.__deckHelp.push({ title: T.helpSec, rows: T.helpRows });
+
+  window.addEventListener('beforeunload', closePresenter);
+  applyTokensToAudience();
+
+  window.Presenter = {
+    open: openPresenter, close: closePresenter,
+    toggleDrawer: toggleDrawer,
+    get isOpen() { return !!(pw && !pw.closed); },
+    get drawerOpen() { return !!(drawer && drawer.classList.contains('open')); },
+    context: buildContext
+  };
+})();
+</script>

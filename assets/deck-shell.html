@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>……deck 标题……</title>
+<!--
+  deck-shell.html · 起手模板 / 自检用示例 · starter template and self-test fixture
+  （注释用中文；标记本身与语言无关，换成英文内容即可。The comments are Chinese; the markup is language-neutral.）
+  1) 内联交互壳：node assets/assemble.cjs <本文件> <输出.html>
+     （脚本会把下方 <style> 与结尾 <script> 里的两个 SHELL 占位符整段换成
+      assets/deck-shell.css 与 assets/deck-shell.js 的全文，全局替换并校验残留）
+  2) 在第二个 <style> 里用自己的主题变量覆盖 :root，再写各页型的样式
+  3) 按骨架 §4 逐页替换 <section class="slide"> 的内容；所有“……”都是占位符
+  aria 播报与壳/叠加层的运行时文案会按 <html lang> 在中文 / 日文 / 英文之间自动切换。
+  `Q` 快捷键面板由壳自动创建（#deckhelp）；叠加层想上自己的分区，加载时往
+  window.__deckHelp 里 push {title, rows} 即可，面板打开时按当时的注册表渲染。
+  注意：占位符在文件里只出现一次，替换时用全局替换，别只替换第一处。
+-->
+<style>/*__SHELL_CSS__*/</style>
+<style>
+  /* 起手主题：用第 2 步风格决定块里的色值替换，或整段删掉 */
+  :root{--bg:#F7F7F5;--ink:#0D0D0D;--accent:#0A6E56}
+  /* font-size:22px 是正文字号下限（骨架 typography.min_body_px），不要调小 */
+  .slide{padding:64px 72px;font-size:22px;line-height:1.6}
+  .slide-head{color:var(--accent)}
+  .kicker{font-size:13px;letter-spacing:.12em;margin:0 0 8px}
+  .key{font-size:24px;margin:12px 0 0}
+  h1{font-size:96px;line-height:1.1;margin:24px 0 0}
+  h2{font-size:56px;line-height:1.15;margin:16px 0 0}
+  .num{font-size:96px;font-variant-numeric:tabular-nums;margin:32px 0 0}
+  .foot{position:absolute;right:40px;bottom:28px;font-size:11px;opacity:.65}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+  <section class="slide" data-i="1">
+    <header class="slide-head">
+      <p class="kicker"><span class="act">……封面 / 幕次标签……</span></p>
+      <h1>……主标题……</h1>
+      <p class="key">……副标题或本页主张……</p>
+    </header>
+    <p class="foot">……来源 · 年份……</p>
+    <aside class="notes">演讲者备注：不显示在屏幕上。</aside>
+  </section>
+
+  <section class="slide" data-i="2">
+    <header class="slide-head">
+      <p class="kicker"><span class="act">……幕次标签……</span></p>
+      <h2>……数据页标题……</h2>
+    </header>
+    <p class="num"><span data-count="50" data-dec="1" data-pre="≈ " data-suf=" 单位">0</span></p>
+    <p>进页时自动从 0 递增（data-count / data-dec / data-pre / data-suf）。</p>
+    <p class="foot">……来源 · 年份……</p>
+  </section>
+
+  <section class="slide" data-i="3">
+    <header class="slide-head">
+      <p class="kicker"><span class="act">……幕次标签……</span></p>
+      <h2>……结尾页标题……</h2>
+    </header>
+    <p>外链一律 <a href="https://example.com" target="_blank" rel="noopener">新标签页打开</a>，且不会触发翻页。</p>
+    <p class="foot">……来源 · 年份……</p>
+  </section>
+
+</div></div>
+<div id="overview" role="dialog" aria-label="页面总览"></div>
+<div id="aria" aria-live="polite"></div>
+<div id="rotate-mask"><div class="ico"></div><p>请横屏观看</p><p class="sm">旋转设备，或用更宽的窗口打开</p></div>
+<script>/*__SHELL_JS__*/</script>
+</body>
+</html>

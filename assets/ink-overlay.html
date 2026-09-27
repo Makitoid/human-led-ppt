@@ -1,0 +1,944 @@
+<!-- ═══════════════════════════════════════════════════════════════════════════
+  human-led-ppt skill · screen annotation overlay (ink layer) — OPTIONAL feature block
+  可选功能块：屏幕批注
+
+  Install: paste this whole file immediately before </body> of the finished deck
+  (or run  node assets/assemble.cjs in.html out.html --ink assets/ink-overlay.html ).
+  It is additive: it never edits the deck's DOM, CSS or deck-shell.js.
+
+  Before shipping, edit ONLY the two config blocks:
+    · CSS  :root--ink  → map onto the deck's own tokens (see references/(en|zh)/07-annotation.md §2)
+    · JS   PALETTE / SIZE / L → the 5 hard colours picked from the deck palette,
+                                the two pen ranges, and the runtime strings (auto zh/en)
+
+  Provides: A or the corner button toggles annotation · pen · highlighter · eraser with two
+  modes (whole stroke / scrub ink) · 5 fixed + 1 custom colour · per-tool remembered thickness
+  in a popover · undo/redo/clear · hide ink · export PNG/JSON + import · per-slide storage in
+  localStorage · keyboard paging stays live while annotating, mouse paging is suspended.
+  The corner button is draggable (its position is remembered per deck in `ink.v1.fab|<title>`,
+  double-click resets it) and keeps the plain pen glyph. The toolbar's on/off button carries a
+  ⏻ power glyph — ending annotation closes the layer, so the glyph says what the click does —
+  and it never takes the selected-state frame. assets/icon.svg stays the skill's own logo and is
+  not embedded in the toolbar.
+  Inside a `?preview=N` iframe (the presenter window's cards) the layer also syncs: strokes
+  drawn there are broadcast to the host deck and vice versa (revision-guarded, last write wins).
+
+  Comments are English for cross-language agents; user-visible strings come from L.
+═══════════════════════════════════════════════════════════════════════════════ -->
+<style>
+  /* ─── CONFIG BLOCK 1 · theme ────────────────────────────────────────────────
+     Map these onto the deck's :root so the bar reads as part of the deck.
+     Light deck  → light acrylic (white surface, dark ink, dark hairline).
+     Dark deck   → dark acrylic  (dark surface, light ink, light hairline).
+     Never ship the defaults blindly: verify the ink/mut contrast (≥4.5:1 for the
+     12–13px labels) against --ink-surface composited on the deck background.      */
+  #inkc,#inkbar,#inkfab,#inkmenu,#inkpop,#inkstatus,#inkhint,#inkhelp{
+    --ink-surface:rgba(17,27,24,.66);      /* deck --panel + alpha                    */
+    --ink-tint:rgba(79,209,197,.13);       /* deck --accent, low alpha, top gradient  */
+    --ink-line:rgba(255,255,255,.15);      /* hairline                                */
+    --ink-hi:rgba(255,255,255,.17);        /* inner highlight, top edge               */
+    --ink-lo:rgba(0,0,0,.28);              /* inner shade, bottom edge                */
+    --ink-ink:#EAF1EC;                     /* primary label / icon colour             */
+    --ink-mut:#9FB0A6;                     /* secondary                               */
+    --ink-accent:#4FD1C5;                  /* deck --accent, selected states          */
+    --ink-on-bg:rgba(79,209,197,.20);
+    --ink-on-line:rgba(79,209,197,.62);
+    --ink-warn:#E0A24A;                    /* deck --warn, used by status messages    */
+    --ink-blur:26px; --ink-sat:180%;
+    --ink-shadow:0 20px 52px rgba(0,0,0,.62);
+    --ink-font:"Microsoft YaHei","Segoe UI",system-ui,sans-serif;  /* chrome font only */
+  }
+
+  /* ─── canvas ──────────────────────────────────────────────────────────────── */
+  #inkc{position:fixed;inset:0;z-index:9000;width:100%;height:100%;pointer-events:none;touch-action:none;display:block}
+  body.inking #inkc{pointer-events:auto;cursor:crosshair}
+  body.inking{user-select:none}
+  body.inking.tk-e #inkc{cursor:none}
+  /* the overview wall and the Q shortcut panel own the screen: hide every ink surface
+     via sibling selectors (both elements are created before this block in the DOM) */
+  #overview.open ~ #inkc,#overview.open ~ #inkbar,#overview.open ~ #inkfab,#overview.open ~ #inkmenu,
+  #overview.open ~ #inkpop,#overview.open ~ #inkhint,#overview.open ~ #inkhelp,#overview.open ~ #inkstatus,
+  #deckhelp.open ~ #inkc,#deckhelp.open ~ #inkbar,#deckhelp.open ~ #inkfab,#deckhelp.open ~ #inkmenu,
+  #deckhelp.open ~ #inkpop,#deckhelp.open ~ #inkhint,#deckhelp.open ~ #inkhelp,#deckhelp.open ~ #inkstatus{display:none !important}
+
+  /* ─── acrylic: blur + saturate + tint + noise + inner highlight ───────────── */
+  .acrylic{
+    background-color:var(--ink-surface);
+    background-image:
+      linear-gradient(180deg,var(--ink-tint),rgba(0,0,0,0) 58%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.055'/></svg>");
+    background-blend-mode:normal,overlay;
+    backdrop-filter:blur(var(--ink-blur)) saturate(var(--ink-sat));
+    -webkit-backdrop-filter:blur(var(--ink-blur)) saturate(var(--ink-sat));
+    border:1px solid var(--ink-line);
+    box-shadow:inset 0 1px 0 var(--ink-hi),inset 0 -1px 0 var(--ink-lo),var(--ink-shadow);
+  }
+  /* popovers live at body level: a backdrop-filter ancestor becomes the containing
+     block for fixed descendants, which silently misplaces them */
+  .inkfloat{
+    position:fixed;left:0;bottom:0;transform:translateX(-50%);z-index:9004;display:none;
+    width:max-content;font-family:var(--ink-font);font-size:13px;color:var(--ink-ink);letter-spacing:.02em;
+  }
+  body.inking .inkfloat.open{display:flex}
+
+  /* ─── persistent toggle: the only entry point when not annotating ─────────── */
+  #inkfab{
+    position:fixed;right:20px;bottom:20px;width:38px;height:38px;padding:0;z-index:9002;
+    display:grid;place-items:center;border-radius:12px;cursor:grab;opacity:.5;color:var(--ink-ink);
+    touch-action:none;                        /* the button itself is draggable */
+    transition:opacity .18s,transform .14s;
+  }
+  #inkfab:hover,#inkfab:focus-visible{opacity:1;transform:translateY(-1px)}
+  #inkfab.dragging{transition:none;opacity:1;transform:none;cursor:grabbing}
+  #inkfab:focus-visible{outline:2px solid var(--ink-accent);outline-offset:2px}
+  #inkfab svg{width:19px;height:19px;display:block}
+  body.inking #inkfab{display:none}
+
+  /* ─── toolbar: always one row; grows sideways, never taller ───────────────── */
+  #inkbar{
+    position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:9002;
+    display:none;align-items:center;gap:5px;padding:8px 10px;border-radius:14px;
+    width:max-content;flex-wrap:nowrap;white-space:nowrap;      /* shrink-to-fit would squeeze it */
+    font-family:var(--ink-font);font-size:13px;color:var(--ink-ink);letter-spacing:.02em;
+  }
+  body.inking #inkbar{display:flex}
+  #inkbar .ib-sep{width:1px;height:24px;background:var(--ink-line);margin:0 4px;flex:none}
+  #inkbar button{
+    flex:none;width:34px;height:32px;display:grid;place-items:center;border-radius:9px;
+    background:transparent;border:1px solid transparent;color:var(--ink-ink);cursor:pointer;opacity:.86;
+    transition:background .14s,opacity .14s,border-color .14s,transform .1s;
+  }
+  #inkbar button:hover{background:var(--ink-on-bg);opacity:1}
+  #inkbar button:active{transform:translateY(1px)}
+  #inkbar button:focus-visible{outline:2px solid var(--ink-accent);outline-offset:2px}
+  /* nudge the ⏻ off the toolbar's left edge so it breathes like the other groups */
+  #inkbar [data-act="toggle"]{margin-left:5px}
+  #inkbar button.on{background:var(--ink-on-bg);border-color:var(--ink-on-line);color:var(--ink-ink);opacity:1;box-shadow:inset 0 1px 0 var(--ink-hi)}
+  #inkbar button svg{width:17px;height:17px;display:block}
+  #inkbar .sw{width:22px;height:22px;border-radius:50%;border:2px solid var(--ink-line)}
+  #inkbar .sw.on{border-color:var(--ink-ink);box-shadow:0 0 0 2px var(--ink-lo)}
+  /* 6th swatch is user-defined: dashed ring is the "pick your own" idiom */
+  #inkbar .sw.custom{border-color:var(--ink-line);border-style:dashed}
+  #inkbar .sw.custom.on{border-color:var(--ink-ink)}
+  #inkbar input[type=color]{position:absolute;width:0;height:0;opacity:0;border:0;padding:0;pointer-events:none}
+  /* eraser button carries two glyphs; only one shows per mode */
+  #inkbar [data-tool="e"] .ic-i{display:none}
+  body.er-i #inkbar [data-tool="e"] .ic-s{display:none}
+  body.er-i #inkbar [data-tool="e"] .ic-i{display:block}
+
+  /* ─── eraser mode popover: two names, nothing else ────────────────────────── */
+  #inkmenu{flex-direction:column;gap:2px;padding:5px;border-radius:11px}
+  #inkmenu button{
+    width:auto;height:auto;display:flex;align-items:center;gap:9px;padding:7px 12px;border-radius:8px;
+    background:transparent;border:1px solid transparent;color:var(--ink-ink);opacity:.8;text-align:left;
+    font:inherit;letter-spacing:.03em;cursor:pointer;transition:background .14s,opacity .14s,border-color .14s;
+  }
+  #inkmenu button:hover{background:var(--ink-on-bg);opacity:1}
+  #inkmenu button:focus-visible{outline:2px solid var(--ink-accent);outline-offset:2px}
+  #inkmenu button svg{width:16px;height:16px;flex:none;display:block}
+  #inkmenu button b{font-weight:700}
+  #inkmenu button.on{background:var(--ink-on-bg);border-color:var(--ink-on-line);opacity:1}
+
+  /* ─── thickness popover: one slider + one number, no prose ────────────────── */
+  #inkpop{align-items:center;gap:11px;padding:9px 13px;border-radius:11px}
+  #inkpop input[type=range]{-webkit-appearance:none;appearance:none;width:132px;height:22px;background:transparent;cursor:pointer;flex:none;margin:0}
+  #inkpop input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:99px;background:var(--ink-line)}
+  #inkpop input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--ink-ink);border:1px solid var(--ink-lo);margin-top:-5px}
+  #inkpop input[type=range]::-moz-range-track{height:3px;border-radius:99px;background:var(--ink-line)}
+  #inkpop input[type=range]::-moz-range-thumb{width:13px;height:13px;border:1px solid var(--ink-lo);border-radius:50%;background:var(--ink-ink)}
+  #inkpop input[type=range]:focus-visible{outline:2px solid var(--ink-accent);outline-offset:4px;border-radius:6px}
+  #inkpop b{font-weight:700;font-size:13px;color:var(--ink-ink);min-width:24px;text-align:right;font-variant-numeric:tabular-nums}
+
+  /* ─── status pill: appears only when there is something to report ─────────── */
+  #inkstatus{
+    position:fixed;left:50%;bottom:78px;transform:translateX(-50%);z-index:9002;display:none;
+    max-width:calc(100vw - 32px);padding:7px 14px;border-radius:10px;white-space:nowrap;
+    font-family:var(--ink-font);font-size:12.5px;color:var(--ink-ink);
+  }
+  #inkstatus.show{display:block}
+  #inkstatus em{font-style:normal;color:var(--ink-warn)}
+
+  /* ─── first-run hint + shortcut card (text injected by JS from L) ─────────── */
+  #inkhint{
+    position:fixed;right:20px;bottom:68px;z-index:9001;padding:9px 15px;border-radius:11px;
+    font-family:var(--ink-font);font-size:13.5px;color:var(--ink-ink);max-width:320px;line-height:1.55;
+  }
+  #inkhint kbd{font:inherit;font-weight:700;color:var(--ink-surface);background:var(--ink-accent);border-radius:4px;padding:0 5px;margin:0 2px}
+  #inkhint.off{display:none}
+  #inkhelp{
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9003;display:none;
+    width:min(640px,calc(100vw - 40px));border-radius:16px;padding:22px 26px 18px;
+    font-family:var(--ink-font);color:var(--ink-ink);
+  }
+  #inkhelp.open{display:block}
+  #inkhelp h4{margin:0 0 4px;font-size:17px;letter-spacing:.06em;color:var(--ink-accent)}
+  #inkhelp p.sub{margin:0 0 16px;font-size:12.5px;color:var(--ink-mut);line-height:1.6}
+  #inkhelp .hg{display:grid;grid-template-columns:1fr 1fr;gap:6px 30px}
+  #inkhelp .hr{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px dashed var(--ink-line);padding-bottom:5px;font-size:13px}
+  #inkhelp kbd{font:700 12px/1.6 "Segoe UI",system-ui,sans-serif;color:var(--ink-surface);background:var(--ink-accent);border-radius:5px;padding:1px 6px;white-space:nowrap}
+  #inkhelp .hfoot{margin-top:14px;padding-top:10px;border-top:1px solid var(--ink-line);font-size:12px;color:var(--ink-mut);display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+  #inkhelp .hfoot b{color:var(--ink-warn);font-weight:700}
+
+  /* ─── narrow projectors: drop secondary buttons, never wrap ───────────────── */
+  @media (max-width:1020px){
+    #inkbar{gap:4px;padding:7px 8px}
+    #inkbar button{width:31px;height:30px}
+  }
+  @media (max-width:860px){ #inkbar [data-act="json"],#inkbar [data-act="import"],#inkhint{display:none} }
+  @media (max-width:720px){ #inkbar [data-act="png"]{display:none} }
+  /* sit the bar a little right of centre — only when there is slack to spare, so a narrow
+     window never pushes its last button off screen */
+  @media (min-width:900px){ #inkbar{transform:translateX(calc(-50% + 8px))} }
+  @media (prefers-reduced-motion:reduce){ #inkbar button,#inkfab,#inkmenu button{transition:none} }
+  /* annotations are a live-canvas overlay: they stay out of print/PDF on purpose */
+  @media print{ #inkc,#inkbar,#inkfab,#inkmenu,#inkpop,#inkhint,#inkhelp,#inkstatus{display:none !important} }
+</style>
+
+<canvas id="inkc" aria-hidden="true"></canvas>
+
+<button id="inkfab" class="acrylic" aria-pressed="false">
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l1-3.2 8.1-8.1a1.8 1.8 0 012.6 2.6L7.7 15 4 16z"/><path d="M12.3 5.9l2.3 2.3"/></svg>
+</button>
+
+<div id="inkbar" class="acrylic" role="toolbar">
+  <!-- the on/off button wears the skill's tile (inlined from assets/icon.svg — keep in sync),
+       in two variants: JS sets data-mode from this deck's own --bg luminance (0.22 line) -->
+  <button data-act="toggle" aria-pressed="true">
+    <!-- 关机符号（IEC power）：开口圆弧 + 顶部竖线。它的动作是"关掉批注这一层" -->
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15.3 5.5a7.5 7.5 0 1 1-10.6 0"/><path d="M10 1.7v8.3"/></svg>
+  </button>
+
+  <span class="ib-sep"></span>
+  <!-- 钢笔 = 斜笔身 + 笔尖下一道波浪线；荧光笔 = 实心笔帽 + 收口笔身 + 斜切头，整体倾斜。
+       两个剪影刻意不同（细线笔 + 波浪 vs 粗块笔帽 + 无波浪），17px 下要一眼分得清 -->
+  <button data-tool="p" class="on">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l1-3.2 8.1-8.1a1.8 1.8 0 012.6 2.6L7.7 15 4 16z"/><path d="M2.4 18.4c1.5-1.2 2.3.9 3.7-.3 1.4-1.2 2.3.9 3.7-.3 1.4-1.2 2.3.9 3.7-.3"/></svg>
+  </button>
+  <button data-tool="m">
+    <!-- 荧光笔（本 skill 自绘，细笔身版）：斜置细笔身 + 帽身分界 + 斜切头，
+         底下压一条半透明高亮带；与钢笔（细斜笔身 + 笔尖波浪线）靠"有没有色带"区分 -->
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(45 10 10)"><path d="M8.3 2.6h3.4v10.2H8.3z"/><path d="M8.3 6.4h3.4" opacity=".55"/><path d="M8.9 12.8h2.2l.7 2.6H8.2z"/></g><path d="M3.2 18h8.2" stroke-width="3.4" stroke-linecap="butt" opacity=".3"/></svg>
+  </button>
+  <button data-tool="e" aria-haspopup="true" aria-expanded="false">
+    <svg class="ic-s" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 16.5l-4-4a1.8 1.8 0 010-2.6l5-5a1.8 1.8 0 012.6 0l3.8 3.8a1.8 1.8 0 010 2.6l-5 5H8.6z"/><path d="M5.5 18.6h11"/></svg>
+    <svg class="ic-i" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.8 14.4L4.2 10.8a1.6 1.6 0 010-2.3l4.3-4.3a1.6 1.6 0 012.3 0l3.4 3.4a1.6 1.6 0 010 2.3l-4.3 4.3H7.8z"/><path d="M4.6 17.6h4.6"/><path d="M11.4 17.6h4.2" opacity=".35"/></svg>
+  </button>
+
+  <span class="ib-sep"></span>
+  <span id="inkcolors" style="display:flex;gap:5px;align-items:center;flex:none"></span>
+
+  <span class="ib-sep"></span>
+  <button data-act="undo">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 6.5H12a4.5 4.5 0 010 9H8"/><path d="M9.5 3.8L6.3 6.5l3.2 2.7"/></svg>
+  </button>
+  <button data-act="redo">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 6.5H8a4.5 4.5 0 000 9h4"/><path d="M10.5 3.8l3.2 2.7-3.2 2.7"/></svg>
+  </button>
+  <button data-act="clear">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h12M8 6.5V4.2h4v2.3M5.6 6.5l.8 10.2h7.2l.8-10.2"/></svg>
+  </button>
+  <button data-act="eye">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 10S5.2 5 10 5s7.8 5 7.8 5-3 5-7.8 5-7.8-5-7.8-5z"/><circle cx="10" cy="10" r="2.1"/></svg>
+  </button>
+
+  <span class="ib-sep"></span>
+  <button data-act="png">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.8v9.4M6.4 8.8L10 12.4l3.6-3.6M3.4 16.6h13.2"/></svg>
+  </button>
+  <button data-act="json">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.6 3.4H5a1.6 1.6 0 00-1.6 1.6v10A1.6 1.6 0 005 16.6h10a1.6 1.6 0 001.6-1.6V12"/><path d="M12 8.2l5.4-5.4M17.4 2.8v4.2M17.4 2.8h-4.2"/></svg>
+  </button>
+  <button data-act="import">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.6 3.4H5a1.6 1.6 0 00-1.6 1.6v10A1.6 1.6 0 005 16.6h10a1.6 1.6 0 001.6-1.6V12"/><path d="M12 11.8l5.4 5.4M17.4 17.2V13M17.4 17.2h-4.2"/></svg>
+  </button>
+  <button data-act="help">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.4"/><path d="M8.1 7.9a2 2 0 113.5 1.6c-.9.8-1.6 1.2-1.6 2.3"/><circle cx="10" cy="14.4" r=".9" fill="currentColor" stroke="none"/></svg>
+  </button>
+</div>
+
+<div id="inkmenu" class="acrylic inkfloat" role="menu"></div>
+<div id="inkpop" class="acrylic inkfloat" role="group"><input id="inkpr" type="range"><b id="inkpv">6</b></div>
+<div id="inkstatus" class="acrylic" role="status" aria-live="polite"></div>
+<div id="inkhint" class="acrylic"></div>
+<div id="inkhelp" class="acrylic" role="dialog"></div>
+<input type="file" id="inkfile" accept=".json,application/json" hidden>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ═══ CONFIG BLOCK 2 · palette, ranges, strings ═══════════════════════════
+     PALETTE — 5 colours derived from THIS deck's palette, plus a 6th user slot.
+     Rules (see references/(en|zh)/07-annotation.md §3):
+       · ≥3:1 against the deck's darkest and lightest slide surfaces (ink must be
+         readable over artwork, not just over --bg)
+       · mutually distinct in hue AND lightness — they are clicked as 22px dots
+       · do not reuse a deck accent for a pen: it disappears into highlighted text
+       · keep one near-white and one near-black only if the deck has both surfaces
+     NAMES — same length as PALETTE, language-matched via L below.                  */
+  var PALETTE = ['#FF5A5F', '#FFC53D', '#35E0D0', '#FFFFFF', '#8AB4FF'];
+  var CUSTOM_DEF = '#B98CFF';                       /* 6th slot default, user-editable */
+  var SIZE = {
+    p: { min:1.5, max:14, step:0.5, def:6,  nudge:1 },   /* pen: thin strokes        */
+    m: { min:8,   max:60, step:1,   def:22, nudge:4 }    /* highlighter: wide bands  */
+  };
+
+  /* Runtime strings. Everything the user reads lives here; the markup stays empty.
+     Add a language by adding a block; selection is by <html lang>.                */
+  var ZH = {
+    fab:'屏幕批注（A）', toggle:'结束批注（A）', pen:'钢笔（P）', marker:'荧光笔（M）', eraser:'橡皮（E）',
+    names:['红','黄','青','白','蓝','自定义'],
+    undo:'撤销（Ctrl+Z）', redo:'重做（Ctrl+Shift+Z）', clear:'清空本页（X）', eye:'显示/隐藏批注（V）',
+    png:'导出 PNG（S）', json:'导出 JSON', import:'导入 JSON', help:'快捷键（?）',
+    ariaBar:'屏幕批注工具条', ariaPop:'粗细', ariaCustom:'自定义颜色',
+    er:[['笔画橡皮擦','点一下删整条'],['墨迹橡皮擦','按住擦掉经过的墨']],
+    hint:'点右下角的笔形按钮（或按 <kbd>A</kbd>）开始批注 · <kbd>P</kbd> 笔 <kbd>M</kbd> 高亮 <kbd>E</kbd> 橡皮 · <kbd>?</kbd> 全部快捷键',
+    helpTitle:'屏幕批注 · 快捷键',
+    helpSub:'批注按页保存，切页自动跟随；笔迹只在屏幕上叠加，不改动幻灯片本身。',
+    helpRows:[['开启 / 结束批注','右下角按钮 · A'],['退出 / 关闭浮层','Esc'],['钢笔','P'],['荧光笔','M'],
+              ['橡皮','E'],['调粗细 / 选橡皮模式','再点一次该工具'],['临时擦除（任意工具）','右键拖动'],['换色','C'],
+              ['当前笔粗细微调','[ · ]'],['撤销 / 重做','Ctrl+Z'],['清空本页','X'],['显示 / 隐藏批注','V'],
+              ['导出本页笔迹 PNG','S'],['本页全部快捷键','?']],
+    helpFoot:'批注时鼠标点击/滑动不再翻页，方向键、空格、数字键照常翻页', helpBackup:'备份请用工具条导出 JSON',
+    tEr:'橡皮 · <em>%s</em>', tImp:'已导入 <em>%s</em> 笔批注', tImpBad:'导入失败：<em>不是批注 JSON</em>',
+    tPng:'<em>导出失败</em>：画布被安全策略污染', tStore:'<em>本地存储写不进去</em>，请用工具条导出 JSON 备份',
+    erS:'笔画', erI:'墨迹', filePng:'%s-第%d页-批注.png', fileJson:'%s-批注.json'
+  };
+  var EN = {
+    fab:'Annotate (A)', toggle:'End annotation (A)', pen:'Pen (P)', marker:'Highlighter (M)', eraser:'Eraser (E)',
+    names:['red','yellow','cyan','white','blue','custom'],
+    undo:'Undo (Ctrl+Z)', redo:'Redo (Ctrl+Shift+Z)', clear:'Clear this slide (X)', eye:'Show/hide ink (V)',
+    png:'Export PNG (S)', json:'Export JSON', import:'Import JSON', help:'Shortcuts (?)',
+    ariaBar:'Screen annotation toolbar', ariaPop:'Stroke width', ariaCustom:'Custom colour',
+    er:[['Whole stroke','click erases a stroke'],['Scrub ink','drag erases ink it touches']],
+    hint:'Click the pen button at the bottom right (or press <kbd>A</kbd>) · <kbd>P</kbd> pen <kbd>M</kbd> highlighter <kbd>E</kbd> eraser · <kbd>?</kbd> all shortcuts',
+    helpTitle:'Screen annotation · shortcuts',
+    helpSub:'Ink is stored per slide and follows navigation. It only overlays the deck; the slides themselves are untouched.',
+    helpRows:[['Start / end annotation','corner button · A'],['Dismiss overlay / exit','Esc'],['Pen','P'],['Highlighter','M'],
+              ['Eraser','E'],['Width / eraser mode','click the active tool again'],['Erase temporarily (any tool)','right-drag'],['Colour','C'],
+              ['Nudge width','[ · ]'],['Undo / redo','Ctrl+Z'],['Clear this slide','X'],['Show / hide ink','V'],
+              ['Export slide ink PNG','S'],['This dialog','?']],
+    helpFoot:'While annotating, mouse clicks and swipes stop paging; keys keep working', helpBackup:'Export JSON for a backup',
+    tEr:'Eraser · <em>%s</em>', tImp:'Imported <em>%s</em> strokes', tImpBad:'Import failed: <em>not an ink JSON</em>',
+    tPng:'<em>Export failed</em>: canvas is tainted', tStore:'<em>localStorage unavailable</em> — export JSON to keep your ink',
+    erS:'whole stroke', erI:'scrub ink', filePng:'%s-slide%d-ink.png', fileJson:'%s-ink.json'
+  };
+  var JA = {
+    fab:'注記開始（A）', toggle:'注記終了（A）', pen:'ペン（P）', marker:'マーカー（M）', eraser:'消しゴム（E）',
+    names:['赤','黄','シアン','白','青','カスタム'],
+    undo:'取り消し（Ctrl+Z）', redo:'やり直し（Ctrl+Shift+Z）', clear:'このページを消去（X）', eye:'注記の表示 / 非表示（V）',
+    png:'PNG 書き出し（S）', json:'JSON 書き出し', import:'JSON 読み込み', help:'キー一覧（?）',
+    ariaBar:'画面注記ツールバー', ariaPop:'線の太さ', ariaCustom:'カスタム色',
+    er:[['筆跡消し','クリックで筆跡を 1 本削除'],['なぞり消し','ドラッグで触れた筆跡を削除']],
+    hint:'右下のペンボタンをクリック（または <kbd>A</kbd>）で注記開始 · <kbd>P</kbd> ペン <kbd>M</kbd> マーカー <kbd>E</kbd> 消しゴム · <kbd>?</kbd> キー一覧',
+    helpTitle:'画面注記 · キー操作',
+    helpSub:'注記はページごとに保存され、ページ送りに追随します。画面上に重ねるだけで、スライド本体には一切手を入れません。',
+    helpRows:[['注記の開始 / 終了','右下ボタン · A'],['オーバーレイの解除 / 終了','Esc'],['ペン','P'],['マーカー','M'],
+              ['消しゴム','E'],['太さ / 消しゴムモード','使用中のツールをもう一度クリック'],['一時消去（どのツールでも）','右ドラッグ'],['色替え','C'],
+              ['線の微調整','[ · ]'],['取り消し / やり直し','Ctrl+Z'],['このページを消去','X'],['注記の表示 / 非表示','V'],
+              ['このページの筆跡を PNG 書き出し','S'],['このダイアログ','?']],
+    helpFoot:'注記中はクリックとスワイプではページを送りません。矢印・スペース・数字キーはそのまま使えます', helpBackup:'バックアップはツールバーで JSON を書き出してください',
+    tEr:'消しゴム · <em>%s</em>', tImp:'<em>%s</em> 本の筆跡を読み込みました', tImpBad:'読み込み失敗：<em>注記 JSON ではありません</em>',
+    tPng:'<em>書き出し失敗</em>：キャンバスがセキュリティポリシーで汚染されています', tStore:'<em>ローカルに保存できません</em>——ツールバーの JSON 書き出しでバックアップを',
+    erS:'筆跡', erI:'なぞり', filePng:'%s-%dページ-注記.png', fileJson:'%s-注記.json'
+  };
+  var _lang = (document.documentElement.lang || (navigator.language || '')).toLowerCase();
+  var L = /^zh/.test(_lang) ? ZH : /^ja/.test(_lang) ? JA : EN;
+  var CUSTOM = PALETTE.length;                      /* index of the user-defined slot */
+  var COLORS = PALETTE.concat([loadCustom()]);
+
+  /* ═══ everything below is generic — no per-deck edits needed ═══════════════ */
+  var stageEl = document.getElementById('stage');
+  var viewport = document.getElementById('viewport');
+  var overview = document.getElementById('overview');
+  var cv = document.getElementById('inkc');
+  var bar = document.getElementById('inkbar');
+  var fab = document.getElementById('inkfab');
+  var menu = document.getElementById('inkmenu');
+  var pop = document.getElementById('inkpop');
+  var pr = document.getElementById('inkpr');
+  var pv = document.getElementById('inkpv');
+  var statusEl = document.getElementById('inkstatus');
+  var hintEl = document.getElementById('inkhint');
+  var helpEl = document.getElementById('inkhelp');
+  var fileEl = document.getElementById('inkfile');
+  var ctx = cv.getContext('2d');
+
+  /* storage keys ride on the deck title, not the path: renaming or moving the file
+     must not orphan the annotations the user already made */
+  var DOC = (document.title || 'deck').replace(/[（(]\s*(annotated|批注版)\s*[)）]\s*$/, '').trim();
+  var LS = 'ink.v1|' + DOC, LS_SIZE = 'ink.v1.size|' + DOC,
+      LS_COLOR = 'ink.v1.color|' + DOC, LS_HINT = 'ink.v1.hint|' + DOC,
+      LS_FAB = 'ink.v1.fab|' + DOC;
+  /* preview mode = this file is running inside the presenter window's ?preview=N iframe */
+  var PV = document.documentElement.getAttribute('data-preview') === '1';
+
+  function loadCustom(){
+    var c = CUSTOM_DEF;
+    try { var v = localStorage.getItem(LS_COLOR); if (/^#[0-9a-f]{6}$/i.test(v || '')) c = v; } catch (e) {}
+    return c;
+  }
+  function load(){
+    try { var s = JSON.parse(localStorage.getItem(LS) || '{}'); return (s && typeof s === 'object' && !s.length) ? s : {}; }
+    catch (e) { storageOK = false; return {}; }
+  }
+
+  var storageOK = true;
+  var store = load();
+  var sizes = loadSizes();
+  var on = false, visible = true, tool = 'p', ci = 0, emode = 's';
+  var live = null, liveKey = '', snap = null, snapKey = '', changed = false;
+  var hover = null, mode = '';
+  var und = [], red = [];
+  var W = 0, H = 0, raf = 0, lastPage = -1, sayTimer = 0, popTool = '';
+  var REV = 0;                                       /* store revision: last write wins */
+
+  function save(){
+    REV++;
+    try { localStorage.setItem(LS, JSON.stringify(store)); storageOK = true; }
+    catch (e){ if (storageOK !== false) say(L.tStore); storageOK = false; }
+    /* host → presenter window rides on the 'ink:change' event (the presenter overlay
+       relays it); preview → host goes through the parent chain. Same payload. */
+    try { window.dispatchEvent(new CustomEvent('ink:change', { detail: { store: store, rev: REV } })); } catch (e) {}
+    if (PV) { try { parent.postMessage({ type: 'ink-cmd', cmd: 'store', store: store, rev: REV }, '*'); } catch (e) {} }
+  }
+  function loadSizes(){
+    var o = { p:SIZE.p.def, m:SIZE.m.def };
+    try {
+      var s = JSON.parse(localStorage.getItem(LS_SIZE) || '{}');
+      if (s && typeof s === 'object'){
+        if (+s.p >= SIZE.p.min && +s.p <= SIZE.p.max) o.p = +s.p;
+        if (+s.m >= SIZE.m.min && +s.m <= SIZE.m.max) o.m = +s.m;
+      }
+    } catch (e) {}
+    return o;
+  }
+  function saveSizes(){ try { localStorage.setItem(LS_SIZE, JSON.stringify(sizes)); } catch (e) {} }
+  function say(html){
+    statusEl.innerHTML = html; statusEl.classList.add('show');
+    clearTimeout(sayTimer); sayTimer = setTimeout(function(){ statusEl.classList.remove('show'); }, 3200);
+  }
+
+  /* current slide: prefer the shell's public API, fall back to the DOM contract */
+  function curPage(){
+    if (window.__deck && typeof window.__deck.index === 'number') return window.__deck.index;
+    var a = document.querySelector('#stage > .slide.active');
+    if (!a) return 0;
+    var l = document.querySelectorAll('#stage > .slide');
+    for (var i = 0; i < l.length; i++) if (l[i] === a) return i;
+    return 0;
+  }
+  function pkey(){ return 'p' + curPage(); }
+  function list(k){ return store[k] || (store[k] = []); }
+
+  /* ─── cross-window sync (presenter mode) ───────────────────────────────────
+     The same file runs in the presenter window's preview iframes, so there can be
+     several ink instances over one store. Saves carry a revision; a remote store
+     only lands when it is newer. Applying a remote store never re-broadcasts, and
+     it becomes one undo step (k '*'), so Ctrl+Z undoes strokes drawn in the other
+     window too. */
+  function cloneStore(s){ try { return JSON.parse(JSON.stringify(s)); } catch (e) { return {}; } }
+  function applyRemote(s, r){
+    r = +r || 0;
+    if (!s || typeof s !== 'object' || r <= REV) return;
+    und.push({ k:'*', v: cloneStore(store) }); if (und.length > 80) und.shift();
+    red.length = 0;
+    store = s; REV = r;
+    q();
+  }
+  window.addEventListener('message', function(e){
+    var d = e.data;
+    if (!d || d.type !== 'ink-cmd') return;
+    if (d.cmd === 'store') applyRemote(d.store, d.rev);
+    else if (d.cmd === 'on') setOn(!!d.arg);
+    else if (d.cmd === 'ask' && PV) { try { parent.postMessage({ type: 'ink-state', on: on }, '*'); } catch (err) {} }
+  });
+
+  /* strokes are stored normalised to #stage, so any window size maps them back
+     to the same spot on the slide and line width scales instead of blurring */
+  function rect(){
+    var r = stageEl ? stageEl.getBoundingClientRect() : {left:0,top:0,width:0,height:0};
+    if (!r.width || !r.height) return { left:0, top:0, width:W || innerWidth, height:H || innerHeight };
+    return r;
+  }
+  function toNorm(x, y, p){ var r = rect(); return [(x - r.left) / r.width, (y - r.top) / r.height, p]; }
+  function toPx(p){ var r = rect(); return [r.left + p[0] * r.width, r.top + p[1] * r.height]; }
+
+  function resize(){
+    W = innerWidth; H = innerHeight;
+    var d = Math.min(3, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    draw();
+  }
+
+  function smoothPath(pts){
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i < pts.length - 1; i++)
+      ctx.quadraticCurveTo(pts[i][0], pts[i][1], (pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2);
+    if (pts.length > 1) ctx.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+    ctx.stroke();
+  }
+  function drawStroke(s){
+    var r = rect(), k = r.width / 1280, i, pts = [];
+    for (i = 0; i < s.pts.length; i++) pts.push(toPx(s.pts[i]));
+    ctx.save();
+    ctx.lineCap = ctx.lineJoin = 'round';
+    if (s.t === 'x'){                                   /* scrub eraser: punch a hole */
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = ctx.fillStyle = '#000';
+      ctx.lineWidth = Math.max(1, s.w * k);
+      if (pts.length === 1){ ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], s.w * k / 2, 0, 6.2832); ctx.fill(); }
+      else smoothPath(pts);
+      ctx.restore(); return;
+    }
+    ctx.strokeStyle = ctx.fillStyle = s.c;
+    ctx.globalAlpha = (s.t === 'm') ? .30 : 1;
+    if (pts.length === 1){ ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], Math.max(1, s.w * k / 2), 0, 6.2832); ctx.fill(); ctx.restore(); return; }
+    if (s.pr){                                          /* stylus pressure per segment */
+      for (i = 1; i < pts.length; i++){
+        ctx.lineWidth = Math.max(.7, s.w * k * (0.45 + 0.95 * (s.pts[i][2] || .5)));
+        ctx.beginPath(); ctx.moveTo(pts[i - 1][0], pts[i - 1][1]); ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke();
+      }
+    } else { ctx.lineWidth = Math.max(.7, s.w * k); smoothPath(pts); }
+    ctx.restore();
+  }
+  function erSize(){ return Math.max(10, sizes.p * 2); }
+  function drawEraseCursor(){
+    if (!on || tool !== 'e' || !hover) return;
+    var r = rect(), k = r.width / 1280;
+    var rad = (emode === 'i') ? Math.max(8, erSize() * k / 2) : Math.max(13, sizes.p * k * 1.6);
+    ctx.save(); ctx.lineWidth = 1.4; ctx.strokeStyle = 'rgba(255,255,255,.9)';
+    if (emode === 'i'){ ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.beginPath(); ctx.arc(hover[0], hover[1], rad, 0, 6.2832); ctx.fill(); }
+    else ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.arc(hover[0], hover[1], rad, 0, 6.2832); ctx.stroke(); ctx.restore();
+  }
+  function draw(){
+    raf = 0; ctx.clearRect(0, 0, W, H);
+    if (visible){
+      var l = store[pkey()] || [];
+      for (var i = 0; i < l.length; i++) drawStroke(l[i]);
+      if (live) drawStroke(live);
+    }
+    drawEraseCursor();
+  }
+  function q(){ if (!raf) raf = requestAnimationFrame(draw); }
+
+  function beginOp(k){ snap = (store[k] || []).slice(); snapKey = k; changed = false; }
+  function commitOp(){
+    if (!changed || !snap) return;
+    und.push({ k:snapKey, v:snap }); if (und.length > 80) und.shift();
+    red.length = 0; snap = null; changed = false;
+  }
+  function undo(){
+    var o = und.pop(); if (!o) return;
+    red.push({ k:o.k, v: o.k === '*' ? cloneStore(store) : (store[o.k] || []).slice() });
+    if (o.k === '*') store = o.v; else store[o.k] = o.v;
+    save(); q();
+  }
+  function redo(){
+    var o = red.pop(); if (!o) return;
+    und.push({ k:o.k, v: o.k === '*' ? cloneStore(store) : (store[o.k] || []).slice() });
+    if (o.k === '*') store = o.v; else store[o.k] = o.v;
+    save(); q();
+  }
+
+  function distToSeg(px, py, ax, ay, bx, by){
+    var dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+    if (!L2) return Math.hypot(px - ax, py - ay);
+    var t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  }
+  function hitStroke(s, mx, my){
+    var r = rect(), k = r.width / 1280, lim = Math.max(15, s.w * k / 2 + 9), i, p, a, b;
+    if (s.pts.length === 1){ p = toPx(s.pts[0]); return Math.hypot(mx - p[0], my - p[1]) <= lim; }
+    for (i = 1; i < s.pts.length; i++){
+      a = toPx(s.pts[i - 1]); b = toPx(s.pts[i]);
+      if (distToSeg(mx, my, a[0], a[1], b[0], b[1]) <= lim) return true;
+    }
+    return false;
+  }
+  function eraseAt(mx, my){
+    var l = list(liveKey || pkey()), i;
+    for (i = l.length - 1; i >= 0; i--){
+      if (l[i].t === 'x') continue;
+      if (hitStroke(l[i], mx, my)){ l.splice(i, 1); changed = true; save(); return; }
+    }
+  }
+
+  cv.addEventListener('pointerdown', function(e){
+    if (!on || e.button === 1) return;
+    if (popOpen()) closePop();
+    if (menuOpen()) closeMenu();
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    hover = [e.clientX, e.clientY];
+    liveKey = pkey();                                  /* lock the slide at pen-down */
+    if (tool === 'e' && e.button !== 2 && emode === 'i'){
+      mode = 'draw'; beginOp(liveKey);
+      live = { t:'x', w:erSize(), pr:false, pts:[toNorm(e.clientX, e.clientY, 1)] }; q(); return;
+    }
+    if (tool === 'e' || e.button === 2){
+      mode = 'erase'; beginOp(liveKey); eraseAt(e.clientX, e.clientY); q(); return;
+    }
+    var p = (e.pointerType === 'pen' && e.pressure > 0) ? e.pressure : .5;
+    mode = 'draw'; beginOp(liveKey);
+    live = { t:(tool === 'm' ? 'm' : 'p'), c:COLORS[ci], w:sizes[tool === 'm' ? 'm' : 'p'], pr:(e.pointerType === 'pen'), pts:[toNorm(e.clientX, e.clientY, p)] };
+    q();
+  });
+  cv.addEventListener('pointermove', function(e){
+    hover = [e.clientX, e.clientY];
+    if (mode === 'erase') eraseAt(e.clientX, e.clientY);
+    else if (live){
+      var evs = (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
+      for (var i = 0; i < evs.length; i++){
+        var p = (evs[i].pointerType === 'pen' && evs[i].pressure > 0) ? evs[i].pressure : .5;
+        live.pts.push(toNorm(evs[i].clientX, evs[i].clientY, p));
+      }
+    }
+    q();
+  });
+  function endPointer(){
+    if (mode === 'erase') commitOp();
+    else if (live && live.pts.length){ list(liveKey || pkey()).push(live); changed = true; commitOp(); save(); }
+    live = null; liveKey = ''; snap = null; mode = ''; q();
+    if (PV) { try { parent.focus(); } catch (e) {} }   /* hand keys back to the presenter window */
+  }
+  cv.addEventListener('pointerup', endPointer);
+  cv.addEventListener('pointercancel', endPointer);
+  cv.addEventListener('pointerleave', function(){ if (on && tool === 'e'){ hover = null; q(); } });
+  cv.addEventListener('contextmenu', function(e){ if (on) e.preventDefault(); });
+
+  /* ─── keys: paging is left ALONE (the deck keeps working); only our own keys
+     and mouse/touch paging are handled ─────────────────────────────────────── */
+  function ovOpen(){ return overview && overview.classList.contains('open'); }
+  window.addEventListener('keydown', function(e){
+    if (e.ctrlKey || e.metaKey || e.altKey){
+      if ((e.key === 'z' || e.key === 'Z') && !ovOpen()){ e.preventDefault(); e.shiftKey ? redo() : undo(); }
+      else if ((e.key === 'y' || e.key === 'Y') && !ovOpen()){ e.preventDefault(); redo(); }
+      return;
+    }
+    var t = e.target, tag = t && t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)){
+      if (e.key === 'Escape'){ closePop(); closeMenu(); }
+      return;                                          /* arrows belong to the slider */
+    }
+    var k = e.key;
+    if (ovOpen()){ if (k === 'a' || k === 'A') setOn(false); return; }
+    if (k === '?' || (k === '/' && e.shiftKey)){ toggleHelp(); e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (helpOpen() && k === 'Escape'){ toggleHelp(false); e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (k === 'v' || k === 'V'){ setVisible(!visible); return; }
+    if (k === 'a' || k === 'A'){ setOn(!on); hideHint(); return; }
+    if (!on) return;
+    if (k === 'Escape'){
+      if (popOpen()) closePop(); else if (menuOpen()) closeMenu();
+      else if (helpOpen()) toggleHelp(false); else setOn(false);
+      e.preventDefault(); e.stopImmediatePropagation(); return;
+    }
+    if (k === 'p' || k === 'P') return pickTool('p');
+    if (k === 'm' || k === 'M') return pickTool('m');
+    if (k === 'e' || k === 'E'){ if (tool === 'e') cycleEraser(); else pickTool('e'); return; }
+    if (k === 'c' || k === 'C') return setColor((ci + 1) % COLORS.length);
+    if (k === '[' || k === ']') return nudge(k === ']' ? 1 : -1);
+    if (k === 'x' || k === 'X'){ clearPage(); return; }
+    if (k === 's' || k === 'S'){ exportPNG(); return; }
+  }, true);
+
+  /* clicks on the canvas must not reach the deck's click-half-to-page handler */
+  function swallowClick(e){ if (on && e.target === cv){ e.stopImmediatePropagation(); if (e.cancelable) e.preventDefault(); } }
+  function swallowTouch(e){ if (on && e.target === cv) e.stopImmediatePropagation(); }
+  window.addEventListener('click', swallowClick, true);
+  window.addEventListener('dblclick', swallowClick, true);
+  ['touchstart', 'touchmove', 'touchend'].forEach(function(t){ window.addEventListener(t, swallowTouch, true); });
+  window.addEventListener('pointerdown', function(e){
+    if (!popOpen() && !menuOpen()) return;
+    var el = e.target;
+    if (el && el.closest && (el.closest('#inkpop') || el.closest('#inkmenu') || el.closest('#inkbar'))) return;
+    closePop(); closeMenu();
+  }, true);
+
+  function setOn(v){
+    on = !!v;
+    document.body.classList.toggle('inking', on);
+    document.body.classList.remove('tk-p', 'tk-m', 'tk-e');
+    if (on) document.body.classList.add('tk-' + tool);
+    live = null; hover = null; mode = ''; closePop(); closeMenu();
+    var tg = bar.querySelector('[data-act="toggle"]');
+    tg.setAttribute('aria-pressed', on ? 'true' : 'false');   /* the power glyph is an action, not a selected tool: no .on highlight */
+    fab.setAttribute('aria-pressed', on ? 'true' : 'false');
+    syncBar(); q();
+    if (PV) { try { parent.postMessage({ type: 'ink-state', on: on }, '*'); } catch (e) {} }
+  }
+  function setTool(t){
+    tool = t;
+    document.body.classList.remove('tk-p', 'tk-m', 'tk-e');
+    if (on) document.body.classList.add('tk-' + t);
+    hover = null; syncBar(); q();
+  }
+  function setColor(i){ ci = i; syncBar(); }
+  /* clicking the already-active tool opens its popover */
+  function pickTool(t){
+    if (t === 'e' && tool === 'e'){ menuOpen() ? closeMenu() : (setTool('e'), openMenu()); return; }
+    if ((t === 'p' || t === 'm') && tool === t){
+      if (popOpen() && popTool === t) closePop(); else { setTool(t); openPop(t); }
+      return;
+    }
+    closePop(); closeMenu(); setTool(t);
+  }
+  function nudge(dir){
+    var t = (tool === 'm') ? 'm' : 'p';
+    setSize(t, sizes[t] + SIZE[t].nudge * dir);
+    if (popOpen() && popTool === t) syncPop();
+  }
+  function fmt(v){ return String(Math.round(v * 10) / 10); }
+  function setSize(t, v){
+    var R = SIZE[t];
+    v = Math.max(R.min, Math.min(R.max, Math.round(v / R.step) * R.step));
+    sizes[t] = Math.round(v * 10) / 10; saveSizes();
+  }
+
+  function anchor(t){ return bar.querySelector('[data-tool="' + t + '"]'); }
+  function place(el, btn){
+    var r = btn.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    el.style.left = Math.round(r.left + r.width / 2) + 'px';
+    el.style.bottom = Math.round((innerHeight || document.documentElement.clientHeight) - r.top + 10) + 'px';
+  }
+  function menuOpen(){ return menu.classList.contains('open'); }
+  function popOpen(){ return pop.classList.contains('open'); }
+  function openMenu(){ setTool('e'); menu.classList.add('open'); anchor('e').setAttribute('aria-expanded', 'true'); syncMenu(); place(menu, anchor('e')); }
+  function closeMenu(){ menu.classList.remove('open'); var b = anchor('e'); if (b) b.setAttribute('aria-expanded', 'false'); }
+  function syncMenu(){
+    var it = menu.querySelectorAll('[data-emode]');
+    for (var i = 0; i < it.length; i++){
+      var sel = it[i].getAttribute('data-emode') === emode;
+      it[i].classList.toggle('on', sel); it[i].setAttribute('aria-checked', sel ? 'true' : 'false');
+    }
+  }
+  function setEraser(m){ emode = (m === 'i') ? 'i' : 's'; syncEraser(); syncMenu(); q(); }
+  function cycleEraser(){ closeMenu(); setEraser(emode === 's' ? 'i' : 's'); say(L.tEr.replace('%s', emode === 's' ? L.erS : L.erI)); }
+  function syncEraser(){ document.body.classList.toggle('er-i', emode === 'i'); }
+  function openPop(t){ closeMenu(); popTool = t; pop.classList.add('open'); syncPop(); place(pop, anchor(t)); }
+  function closePop(){ pop.classList.remove('open'); popTool = ''; }
+  function syncPop(){
+    var t = popTool === 'm' ? 'm' : 'p', R = SIZE[t];
+    pr.min = R.min; pr.max = R.max; pr.step = R.step; pr.value = sizes[t];
+    pv.textContent = fmt(sizes[t]);
+  }
+  pr.addEventListener('input', function(){
+    if (!popTool) return;
+    setSize(popTool, pr.value); pv.textContent = fmt(sizes[popTool]); q();
+  });
+  pr.addEventListener('change', function(){ pr.blur(); });
+
+  function clearPage(){
+    var k = pkey(), l = store[k] || [];
+    if (!l.length) return;
+    beginOp(k); store[k] = []; changed = true; commitOp(); save(); q();
+  }
+  function helpOpen(){ return helpEl.classList.contains('open'); }
+  function toggleHelp(v){ helpEl.classList.toggle('open', v === undefined ? !helpOpen() : v); syncBar(); }
+  function setVisible(v){ visible = !!v; q(); }
+
+  function dl(href, name){
+    var a = document.createElement('a');
+    a.href = href; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function(){ if (a.parentNode) a.parentNode.removeChild(a); }, 0);
+  }
+  function exportPNG(){
+    live = null; hover = null; mode = ''; closePop(); closeMenu(); draw();
+    try { dl(cv.toDataURL('image/png'), L.filePng.replace('%s', DOC).replace('%d', curPage() + 1)); }
+    catch (e) { say(L.tPng); }
+    q();
+  }
+  function exportJSON(){
+    var url = URL.createObjectURL(new Blob([JSON.stringify(store)], { type:'application/json' }));
+    dl(url, L.fileJson.replace('%s', DOC));
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+  }
+  function importJSON(f){
+    var fr = new FileReader();
+    fr.onload = function(){
+      try {
+        var o = JSON.parse(fr.result), n = 0;
+        if (!o || typeof o !== 'object' || o.length) throw 0;
+        for (var k in o) if (/^p\d+$/.test(k) && o[k] && o[k].length){ store[k] = o[k]; n += o[k].length; }
+        save(); q(); say(L.tImp.replace('%s', n));
+      } catch (e) { say(L.tImpBad); }
+    };
+    fr.readAsText(f);
+  }
+
+  /* ─── build the colour swatches (+ the custom slot) from config ──────────── */
+  var colorsWrap = document.getElementById('inkcolors');
+  COLORS.forEach(function(c, i){
+    var b = document.createElement('button');
+    b.className = 'sw' + (i === CUSTOM ? ' custom' : ''); b.style.background = c;
+    b.setAttribute('data-color', i);
+    b.setAttribute('aria-label', (L.names[i] || c) + ' pen');
+    colorsWrap.appendChild(b);
+  });
+  var cp = document.createElement('input');
+  cp.type = 'color'; cp.value = COLORS[CUSTOM]; cp.setAttribute('aria-label', L.ariaCustom);
+  colorsWrap.appendChild(cp);
+  cp.addEventListener('input', function(){
+    COLORS[CUSTOM] = cp.value;
+    var sw = colorsWrap.querySelector('[data-color="' + CUSTOM + '"]');
+    if (sw) sw.style.background = cp.value;
+    if (ci === CUSTOM) q();
+  });
+  cp.addEventListener('change', function(){
+    COLORS[CUSTOM] = cp.value;
+    try { localStorage.setItem(LS_COLOR, cp.value); } catch (e) {}
+    cp.blur();
+  });
+  function pickCustom(){ setColor(CUSTOM); cp.value = COLORS[CUSTOM]; cp.click(); }
+
+  bar.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.tool) pickTool(b.dataset.tool);
+    else if (b.dataset.color !== undefined){
+      if (+b.dataset.color === CUSTOM) pickCustom(); else setColor(+b.dataset.color);
+    }
+    else switch (b.dataset.act){
+      case 'toggle': setOn(!on); break;
+      case 'undo': undo(); break;
+      case 'redo': redo(); break;
+      case 'clear': clearPage(); break;
+      case 'eye': setVisible(!visible); break;
+      case 'png': exportPNG(); break;
+      case 'json': exportJSON(); break;
+      case 'import': fileEl.click(); break;
+      case 'help': toggleHelp(); break;
+    }
+  });
+  menu.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-emode]'); if (!b) return;
+    setEraser(b.dataset.emode); closeMenu();
+  });
+  /* the corner button is draggable: hold and move to park it anywhere (remembered per
+     deck in ink.v1.fab|<title>); a plain click still starts annotation; double-click
+     forgets the parked position */
+  var fabPos = null, fabDragged = false;
+  function clampFab(p){
+    var w = fab.offsetWidth || 42, h = fab.offsetHeight || 42;
+    var mx = Math.max(0, (innerWidth || document.documentElement.clientWidth) - w);
+    var my = Math.max(0, (innerHeight || document.documentElement.clientHeight) - h);
+    return { x: Math.min(Math.max(4, p.x), mx - 4), y: Math.min(Math.max(4, p.y), my - 4) };
+  }
+  function applyFabPos(){
+    if (!fabPos){ fab.style.left = fab.style.top = fab.style.right = fab.style.bottom = ''; return; }
+    fab.style.right = fab.style.bottom = 'auto';
+    fab.style.left = fabPos.x + 'px'; fab.style.top = fabPos.y + 'px';
+  }
+  function loadFab(){
+    try {
+      var s = JSON.parse(localStorage.getItem(LS_FAB) || 'null');
+      if (s && isFinite(+s.x) && isFinite(+s.y)) fabPos = clampFab({ x: +s.x, y: +s.y });
+    } catch (e) {}
+    applyFabPos();
+  }
+  fab.addEventListener('pointerdown', function(e){
+    if (e.button !== 0) return;
+    var r = fab.getBoundingClientRect(), sx = e.clientX, sy = e.clientY, ox = r.left, oy = r.top, moved = false;
+    try { fab.setPointerCapture(e.pointerId); } catch (err) {}
+    function mv(ev){
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return;
+      if (!moved){ moved = true; fab.classList.add('dragging'); }
+      fabPos = clampFab({ x: ox + (ev.clientX - sx), y: oy + (ev.clientY - sy) });
+      applyFabPos();
+    }
+    function up(){
+      fab.classList.remove('dragging');
+      fab.removeEventListener('pointermove', mv);
+      fab.removeEventListener('pointerup', up);
+      fab.removeEventListener('pointercancel', up);
+      if (moved){
+        fabDragged = true;                              /* swallow the click that follows */
+        setTimeout(function(){ fabDragged = false; }, 0);
+        try { localStorage.setItem(LS_FAB, JSON.stringify(fabPos)); } catch (err) {}
+      }
+    }
+    fab.addEventListener('pointermove', mv);
+    fab.addEventListener('pointerup', up);
+    fab.addEventListener('pointercancel', up);
+  });
+  fab.addEventListener('dblclick', function(){
+    fabPos = null;
+    try { localStorage.removeItem(LS_FAB); } catch (e) {}
+    applyFabPos();
+  });
+  fab.addEventListener('click', function(){ if (fabDragged) return; setOn(true); hideHint(); });
+  fileEl.addEventListener('change', function(){ if (fileEl.files && fileEl.files[0]) importJSON(fileEl.files[0]); fileEl.value = ''; });
+
+  /* every ink surface stops its own gestures: the deck's paging handlers live on
+     document, and stopPropagation at window capture would kill our own handlers too */
+  function isolate(el){
+    ['click', 'dblclick', 'auxclick', 'pointerdown', 'touchstart', 'touchmove', 'touchend'].forEach(function(t){
+      el.addEventListener(t, function(e){ e.stopPropagation(); });
+    });
+  }
+  [bar, fab, menu, pop, hintEl, helpEl, statusEl].forEach(isolate);
+
+  function mark(sel, yes){ var el = bar.querySelector(sel); if (el) el.classList.toggle('on', !!yes); }
+  function syncBar(){
+    ['p', 'm', 'e'].forEach(function(t){ mark('[data-tool="' + t + '"]', t === tool); });
+    COLORS.forEach(function(c, i){ mark('[data-color="' + i + '"]', i === ci); });
+    mark('[data-act="eye"]', !visible); mark('[data-act="help"]', helpOpen());
+  }
+
+  /* labels + tooltips + help card, all from L */
+  function paint(){
+    bar.setAttribute('aria-label', L.ariaBar);
+    pop.setAttribute('aria-label', L.ariaPop);
+    pr.setAttribute('aria-label', L.ariaPop);
+    fab.title = L.fab; bar.querySelector('[data-act="toggle"]').title = L.toggle;
+    bar.querySelector('[data-tool="p"]').title = L.pen;
+    bar.querySelector('[data-tool="m"]').title = L.marker;
+    bar.querySelector('[data-tool="e"]').title = L.eraser;
+    ['undo', 'redo', 'clear', 'eye', 'png', 'json', 'import', 'help'].forEach(function(a){
+      var b = bar.querySelector('[data-act="' + a + '"]'); if (b) b.title = L[a];
+    });
+    var sw = colorsWrap.querySelectorAll('.sw');
+    for (var i = 0; i < sw.length; i++) sw[i].title = L.names[i] || COLORS[i];
+    menu.innerHTML = L.er.map(function(e2, i){
+      return '<button role="menuitemradio" data-emode="' + (i ? 'i' : 's') + '">'
+        + '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+        + (i ? '<path d="M7.8 14.4L4.2 10.8a1.6 1.6 0 010-2.3l4.3-4.3a1.6 1.6 0 012.3 0l3.4 3.4a1.6 1.6 0 010 2.3l-4.3 4.3H7.8z"/><path d="M4.6 17.6h4.6"/><path d="M11.4 17.6h4.2" opacity=".35"/>'
+               : '<path d="M8.6 16.5l-4-4a1.8 1.8 0 010-2.6l5-5a1.8 1.8 0 012.6 0l3.8 3.8a1.8 1.8 0 010 2.6l-5 5H8.6z"/><path d="M5.5 18.6h11"/>')
+        + '</svg><b>' + e2[0] + '</b></button>';
+    }).join('');
+    hintEl.innerHTML = L.hint;
+    helpEl.innerHTML = '<h4>' + L.helpTitle + '</h4><p class="sub">' + L.helpSub + '</p><div class="hg">'
+      + L.helpRows.map(function(r){ return '<div class="hr"><span>' + r[0] + '</span><kbd>' + r[1] + '</kbd></div>'; }).join('')
+      + '</div><div class="hfoot"><span>' + L.helpFoot + '</span><b>' + L.helpBackup + '</b></div>';
+  }
+
+  function sync(){ var p = curPage(); if (p !== lastPage) lastPage = p; q(); }
+  if (window.MutationObserver && viewport)
+    new MutationObserver(sync).observe(viewport, { subtree:true, attributes:true, attributeFilter:['class'] });
+  /* registered after deck-shell.js, so fit() has already run — redraw synchronously,
+     rAF is paused in hidden tabs */
+  window.addEventListener('resize', function(){ resize(); sync(); if (fabPos){ fabPos = clampFab(fabPos); applyFabPos(); } if (menuOpen()) place(menu, anchor('e')); if (popOpen()) place(pop, anchor(popTool)); });
+  document.addEventListener('fullscreenchange', function(){ setTimeout(function(){ closePop(); closeMenu(); resize(); sync(); }, 60); });
+
+  function hideHint(){ hintEl.classList.add('off'); try { localStorage.setItem(LS_HINT, '1'); } catch (e) {} }
+  var seen = false;
+  try { seen = !!localStorage.getItem(LS_HINT); } catch (e) {}
+  if (PV || seen) hintEl.classList.add('off'); else setTimeout(hideHint, 14000);
+  hintEl.addEventListener('click', function(){ setOn(true); hideHint(); });
+
+  paint(); resize(); sync(); syncBar(); syncEraser(); syncMenu(); loadFab();
+  /* register this layer's keys with the shell's Q panel (see deck-shell.js) */
+  if (window.__deckHelp) window.__deckHelp.push({
+    title: L.helpTitle,
+    rows: L.helpRows.slice(0, -1).map(function (r) { return [r[1], r[0]]; })
+  });
+  window.InkOverlay = { get:function(){ return store; }, on:setOn, undo:undo, redo:redo, tool:pickTool,
+    clear:clearPage, visible:setVisible, page:curPage, eraser:function(){ return emode; }, setEraser:setEraser,
+    size:function(t){ return sizes[t === 'm' ? 'm' : 'p']; }, setSize:setSize,
+    pop:function(){ return popOpen() ? popTool : ''; }, redraw:draw,
+    applyRemote:applyRemote, state:function(){ return { store:store, rev:REV, on:on }; },
+    fab:function(){ return fabPos; }, resetFab:function(){ fabPos = null; try { localStorage.removeItem(LS_FAB); } catch (e) {} applyFabPos(); } };
+})();
+</script>
