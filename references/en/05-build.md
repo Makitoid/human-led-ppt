@@ -63,6 +63,39 @@ Class names the shell depends on: `.slide` must be a direct child of `#stage`; `
 
 `.notes` holds that page's prompt from skeleton §7 — **move it verbatim** (keep `<strong>` / `<em>` / `<code>`; the presenter window's prompt card reads nothing else). Even with presenter mode off it stays a note: never visible to the audience, never printed.
 
+## Media (image / audio / video)
+
+The three skeleton §4 keywords `image` / `audio` / `video` decide **where the file goes**; in the HTML there are exactly three ways to write them.
+**All three are taken over by the shell**: it scans `[data-mp]`, injects the transport bar and attaches the source late — **never write your own `controls`,
+never hand-write `.mp-bar`**; if you do, you are fighting the shell for control.
+
+| Keyword | What to write | Where the file goes |
+|---|---|---|
+| `image` | an `<img>` inside `.img-frame`, `src` written as `data:image/...;base64,...` | inlined into the HTML, no external file |
+| `audio` | `<figure class="mp" data-mp><audio data-src="a.flac"></audio></figure>` | a file of the same name in the **same directory** as the `.html` |
+| `video` | `<figure class="mp" data-mp><video data-src="clip.mp4"></video></figure>` | a file of the same name in the **same directory** as the `.html` |
+
+```html
+<!-- video: these two lines only, the transport bar is injected by the shell -->
+<figure class="mp" data-mp>
+  <video data-src="demo.mp4"></video>
+</figure>
+
+<!-- image: base64 inlined, still a single file -->
+<div class="img-frame">
+  <img src="data:image/png;base64,iVBORw0KGgo…" alt="…alt is mandatory…">
+</div>
+```
+
+Points:
+
+- **Images go into the HTML, audio/video do not.** An image grows by at most about a third once base64'd, and it still travels and still displays; audio/video grow by roughly a third once base64'd, and on `file://` the browser must finish decoding that whole string before the first frame — a 30 MB clip stalls the opening for several seconds. The shell therefore defers attaching the source until **the slide first appears**, so the opening never downloads for a slide that was not played.
+- **`data-src` is the single entry point**; the shell removes it once it has read it, so the same value never becomes a second source of truth in the DOM.
+- **The transport bar sits below the picture, part of the card**, so the card's height must count it in: first measure the height this slide still has, then fix `.mp`'s size at "picture height + ~30px bar" (an audio card has no picture — at rest it collapses into one small loudspeaker chip, but **reserve height for the unfolded bar**: the moment the pointer arrives it must already be the full bar, with no layout jump). **Do not stretch it with `width:100%` + `aspect-ratio`**: that pushes the bar outside `.slide`'s clip box, so the picture is visible but the bar cannot be clicked (measured: a 1152px-wide 16:9 card wants 608px of height while only 523px remains under the heading, and the whole bar got pushed 85px out). The shell will not clamp it for you — this is a build error; step 6 has a dedicated reachability assertion.
+- A missing file does not fail silently: the shell writes "media file X not found — audio and video must sit in the same folder as this .html" under the card. Step 6 must actually exercise this branch.
+- On print the shell `display:none`s the transport bar and keeps only the picture/placeholder; ink and prompts likewise never print.
+- The delivery note must say it plainly: this deck is **not** self-contained, and the audio/video must be copied along with the folder.
+
 ## Required features (skeleton §1 `navigation`, realised)
 
 | Feature | Provided by |
@@ -77,6 +110,8 @@ Class names the shell depends on: `.slide` must be a direct child of `#stage`; `
 | **`Q` shortcut panel** (grouped sections listing every key this deck answers: the shell seeds its own section, the ink/presenter layers push theirs into `window.__deckHelp` at load; the panel renders the registry as it stands when opened) | deck-shell |
 | **mobile portrait mask** (portrait + narrow/coarse pointer; clears on rotate) | deck-shell |
 | counting numerals with a background-tab fallback | deck-shell |
+| **media transport** (one strip below the picture: play/pause, a **continuous volume** that pulls up from the loudspeaker, a draggable **thick PowerPoint-style scrub bar**, the time, the rate, **fullscreen** for video; `K` play/pause, `,` `.` nudge ±1s, `[` `]` rate, `M` mute; the source is attached only when that slide first appears) | deck-shell |
+| **media keys do not overreach**: `←` `→` always page (even when focus is on the transport), the other media keys only apply while focus is inside it | deck-shell |
 | `prefers-reduced-motion` kills all motion | deck-shell |
 | `@media print` one slide per page | deck-shell |
 
@@ -121,6 +156,11 @@ Citation bars, sources slide and inline `srcline` all use `target="_blank" rel="
 10. **Mobile**: `<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">` is mandatory; the shell already sets `overflow:hidden` — do not add body scrolling.
 11. **Overlay clicks**: every clickable presenter/ink element must `stopPropagation` — the shell reads a click on either half of the screen as "turn the page", so a bubbled click becomes "the deck jumped when the speaker reached for a prompt".
 12. **`?preview=N` belongs to the shell**, not to a page: with step 8 enabled, leave it alone. A `data-preview` page builds no overview, writes no hash, and swallows every paging input. When the canvas size changes, `CANVAS` in `assets/presenter-overlay.html` has to change with the skeleton or previews read as "blurry".
+13. **Never add `controls` to `<video>` / `<audio>` or hand-write a bar**: the shell's injected one is the single entry point, and two control bars each answer a click (the shell isolates clicks inside its own bar, yours does not) — which shows up as "one click plays twice".
+14. **Do not size the media element, but do count the transport bar into the card**: the shell tags the element `.mp-el` (`width/height:100%` + `object-fit:contain`); all you set is the size on `.mp` — and that size **must include the ~30px bar below the picture**. Drop `.mp-el` and a `4:3` clip overflows the card at its intrinsic size; forget the bar and the bar is pushed outside `.slide`'s clip box — visible but unclickable. Step 6's assertions catch both.
+15. **An audio card gets stretched by the author's own flex**: `.mp[data-kind="audio"]` already collapses the media row and centres, but if your layout container still stretches it (`align-items:stretch` + a fixed-height ancestor) the card becomes one big blank panel — either stop the parent stretching, or add `align-self:center` to `.mp`. Step 6 must measure the height of `.mp`; an audio-only page rests as **one small loudspeaker** (~36px) and unfolds into the full strip (~38px) only on hover / Tab focus / a touchscreen tap — neither state may be a panel.
+16. **The overview wall is a deep clone of every slide**: the shell runs `cloneNode(true)` per slide into `#overview`, and in the clone the media card is replaced by one static chip `.mp-ph` (dark box + a play glyph) — the injected bar and the `<video>`/`<audio>` element never reach a thumbnail, and `data-mp` is taken off the clone, so `[data-mp]` in a built deck counts live players only. Do not author a second set of media styles for thumbnails, and never imply in the delivery note that a thumbnail can play anything.
+17. **Using the same inlined image twice puts two copies of the base64 in the HTML**: a 366 KB screenshot is a 488 KB string, and every extra slide that shows it adds another 488 KB (measured: the same image on two slides took the finished deck from ~540 KB to 1,032 KB). A graphic that recurs through the deck belongs in `visual`, not in `image` twice.
 
 ## Output
 

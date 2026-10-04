@@ -8,14 +8,14 @@ Goal: lock a set of executable design decisions and write them into skeleton §1
 2. Brand colour: corporate palette, departmental VI, or "you pick". If a brand guideline exists, ask for it — never guess.
 3. Deal-breakers: what they explicitly do not want (gradients, glass, cartoon, emoji, colour charts, serifs…).
 
-Do not ask about light/dark separately — every preset below ships both palettes. Pick one per deck and write it into the skeleton (**never mix within one deck**). Projected classrooms favour light; dark rooms, keynotes and code/data-dense decks favour dark. If the user says "you decide", pick the preset closest to the subject, justify it in one line, and leave room to change later.
+Do not ask about light/dark separately — every preset has light/dark palettes; pick one per deck and write it into the skeleton (**never mix within one deck**): projected classrooms favour light, dark rooms / keynotes / code-and-data-dense favour dark. If the user says "you decide", pick the one closest to the subject, justify it in one line, and leave room to swap.
 
 ## Helper skills per style
 
 Two kinds of helper:
 
 - **General-purpose design skills (call directly if present)** — `frontend-design` (distinctive visual direction, typography, avoiding templated defaults), `material-3` (Google Material Design 3 / Material You tokens, components, adaptive layout, expressive theming).
-- **Marketplace candidates (found in one skill registry; not installed here)** — name them exactly as listed, and let the user install and confirm first: third-party skills execute code and change files. Availability changes, so re-verify with whatever skill search the platform offers (a marketplace/extension search tool, or the skill's own listing) before recommending. The entries below are a snapshot from 2026-09-25; none were installed and none were read.
+- **Marketplace candidates (in a skill market; not installed here)** — use the canonicalName below only, and let the user install and confirm first: third-party skills execute code, change files. Availability changes, so before recommending re-verify it with the platform's own skill search. The entries below are a snapshot from 2026-09-25; not installed, not read.
 
 | Preset | Primary helper | Also useful |
 |---|---|---|
@@ -35,12 +35,12 @@ Adjacent skills that *overlap* with this skill and may compete for the same requ
 
 ## Style presets
 
-Presets come in two families. **A–I are temperament presets** (they decide palette, type and motion character). **J–Q are layout templates** (they decide a slide's information structure, its emphasis devices and the signature elements that make it recognisable at a glance). The mature move is **one deck = 1 temperament + 1 layout template**: temperament supplies the tokens, the template supplies the skeleton. Picking only one is fine; picking both signatures onto the same page is noise.
+Presets come in two families. **A–I temperament presets** (palette, type and motion character). **J–Q layout templates** (a slide's information structure, emphasis devices and signature elements). The mature move is **one deck = 1 temperament + 1 layout template**: temperament supplies the tokens, the template supplies the skeleton. Picking only one is fine; picking both signatures onto the same page is noise.
 
-> These are **usable starting values**, not official design tokens. Only Material 3 and Liquid Glass have a skill carrying an authoritative spec; the rest are reasonable approximations of a brand's look. Re-check the choice with `frontend-design` before finalising, or ask the user for their brand guideline. Always retune the colours to the actual subject — do not paste them onto an unrelated topic.
+> These are **usable starting values**, not official design tokens: only Material 3 and Liquid Glass have a skill carrying the spec; the rest are reasonable approximations of a brand's look. Re-check with `frontend-design` before finalising, or ask whether the user has a brand guideline. Retune the colours to the subject; do not paste them blindly.
 >
-> **Contrast was measured** (body ≥ 4.5:1, large numerals/headings ≥ 3:1, using the ratio script in `06-verify.md`). Re-measure after any colour change: brand colours used directly as body text usually fail (OpenAI `#10A37F`, Fluent `#0078D4`, Notion's grey chips land at 2–3:1), so each preset lists a darkened "body-safe" variant and confines the original to large type or filled blocks.
-**Index**: choose here first, then **open that one file only** for the full light + dark palettes, signature elements, type stack, motion and risks. Do not read the other 16.
+> **Contrast was measured** (body ≥ 4.5:1, large numerals/headings ≥ 3:1, using the ratio script in `06-verify.md`), re-measure after any colour change: brand colours used directly as body text usually sit at 2–3:1 (OpenAI `#10A37F`, Fluent `#0078D4`, Notion's grey chips), so each preset gives a darkened variant and keeps the original for large type or graphics only.
+**Index**: open **that one file only** for the full light + dark palettes, signature elements, type stack, motion and risks. Do not read the other 16.
 
 | ID | Name and character | Suits | File |
 |---|---|---|---|
@@ -78,7 +78,7 @@ Presets come in two families. **A–I are temperament presets** (they decide pal
 
 ## Custom route
 
-When the user wants to design their own, walk the same field list as the presets (look / light palette / dark palette / type / shape / rules / motion / risks) and drive the decisions with `frontend-design` (palette relationships, type pairing, avoiding the templated look). Pull `material-3` when a component spec is genuinely needed. Given a reference screenshot, measure its actual hex values and type scale before deciding — never work from impression. **The five template disciplines apply in full**: every colour in `:root`, an measured `--accent-ink`, one mode only, ≤ 8 reused page types, images always framed.
+When the user designs their own, walk the same field list as the presets (look / light palette / dark palette / type / shape / rules / motion / risks) and drive the decisions with `frontend-design` (palette relationships, type pairing, avoiding the templated look). Pull `material-3` as needed for component specs. Given a reference screenshot, measure its hex values and type scale before deciding — never work from impression. **The "five template disciplines" hold for custom too**: every colour in `:root`, a measured `--accent-ink`, one mode only, ≤ 8 reused page types, images always framed.
 
 ## Deck-level hard requirements, whatever is chosen
 

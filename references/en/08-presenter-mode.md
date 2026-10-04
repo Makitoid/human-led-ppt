@@ -2,8 +2,9 @@
 
 Opens a second window for the speaker: a fixed top banner carries the **timer** and the paging
 buttons; on the left, scaled pixel-perfect previews of **the page being shown** and **the next
-one**; on the right, **the spoken prompt for this page** and an **all-slide overview**. The
-audience screen is untouched. It is **opt-in** — offer it when the deck will really be presented
+one**; on the right, **the spoken prompt for this page** and an
+**all-slide overview**. The audience screen is untouched. **The blackboard is not here** — it is
+raised in the audience window with `B` (see `07-annotation.md` §6.1). Presenter mode is **opt-in** — offer it when the deck will really be presented
 on stage, when it runs to a dozen-plus pages delivered in sequence, or when the user
 says 演讲者模式 / presenter / 提词 / teleprompter / 双屏 / "notes don't show up". Skip it for decks
 that are only ever handed out as files or printed to PDF, and say why.
@@ -37,13 +38,14 @@ the deck still plays; adding this never leaves a broken button behind.
 
 | Key | Effect |
 |---|---|
-| `S` | open / refresh the presenter window |
+| `S` | open / refresh the presenter window (**while annotation is on, `S` belongs to the ink layer** — see `07-annotation.md` §8) |
 | `N` | raise the **prompt bar** at the bottom of the page (the fallback when the popup is blocked; same prompt text) |
 | `Esc` | close the prompt bar |
 
 **Presenter window** — a fixed top banner (elapsed clock, `current / total`, prev / next / reset;
-not a card, not draggable, not remembered) plus four magnetic cards. Drag a header to move one,
-drag its bottom-right corner to resize; positions are remembered per deck URL.
+not a card, not draggable, not remembered) plus **four** magnetic cards. Drag a header to move one,
+drag its bottom-right corner to resize; positions are remembered per deck URL, and so is each card's
+**stacking order** — the card you touched last stays on top, after a reload too.
 
 | Card | Content |
 |---|---|
@@ -51,6 +53,10 @@ drag its bottom-right corner to resize; positions are remembered per deck URL.
 | Next | the following slide; on the last page it reads "— END OF DECK —" |
 | Prompt | this page's prompt from skeleton §7 (see §6) |
 | Overview | every slide as a horizontal filmstrip of `?preview=N` thumbnails; the wheel scrolls it, a click jumps both windows; only the ~8 iframes near the strip's viewport are mounted |
+
+The right column is therefore **two rows** (next slide takes 32%, the prompt fills the rest); the
+left column is unchanged (current 66% / overview 34%). **There is no blackboard card**: the board
+belongs to the audience window.
 
 | Key | Effect |
 |---|---|
@@ -72,11 +78,16 @@ and:
 - marks `<html data-preview="1">` and lands on page N directly;
 - does **not** build the overview, does **not** write `location.hash`, and disables keyboard, click
   and touch paging — a stray click inside a preview can never drag the live deck along;
+- builds the video fullscreen button (`.mp-fs`) **and** honours double-click-to-fullscreen, but the
+  tile is not the screen it wants: inside a `?preview=N` iframe the deck is still a mirror, not the
+  stage, so pressing it posts `media-fs` and the audience window is what fills itself with the clip
+  (see §3.6); play, seek and volume still work in the tile;
 - dispatches a `deck:go` CustomEvent on every `go()`, which the presenter overlay listens to in
   order to broadcast the page index.
 
-Windows exchange numbers only; iframes are never reloaded (a `preview-ready` handshake triggers one
-reposition, which is what keeps the preview flicker-free):
+Windows exchange the minimum — a page index, a media index, one switch — and iframes are never
+reloaded (one reposition is made only after the `preview-ready` handshake, which is what keeps the
+preview from flashing white):
 
 | Message | Direction | Purpose |
 |---|---|---|
@@ -85,6 +96,10 @@ reposition, which is what keeps the preview flicker-free):
 | `presenter-open` | presenter → audience | handshake: push the current page so opening the window never lands on slide 1 |
 | `preview-goto {idx}` | presenter → iframe inside a card | change page without reload |
 | `preview-ready` | iframe → presenter | triggers that reposition |
+| `media-fs {id,on}` | iframe inside a card → presenter; audience → presenter | someone wants the audience window's screen (§3.6). `id` is which `[data-mp]`, and both windows count them from the same DOM order, so it works as an address |
+| `presenter-media-fs {id,on}` | presenter → audience | tells the audience window to enter / leave video fullscreen |
+| `preview-media-fs {id,on}` | presenter → iframe inside a card | mirrors the state back into that button's icon; the picture in the card does not move |
+| `audience-media-fs {id,on}` | shell inside the audience window → presenter overlay | the audience window's fullscreen truth (its own button, a double click, Esc and paging all report here); the badge trusts nothing else |
 | `ink-cmd {cmd, arg/store…}` | presenter ↔ iframe | annotation remote control and ink payload (§3.5) |
 | `ink-state {on}` | iframe → presenter | the preview's ink layer toggled; the chip follows (accepted from the current-slide iframe only) |
 | `ink-store {store,rev}` | presenter ↔ host | whole-store ink relay, revision-guarded (§3.5) |
@@ -109,21 +124,53 @@ presenter overlay does:
   consistent across both windows, and undo crosses windows (a remote takeover is one `k:'*'` step);
 - after each stroke the iframe hands the keyboard back (`parent.focus()`), so ← → pages immediately.
 
+This layer can annotate only the page inside the current-slide card — the blackboard is still raised
+only in the audience window with `B` (`07-annotation.md` §6.1).
+
 **Known limits** (state them in the delivery note): preview iframes are never reloaded, so sync
 runs over messages rather than refresh; both sides write the same `localStorage` keys, and if both
 windows truly draw in the same instant the revision decides — the last stroke drawn wins. That is
 the design, not a bug.
 
+## 3.6 Video fullscreen: press it in the tile, the audience window takes the screen
+
+The `?preview=N` card is a mirror. It can offer a fullscreen button, but pressing it does not take the card's own screen — it goes over the same message bridge:
+
+- the tile's `.mp-fs` (or a double click on the picture) posts `media-fs{id,on}` to the presenter
+  window; the presenter window forwards it as-is to the audience window (`presenter-media-fs`) and
+  mirrors the state back onto the button icon (`preview-media-fs`);
+- **the audience window is the stage**: it fills its own screen with that one `[data-mp]` card and
+  starts playing it;
+- a "Video fullscreen" badge lights up at the **top-right of the current-slide tile**
+  (`COPY.fsBadge`, in `--s-warn` — that colour has already been measured against the card surface by
+  the time the window opens). The picture inside the tile **does not change**; it still shows the page
+  as it was before fullscreen, because the speaker has to see where they stopped;
+- the badge is clickable, and clicking it hands the screen back to the audience window; pressing the
+  tile's fullscreen button again, pressing Esc, or paging away all come out of it too;
+- the audience window is the source of truth: its own button, Esc and paging all broadcast
+  `audience-media-fs`, and the badge follows. There is never a lit badge over an audience that left
+  fullscreen, and never the reverse.
+
+One implementation detail worth writing down: a cross-window `requestFullscreen` is usually refused —
+the audience document has neither focus nor its own user activation at that moment. So beside real
+fullscreen the shell keeps a **CSS take-over** path (`[data-takeover]`, see `deck-shell.css`): the box
+is computed in canvas units (`#stage` is transformed, so it is the containing block of a fixed
+descendant) and fills the window. The attribute is dropped as soon as real fullscreen is granted. Both
+paths show the same picture, and Esc returns from either.
+
 ## 4. Config block 1 · COPY — rewrite the wording for this deck
 
 The first editable region at the top of the file, one object per language; the language is picked
-from `<html lang>`. These three **must** be revisited:
+from `<html lang>`. These four **must** be revisited:
 
 - `cardPrompt` (default "Prompt" / 提示词) — this label is on screen the whole talk; make it the
   speaker's own word for it;
 - `empty` ("(no prompt for this slide yet — see skeleton §7)") — whenever a prompt is missing this
   line is the most visible thing in the window; never ship it smelling like a placeholder;
-- `hintDrag` — if the speaker should not move cards, delete this line and leave the default layout.
+- `hintDrag` — if the speaker should not move cards, delete this line and leave the default layout;
+- `fsBadge` / `fsTip` (default "Video fullscreen" / 视频全屏中) — only ever seen when the deck carries
+  video, but it is the one thing on stage that says "the screen is currently held by a clip", so the
+  wording has to land at a glance (see §3.6).
 
 `blocked` is the popup-blocked notice and doubles as the fallback instruction; when translating,
 keep both clauses (what to do, then the alternative).
@@ -210,14 +257,18 @@ async () => {
   const f = document.getElementById('pvtest'), d = f.contentDocument, w = f.contentWindow;
   out.errs = w.__errs;                                     // must be empty
   out.cards = [...d.querySelectorAll('.pcard')].map(c => c.id + ' ' + c.style.left + ' ' + c.style.top);
+  out.cardIds = [...d.querySelectorAll('.pcard')].map(c => c.id);   // exactly four: c-cur c-nxt c-pmt c-ovw
+  out.noBoardCard = !d.getElementById('c-bd') &&                     // no board tile in the presenter window
+    ![...d.querySelectorAll('iframe')].some(i => (i.getAttribute('src')||'').indexOf('board=1') >= 0);
   out.iframeSrcs = [...d.querySelectorAll('iframe')].map(i => (i.getAttribute('src')||'').split('?')[1]);
   out.prompt = d.getElementById('pmt-body').innerHTML;      // §7's strong/em/code must survive
   out.nxtAtEnd = d.getElementById('m-nxt').textContent;      // last page must read END
   // 4) bidirectional sync: audience pages → cards follow; presenter button → audience follows
   key('ArrowRight'); await sleep(700); out.hostToCard = window.__deck.index + ' / ' + d.getElementById('t-count').textContent;
   d.getElementById('b-prev').click(); await sleep(700); out.cardToHost = window.__deck.index;
-  // 5) layout: drag a card → localStorage holds pv.v2|<deckUrl> → close and reopen, position survives
+  // 5) layout: drag a card → localStorage holds pv.v2|<deckUrl> → close and reopen, position survives; stacking saved too
   out.lsKey = Object.keys(w.localStorage).find(k => k.indexOf('pv.v2|') === 0);
+  out.zSaved = JSON.parse(w.localStorage.getItem(out.lsKey));   // every card is {x,y,w,h,z}, z an integer
   // 6) overview: banner fixed, filmstrip virtualized, click jumps both windows
   out.bannerH = d.getElementById('banner').offsetHeight;           // 52; #banner is not a .pcard
   const strip = d.getElementById('ovw-strip');
@@ -228,7 +279,7 @@ async () => {
 }
 ```
 
-Three more, checked individually:
+Five more, checked individually:
 
 - **The preview page stands alone**: load `deck.html?preview=2` directly — it must land on slide 2,
   set `data-preview="1"`, ignore all keyboard and mouse paging, keep `#overview` empty, and write no
@@ -238,7 +289,19 @@ Three more, checked individually:
   `?preview=N` iframe loads.
 - **Contrast**: re-measure this deck's actual palette against the §5 table, especially when the deck
   overrode `--accent`. If the guard swapped a colour, name it in the delivery note and let the user
-  decide whether to fix the deck's palette or accept the default.
+  decide whether to fix the deck's palette or 
+- **Annotation linkage** (only when step 7 is installed as well): clicking the "Annotate" chip in
+  the presenter window must put `inking` on the `body` of the iframe inside the tile; laying one
+  stroke in the preview (a pointer event landing on its `#inkc`) must add the same entry to the
+  audience window's store; after `undo()` in the audience window the preview canvas must be blank
+  again (`getImageData` sampling); and pressing ← → straight after a stroke must page the presenter
+  window at once — focus was already handed back, so no extra click is needed.
+- **Stacking (z-order)**: read a card's `parseInt(card.style.zIndex,10)`, then drag its header or
+  drag its bottom-right corner; after **mouseup** that number must be larger and the card must still
+  sit above the ones it crossed — it must not fall back to `z-index:auto`. Enlarging the
+  current-slide card (first in the DOM) must lift it above its neighbours, never sink it behind them.
+  Reload once and the order survives, because `z` is stored in the layout record next to x/y/w/h;
+  "Reset layout" runs `base()` and hands out z 1–4 in DOM order.
 
 ## 8. Known traps
 
@@ -249,12 +312,15 @@ Three more, checked individually:
 - **No `BroadcastChannel`.** `file://` pages are frequently treated as opaque origins and the channel
   works intermittently. Everything here is explicit `postMessage`, covering both the popped-out and
   embedded cases (the opener/parent fallback in §3).
-- **`localStorage` holds card layout only**, keyed by `pv.v2|<deck URL without params>`. This is the
+- **`localStorage` holds card layout only**, keyed by `pv.v2|<deck URL without params>`, one
+  `{x,y,w,h,z}` record per card — `z` is the stacking order, which is why a card stays raised when
+  you let go and keeps the same front-to-back relation after a reload. This is the
   one place in the whole skill that touches storage — disclose it. Move to another machine or
   directory and the layout resets to default; not one prompt word is lost, since those live in the HTML.
-- **The layout key is versioned.** `pv.v1` → `pv.v2` came with the card-set change (timer card out,
-  overview in): an old saved layout is ignored once and the window falls back to the default
-  geometry; orphaned old keys are never read and may be left in place.
+- **The layout key is versioned.** `pv.v1` → `pv.v2` moved with the card-set change; an old saved
+  layout is ignored once and the window falls back to the default geometry; leftover old keys are
+  never read again and may be left in place. `clean()` reads only the four ids in `IDS`, so extra
+  keys in an old record are ignored and a missing `z` reads as 1.
 - **The overview is virtualized.** At most ~8 thumbnail iframes are mounted at a time — the strip's
   viewport neighbours only — and the rest show page number + title placeholders; a thumbnail's ink
   reflects `localStorage` at mount time only, and opening on a long deck costs up to 8 extra
@@ -271,7 +337,8 @@ Three more, checked individually:
   at first load. For decks whose motion depends on replaying per page, record that as a known
   limitation in the delivery note; do not add a reload delay — that buys animation at the price of flicker.
 - **With both overlays installed**, `Esc` closes the ink layer's bubble menu and the prompt bar
-  independently, without interfering; `S`/`N` belong to the presenter only. Ink uses `Z`/`Y`.
+  independently, without interfering; `S` belongs to the ink layer (export PNG), `N` to the
+  presenter layer, see `07-annotation.md` §8.
 
 ## 9. What the delivery note must add
 
@@ -282,9 +349,20 @@ On top of the step-6 report:
   path was exercised through the blocked branch; two-window sync was verified over an equivalent
   `postMessage` forward" rather than blurring it into "tested";
 - that prompts come from skeleton §7 and were reviewed by the user, or "presenter mode not enabled";
-- that the presenter layer's own `localStorage` use is card layout only (`pv.v2|`); with step 7
+- that the presenter layer's own `localStorage` use is card layout and stacking only (`pv.v2|`, one
+  `{x,y,w,h,z}` per card); with step 7
   installed, the ink layer inside the previews writes its own `ink.v1*` keys (owned by the ink
   layer), same keys, same origin, synced by revision;
 - with step 7 installed: the presenter window takes ink directly, strokes across windows are
   "last write wins", previews are never reloaded and sync travels over messages, not refreshes;
+- with step 7 installed: **the blackboard is not in the presenter window** — the board is raised in
+  the audience window with `B`; the presenter window carries four cards and is annotated on the
+  current-slide card only;
+- video fullscreen inside a preview tile is **mirrored onto the audience window**: click `.mp-fs` in
+  the tile or double-click the picture, and it is the audience window that fills its screen while the
+  current-slide tile lights a "Video fullscreen" badge in its top-right corner (click the badge, press
+  the fullscreen button again, press Esc, or page away to get back); the tile's picture does not move,
+  and play, seek and volume still work in the tile;
+- the `S` conflict with the ink layer is resolved: with annotation on, `S` only exports a PNG — to
+  open the presenter window, press `A` or use the top-right bubble first;
 - that prompts do not print and do not reach PDF, and `notes` are never visible in the audience window.

@@ -2,129 +2,75 @@
 
 **English** · [中文](CHANGELOG_zh-cn.md) · [日本語](CHANGELOG_ja.md)
 
-The full version history lives here; the README keeps only a short summary of the latest release — see [README.md](README.md).
+## v1.5 (2026-10-04)
+
+- **Media: images, audio and video, all three done in one round.**
+  - **Images are inlined as base64** (`.img-frame` + `<img>`), so the deck stays one file and still opens after you copy it somewhere.
+  - **Audio and video ship as sibling files next to the `.html`**: the shell scans `[data-mp]`, injects the transport bar and **defers attaching the source until that slide first appears**, so the opening never downloads 30 MB for a slide that was never played. **Do not base64 them either**: it grows the file by roughly a third, and on `file://` the browser has to finish decoding that string before the first frame.
+  - **One strip** below the picture carries it all: play / pause, a **continuous volume that pulls up from the loudspeaker** (dragging to zero mutes), a **thick PowerPoint-style scrub bar** you can drag, the time, a `0.5×–2×` rate, and **fullscreen** for video; the keyboard adds `,` `.` nudge ±1s, `[` `]` rate and `M` mute, and clicking the picture plays. **There is no "select a segment and loop"** — it was tried, judged unnecessary, and cut this round.
+  - **Keys do not overreach**: `K` is the global play/pause for the slide's media; the other media keys apply only while focus sits inside the transport (then `M` is mute, not the highlighter, and `[` `]` is the rate, not pen width); **`←` `→` always page**, so leaving the slide pauses it and rewinds to zero.
+  - **An audio card rests as a small loudspeaker** (≈36px); the strip unfolds on hover, `Tab` focus or the first tap, and folds back when a touch lands outside the card or the slide is left.
+  - **A video in a presenter-window mirror tile can go fullscreen too**: clicking fullscreen inside the tile makes **the audience window itself** fill the screen and start playing; the tile's picture does not change and a "Video fullscreen" badge lights up in its corner. The audience window holds the truth, so the badge never desyncs. A cross-window `requestFullscreen` is usually refused, so the shell also keeps a CSS take-over as a fallback.
+  - **A missing file says it in human words**: under the card it writes "media file X not found — audio and video must sit in the same folder as this .html".
+- **Three new skeleton keywords**: `image` / `audio` / `video` define **where the file goes** (the old ambiguous `media` word is retired); every row states its landing spot, `.img-frame` or `.mp`, and word order plus `layout` decide where it sits on the page. The library grows from 51 to 54 words.
+- **Annotation blackboard (`B`)**: the whole page becomes a dark blackboard with the slides folded away, writing goes straight onto the board, and `B` brings you back. The surface is `--ink-board` (`#1D2A26`), **deliberately not derived from the deck palette**; the palette switches automatically to a chalk set (`#FF8F87` / `#FFD86B` / `#7FE3D6` / `#F2F5F1` / `#9EC6FF`, all measured ≥4.5:1 against the board; on this dark ground every pen separates by hue rather than lightness). The board is **one shared storage key, not split per page** — keying it per page would carry the writing away on every page turn. It lives in the audience window only; the presenter window no longer carries a fifth board tile.
+- **Highlighter**: its alpha is **per surface** — `.30` on slides, `.55` on the board (`.30` over a dark ground only reaches 1.8–2.3:1, too little); the icon is redrawn as a solid body, a real gap between cap and body, a chisel tip and a colour band under the tip, so at 17px the two are told apart at a glance.
+- **Fixed the `S` key conflict left by 1.4**: with annotation on, `S` exported a PNG **and** popped the presenter window. The ink layer now uproots its own keys on the capture phase, so with annotation on `S` only exports and you press `A` or the bubble first to open the presenter window.
+- **Fixed the link fallback**: the shell's "every link opens in a new tab via `window.open`" also swallowed the ink layer's export `<a download>` — popping a new window holding a multi-MB `data:` URL and stealing focus. The shell now lets the `download` attribute through.
+- **Fixed nested fullscreen**: with the deck already fullscreen, clicking the video's fullscreen used to exit and then request, which Chrome refuses, so the button looked like it "exits fullscreen". It now calls `requestFullscreen` on the card directly, so `Esc` returns to the deck's fullscreen, and the shell stands down from every paging key while a media card owns the screen.
+- **The presenter window is four tiles now, with its stacking fixed**: the fifth 「blackboard」 card is gone. Cards used to be raised only while dragged or resized and dropped back on mouseup, so enlarging 「Current」 sank it under its neighbours; stacking is now persisted and bumps on mousedown.
+- **Three media problems found and fixed in this round's own testing**: a `4:3` clip overflowed the card at its intrinsic size; an audio-only page's blank panel collapsed to the strip's own height; and the overview wall's full-page clone gave every media thumbnail a dead control bar plus a second media element (a screen reader met 16 fake buttons) — now a static placeholder, so `[data-mp]` counts live players only.
+- **Overflow is caught by the skill, not clamped by the shell**: a runtime clamp was built first and rejected — it hides a build error. Instead 05-build states the rule (**the card's height must include the strip**) and 06-verify measures every media page's height and proves with `elementFromPoint` that the strip is really clickable.
+- **The `Q` shortcut panel now lists the media keys**: it gained `M`, says that `,` `.` `[` `]` `M` `Space` need focus inside the transport, and marks `K` as the one global media key.
+- **Three probe traps written into the verification step**: scope media selectors to `#stage`; dispatch transport-scoped keys **on a control inside the bar** (a synthetic event fired at `document` has no `[data-mp]` ancestor, and the shell ignores it by design); on `file://` the built-in browser strips the query string, so test preview mode over `http://localhost` or by opening the presenter window once. Two build-side traps as well: the thumbnail chip belongs to the shell, so never author styles for it; and every slide that reuses an inlined image adds a second copy of the base64 (a 366 KB screenshot is a 488 KB string).
+- **Three-language sync**: `references/zh|en|ja/05–08`, `SKILL.md`, all three README files and this changelog were updated in the same pass.
 
 ## v1.4 (2026-09-27)
 
-- **Renamed `html-ppt` → `human-led-ppt`, and the positioning statement now leads**: this skill had
-  been colliding with the upstream HTML PPT Studio installed under `.qoder/skills/` (also named
-  `html-ppt`), so `/html-ppt` was ambiguous. The two are now distinct, and the old name resolves to
-  the upstream one only. The positioning is stated consistently as a **human-led, agent-assisted
-  design system for single-file HTML decks** — you own the topic, style and wording, the agent owns
-  evidence, structure and build discipline — in `SKILL.md`'s `description` and its opening paragraph,
-  in README's title line, and in the five brand comments under `assets/` plus the presenter popup's
-  window name.
-- **README's English section now mirrors the Chinese one**: it used to be prose paragraphs against
-  the Chinese tables. It now carries the same eight-row "five steps, plus two optional layers" table
-  (Step / What it does / Produces), and the three exceptions the optional layers bring are bullets
-  rather than one long sentence, mirroring the Chinese one for one.
+- **Renamed `html-ppt` → `human-led-ppt`, and the slogan is now the positioning**: a human-led,
+  agent-assisted design system for single-file HTML PPT.
+- **README's English side now matches the Chinese one**: it used to be prose paragraphs; it is now in sync.
 - **Four on-stage features (appended in this round, verified end to end on a real deck)**:
-  ① **The annotation corner button is draggable, and the icon set is re-cut**: the corner button keeps
-  its original slim pen glyph but can now be dragged — past 6px it parks and the position is
-  remembered per deck under the `.fab` key, double-click resets it, a plain click still starts
-  annotation. The toolbar's on/off button carries a **⏻ power glyph** (its action *is* closing the
-  layer) and never takes the selected-state frame. The pen and highlighter icons were redrawn apart
-  from each other — pen = slim diagonal body with a wavy stroke under the tip; highlighter = a
-  self-drawn narrow 45° barrel with a cap divider, a chisel nib and a translucent band underneath —
-  so they read apart at 17px. `assets/icon.svg` stays the skill's logo and is not embedded in the UI.
-  ② **Annotate inside the presenter window**: the preview iframe already *is* the deck, so the fix
-  only opens `pointer-events` on the current-slide card, adds an "Annotate" chip in the card header
-  that drives the ink layer inside that iframe — no engine is copied and no second store exists.
-  Strokes sync across windows via a revision protocol (`ink:change` / `ink-store` / `ink-cmd`),
-  **last write wins**, and undo crosses windows too (a remote takeover becomes one `k:'*'` undo
-  step). After each stroke the iframe hands the keyboard back with `parent.focus()`. The next-slide
-  card stays inert.
-  ③ **The `Q` shortcut panel**: the shell gains a `#deckhelp` dialog seeded with its own
-  "paging & view" section; the ink and presenter layers push their key sections into
-  `window.__deckHelp` at load, and the panel renders whatever is registered when it opens — a deck
-  without the optional layers simply shows fewer sections. `Esc` closes it, every ink surface steps
-  aside while it is open (sibling selectors), and it stays out of print.
-  ④ **The presenter window is reshaped — fixed top banner plus an all-slide overview card**: the
-  timer, page counter and prev / next / reset buttons leave the card system and become a full-width
-  52px banner pinned to the top of the presenter window (element ids unchanged, so the wiring and
-  the docs' self-check keep working). The freed bottom-left slot holds a new fourth magnetic card:
-  every slide as a horizontal filmstrip of `?preview=N` iframe thumbnails, **virtualized** — only
-  items near the strip's viewport are mounted (cap 8, the farthest evicted first) and the rest show
-  page number + title. The wheel scrolls the strip, a click jumps both windows, the current entry
-  carries an accent outline and is kept in view. Card-layout storage bumps `pv.v1` → `pv.v2` (the
-  card set changed; old layouts reset once). The presenter's message handler now accepts `ink-state`
-  from the current-slide iframe only — overview thumbnails carry the ink layer too when both
-  overlays are installed.
-- **README split three ways, and the version history moved out of it.** `README.md` is English-only now
-  and leads with the positioning, the eight-row step table, what every deck ships with, install and use,
-  the two optional layers, known limitations and the current release; the Chinese original moved to
-  `README_zh-cn.md`, and a full Japanese translation was added as `README_ja.md`, each carrying a
-  language switcher at the top. The v1.2–v1.4 history (about 60% of the old README) moved into
-  `CHANGELOG.md` plus `CHANGELOG_zh-cn.md` / `CHANGELOG_ja.md`, leaving each README a short release
-  summary. While splitting, the English side's missing `v1.2` heading was restored — its v1.2 entries
-  had been sitting under the v1.3 heading, contradicting the Chinese side.
-- **A README banner, drawn from the skill's own tokens.** `assets/banner.svg` (1280×420) replaces the
-  icon + title + tagline block at the head of all three READMEs, and carries the wordmark, the two-line
-  positioning, a five-step rail that physically **breaks** at the review gate before *build*, and two
-  stacked 16:9 slide cards whose chart peak an amber ring circles — the ring overshoots the edge of the
-  card on purpose. Plain SVG: no web fonts, no network requests, no gradients, so the banner obeys the
-  same constraint as the decks. `assets/icon.svg` stays the skill's logo.
-- **`references/ja/`, a full Japanese mirror of the step documents.** The same eight step documents and
-  the same 17 files in `02-presets/` as `references/{zh,en}/`, structure for structure and without
-  summarising; `SKILL.md` gained Japanese trigger words in its `description`, the `資料まとめ` /
-  `HTML-PPT骨子` filename suffixes, and a Language line that now names all three trees.
-- **The runtime chrome speaks Japanese too**: the shell (`Q` panel, slide announcement), the ink layer
-  (toolbar, hint, help dialog, export file names) and the presenter window each gained a third string
-  table, and the language pick became a zh / ja / en route off `<html lang>`, falling back to the
-  browser language. Japanese wording follows the documentation canon (発表者ウィンドウ / 聴衆 / 筆跡 /
-  注記). ja / zh / en test decks were run side by side: the Japanese chrome renders end to end, and
-  the Chinese and English strings are unchanged.
+
+  ① **The annotation corner button is draggable, and the icon semantics are re-cut**: the annotation
+  button can now be moved, and the toolbar's on/off button became a ⏻ power glyph.
+
+  ② **Annotate directly inside the presenter window**: strokes sync across windows through the
+  revision-number protocol, so annotation works in presenter mode.
+
+  ③ **The `Q` shortcut panel**: a shortcut panel was added — press `Q` and a sheet opens listing every
+  shortcut this HTML-PPT has.
+
+  ④ **The presenter window is reshaped**: the timer and the control buttons became a fixed top banner.
+  An all-slide overview tile was added.
+
+- **README slimmed down**: `README.md` keeps English only, and the changelog was split out in the same pass.
+
+- **A banner at the head of the README**: `assets/banner.svg`.
+
+- **`references/ja/`, a full Japanese mirror of the step documents**: the skill documentation now exists in Japanese.
+
+- **The runtime text gained a third language**: Japanese support was added to the runtime.
 
 ## v1.3 (2026-09-26)
 
-- **Step 4 §4: from one fixed field list to a keyword library with a per-deck declared set.**
-  Each slide used to be written with exactly `type / key / data / visual / ask / lines / hint / sec`
-  — eight words grown out of one deck archetype (multi-persona, question-chain, data comparison),
-  so a teaching slide, a code slide and a defence slide had no vocabulary at all. Now the core three
-  (`type` `key` `sec`) are mandatory and the rest come from **six families, 51 keywords**, 5–11 per
-  slide: A positioning (`topic` `act` `role` `toc`), B text (`title` `sub` `points` `prose` `lead`
-  `defs` `quote` `pull` `steps` `cast`), C data (`data` `table` `kpi` `compare` `bars` `line` `stack`
-  `pie` `rank` `timeline` `formula` `code`), D visual (`visual` `layout` `media` `icon` `emphasis`
-  `before-after` `diagram`), E argument (`missing` `evidence` `caveat` `counter` `analogy` `example`
-  `takeaway` `action` `transition`), F delivery (`hint` `ask` `lines` `demo` `quiz` `task` `poll`
-  `discuss` `handoff`). Every keyword states which DOM slot it renders into, and §5 copies that
-  mapping table so the build still never has to guess.
-- **The discipline is the declaration.** One `keywords: …` line above §4 lists the 12–24 words this
-  deck uses (the deck-wide union; a slide still uses 5–11); a keyword outside that line may not
-  appear on any slide, and adding one logs a §6 row. Five starter sets (teaching / data readout /
-  defence / tech talk / pitch) serve as a copy sheet. Explicit rule: no personas → no `lines` /
-  `role` / `handoff`.
+- **The keyword set was optimised**:
+  the core three (`type` `key` `sec`) are mandatory and the rest are 5–11 words per slide picked from
+  **six families, 51 keywords** — A positioning, B text, C data, D visual, E argument, F delivery and
+  interaction, 51 in all.
+
+- **The declared set**: one `keywords: …` line above §4 lists the 12–24 words this deck uses; five
+  **starter sets** (teaching / data readout / defence / tech talk / pitch) serve as a copy sheet.
+
 - **Page-type library grew to 6 groups, ~56 types** (structural / data / argument / teaching /
-  technical / research-and-pitch), still capped at 6–8 per deck, with at most 2 coined types. This
-  also closes a pre-existing naming clash: layout templates J–Q each ship an "suits page types" hint
-  in a different vocabulary (`stat-highlight` / `section-divider` / `big-quote` / `pros-cons` /
-  `process-steps`). §4 now states those are capability notes, that §4 is the deck's one vocabulary,
-  that the chosen names go into the keyword declaration, and that synonyms must not coexist.
-- **Worked examples went from 1 to 3**: a data comparison page (with trailing `<!-- -->` glosses on
-  every line), a persona-free concept page and a persona-free code page — one declared set, three
-  completely different keyword fills.
-- **A reviewer-facing legend that the agent is told to skip.** Skeletons get reviewed by people who
-  never read this document, so §4 must open with a `>` block glossing, in plain speech, every keyword
-  *this* deck declared — nobody has to look up `kpi` or `caveat` to review a draft. It costs no
-  context: the block is fenced by the literal markers `⧉ 词表注释 起 / 止` (`⧉ legend start / end`),
-  rule 4 of `05-build.md`'s "Before starting" tells the build agent to jump from one marker to the
-  other and read nothing between (it is a copy of §4's library), and `06-verify.md` gained a grep
-  proving it never leaks into the HTML. Where legend and `keywords:` disagree, `keywords:` wins.
-- **A second pass after stress-testing the library** (three scenarios the doc never exemplified —
-  an incident retro, a book club, a grade-4 science lesson — five slides each): ① added `missing`
-  (what should exist but does not — the unwired alarm, the ruled-out hypothesis, a concept's negation;
-  previously only `points` could take it); ② `compare` widened to **qualitative** distinctions
-  (`dissolving ≠ melting`), which have no gap value to write; ③ added `discuss` for gathering audience
-  views with no model answer (`quiz` and `poll` both demand one); ④ `action` gained "done looks like /
-  current status" and a rule that past 4 rows the page belongs to `table`, never both — the old wording
-  made a compliant slide impossible; ⑤ deleted `qa` (a near-verbatim duplicate of `hint`) and `claim`
-  (self-defined as "expansion of `key`"); ⑥ `data` became an **index** (`which keyword's row → source`)
-  instead of a re-typed value card; ⑦ the declared-set budget moved 10–16 → 12–24, with constraint
-  dependants (`emphasis`, `data`) explicitly exempt from compression; ⑧ new picking rule 6 — `points`
-  is not a fallback; ⑨ page types gained `cast` / `timeline` / `discuss`, and the pitch type `ask` was
-  renamed `the-ask` because it meant the opposite of the keyword `ask`; ⑩ §3's own sample page order
-  named "hook" and "cold open", types that do not exist in the library — it now requires real `type`
-  names.
+  technical / research-and-pitch), still capped at 6–8 per deck, with at most 2 coined types.
+
+- **Closed a pre-existing naming clash**: fixed the "suits page types" list each layout template J–Q
+  carries; synonyms must not coexist in one deck, and a rename is logged in §6.
+
+- **Worked examples went from 1 to 3**: a data comparison page, a persona-free concept page and a
+  persona-free code page — one declared set, three completely different keyword fills.
+
 - **The evidence rule now follows numbers, not field names.** Any figure appearing in any keyword
   (including benchmark output inside `code`, and figures quoted in passing by `example` / `quote` /
   `counter` / `analogy`) needs value / unit / year / source and a matchable line in the source file;
@@ -132,22 +78,12 @@ The full version history lives here; the README keeps only a short summary of th
   `05-build.md` (density), `06-verify.md` (per-slide reconciliation now counts `points`, `table` rows
   and `steps`) and `08-presenter-mode.md` (prompt figures). The core contract is unchanged.
 
-- **Context optimisation (item 4, same round)** — duplicates and filler only, no information removed.
-  ① `SKILL.md`'s `description` went from 1231 to 728 characters. It sits in the context of **every turn**
-  whether or not this skill is used, so it is the one constant cost: the capability summary and both
-  trigger lists stay, the detail inventories (paging keys, badge system) go — they already live in 04/05.
-  ② `SKILL.md` body 9198 → 7232 bytes: the `en/…` / `zh/…` cell repeated in all eight workflow rows
-  collapsed into one line ("each step reads `<lang>/NN-*.md`"), the 17-line prose resource inventory
-  became an 8-row table, and the trap counts (10/8/8 — actually 12 in `05-build.md`) were dropped
-  rather than corrected: a number you can count by opening the file only goes stale in an index.
-  ③ **Step 2 restructured**: `02-style.md` went from 33KB to a 12.8KB index plus the 1.4KB preset you
-  picked (58% less), with the 17 presets and templates split into `references/{zh,en}/02-presets/`.
-  The blocks were cut mechanically on `### A.`–`### Q.` and are byte-for-byte unchanged apart from a
-  one-line header pointing back at the index. Step 2 now reads ~14KB instead of 33KB.
-  ④ Steps 04–08 were deliberately **left alone**: a cross-file duplication audit found only five
-  repeated passages (526 characters total), all of them verification-script helpers that each step
-  needs because each step loads exactly one document. That repetition is design, not noise — cutting
-  it would cut rules.
+- **The keyword legend**: §4 opens with a `>` block glossing, in plain speech, the keywords this deck
+  declared. Where the legend and the `keywords:` line disagree, `keywords:` wins; worked example 1 also
+  carries trailing `<!-- -->` glosses per keyword, which likewise produce no DOM.
+
+- **Context optimisation (item 4, same round)**: the skill's structure was optimised and slimmed,
+  reducing the size of the skill.
 
 ## v1.2 (2026-09-25)
 
@@ -155,18 +91,16 @@ The full version history lives here; the README keeps only a short summary of th
   `references/{zh,en}/08-presenter-mode.md`. `S` in the audience window pops a separate presenter
   window with four magnetic cards (current / next / prompt / timer); both windows page in sync and
   card positions and sizes are remembered per deck URL. When the popup is blocked, `N` raises an
-  in-page prompt bar instead. Supporting changes: `deck-shell.js` gained a `?preview=N` preview mode
-  (`data-preview`, no overview, no hash, all paging input swallowed) and a `deck:go` event;
-  `assemble.cjs` gained `--presenter`, usable alongside `--ink` in the fixed order ink → presenter.
+  in-page prompt bar instead.
+
 - **Step 2 gained the layout-template catalogue (J–Q, 8 templates)**: each with a light **and** dark
-  palette, a page-type list and the narratives it suits; every palette ratio is measured (worst case
-  4.60:1). Plus the **five template disciplines** — colour only in `:root`, text on accent fills goes
-  through `--accent-ink` rather than a literal, one theme = one look, compose existing page types
-  (≤ 8) instead of inventing them, and every image is framed.
+  palette, a page-type list and the narratives it suits.
+
 - **Skeleton gained §7 · Speaker prompts (optional)**: generated by the agent from each page's §4
   fields and listed **at the very end of the skeleton document**; only after the user reviews and
   edits it does step 5 move each page's text verbatim into `<aside class="notes">`. §1 gained a
   `presenter: off | on` switch.
+
 - **Step 5** picked up the assembly example for both layers, the `.notes` ← §7 landing rule, the
   text-on-accent and image-container requirements, and traps 11 (overlay clicks must
   `stopPropagation`) and 12 (`?preview=N` belongs to the shell — leave it alone).

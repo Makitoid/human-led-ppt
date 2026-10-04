@@ -8,17 +8,23 @@
   What this is: `S` opens a separate presenter window — a fixed top banner (timer,
   page counter, prev / next / reset) plus four magnetic cards — current slide /
   next slide / speaker prompt / all-slide overview (a wheel-scrollable filmstrip,
-  click to jump) — while the audience window stays as-is; both windows page in
-  sync. `N` pulls a prompt drawer inside the current window (the fallback when
-  popups are blocked).
+  click to jump) — while the audience window
+  stays as-is; both windows page in sync. `N` pulls a prompt drawer inside the
+  current window (the fallback when popups are blocked).
 
   装法：node assets/assemble.cjs deck.src.html deck.html --presenter assets/presenter-overlay.html
   它只加自己的 DOM/CSS/JS，不改页面、不改 deck-shell.css/js。它依赖交互壳的两样东西：
   `window.__deck`（index/total/go）与 `?preview=N` 预览模式。放在 deck-shell 之后执行。
 
   批注联动（稿子同时装了 --ink 时才有）：当前页卡片的 iframe 放开 pointer-events，
-  卡片头部多一枚「批注」按钮，直接在预览里开/关墨水层；笔迹同步走 ink 层的修订号协议
+  卡片头部多一枚「批注」按钮，直接在预览里开/关墨水层；presenter 在里面写的字走同一条
+  ink:change 协议回到听众那一屏的同一份 store。笔迹同步走 ink 层的修订号协议
   （ink:change 事件 / {type:'ink-store'} / {type:'ink-cmd',cmd:'store'}），双窗最后写入者胜。
+  黑板（`B`）只在听众窗里用：演讲者窗不再放第五张黑板卡——那块画面是镜像，不是舞台。
+  视频全屏走的是同一条镜像路：在当前页卡里点全屏，演讲者窗的画面**不动**，只把请求转给听众窗，
+  由听众窗去占住那一整块屏幕；当前页磁贴右上角亮一枚「视频全屏中」badge，点 badge 或再按一次
+  全屏键就把屏幕还给听众窗（`media-fs` / `presenter-media-fs` / `preview-media-fs` /
+  `audience-media-fs`，见 references/*/08-presenter-mode.md §3）。
   壳的 Q 快捷键面板打开时，本层把自己的键位注册进 window.__deckHelp。
 
   交付前只需要重写下面两个配置块：
@@ -86,8 +92,9 @@
       contrastSwap: '这些颜色和卡片底色对比不足 4.5:1，已换成默认值（请检查本稿配色）：',
       inkBtn: '批注', inkBtnOn: '批注中',
       inkTip: '直接在左边这张当前页上批注，笔迹实时同步到听众那一屏；快捷键 Q 看全部键位',
+      fsBadge: '视频全屏中', fsTip: '听众窗正在全屏播这段视频，当前页这张卡照旧；点一下把屏幕还给听众窗',
       helpSec: '演讲者模式',
-      helpRows: [['S', '打开 / 关闭演讲者窗'], ['N', '页面下方提词条（弹窗被拦时）'], ['Esc', '关提词条']]
+      helpRows: [['S', '打开 / 关闭演讲者窗（批注关闭时）'], ['N', '页面下方提词条（弹窗被拦时）'], ['Esc', '关提词条']]
     },
     ja: {
       cardCur: '現在のページ', cardNext: '次のページ', cardPrompt: 'プロンプト', cardOvw: '総覧',
@@ -106,8 +113,9 @@
       contrastSwap: 'これらの色はカードの下地との比較が 4.5:1 未満のため既定値に置き換えました（このデッキの配色を確認してください）：',
       inkBtn: '注記', inkBtnOn: '注記中',
       inkTip: '左の現在のページに直接書き込めます。筆跡は聴衆側へリアルタイムに同期します。Q ですべてのキー操作を表示。',
+      fsBadge: '動画が全画面', fsTip: '聴衆側のウィンドウがこの映像を全画面で再生中です。このカードはそのまま。クリックで画面を戻します',
       helpSec: '発表者モード',
-      helpRows: [['S', '発表者ウィンドウを開く / 閉じる'], ['N', 'ページ下部のプロンプトバー（ポップアップがブロックされたとき）'], ['Esc', 'プロンプトバーを閉じる']]
+      helpRows: [['S', '発表者ウィンドウを開く / 閉じる（注記オフ時）'], ['N', 'ページ下部のプロンプトバー（ポップアップがブロックされたとき）'], ['Esc', 'プロンプトバーを閉じる']]
     },
     en: {
       cardCur: 'Current', cardNext: 'Next', cardPrompt: 'Prompt', cardOvw: 'Overview',
@@ -126,8 +134,9 @@
       contrastSwap: 'These colours fell below 4.5:1 against this deck\'s panel and were replaced: ',
       inkBtn: 'Annotate', inkBtnOn: 'Inking',
       inkTip: 'Draw straight on the current-slide card; strokes sync live to the audience screen. Press Q for all shortcuts.',
+      fsBadge: 'Video fullscreen', fsTip: 'The audience window has this clip on its screen; this card stays as it was. Click to hand the screen back.',
       helpSec: 'Presenter mode',
-      helpRows: [['S', 'open / close the presenter window'], ['N', 'in-page prompt bar (when popups are blocked)'], ['Esc', 'close the prompt bar']]
+      helpRows: [['S', 'open / close the presenter window (annotation off)'], ['N', 'in-page prompt bar (when popups are blocked)'], ['Esc', 'close the prompt bar']]
     }
   };
 
@@ -279,7 +288,8 @@
       hintPage: T.hintPage, hintReset: T.hintReset, hintClose: T.hintClose, hintDrag: T.hintDrag,
       resetLayout: T.resetLayout, btnPrev: T.btnPrev, btnNext: T.btnNext, btnReset: T.btnReset,
       slideWord: T.slideWord, winTitle: T.winTitle,
-      inkBtn: T.inkBtn, inkBtnOn: T.inkBtnOn, inkTip: T.inkTip
+      inkBtn: T.inkBtn, inkBtnOn: T.inkBtnOn, inkTip: T.inkTip,
+      fsBadge: T.fsBadge, fsTip: T.fsTip
     };
     r.deckTitle = document.title || '';
     r.deckUrl = deckUrl();
@@ -356,7 +366,11 @@
     return '<section class="pcard" id="c-' + id + '">' +
       '<header class="phead" data-drag><i style="background:' + dot + '"></i>' +
       '<span class="ptitle">' + title + '</span><span class="pmeta" id="m-' + id + '"></span>' +
-      (headBtn || '') + '</header>' +
+      (headBtn || '') +
+      /* top-right of the tile: the "the audience has this clip fullscreen" badge. Only 当前页
+         ever fills it in — the slot exists on every card so a header keeps one shape. */
+      '<button class="pfs" id="fs-' + id + '" type="button" hidden></button>' +
+      '</header>' +
       '<div class="pbody">' + inner + '</div><span class="pgrip" data-resize></span></section>';
   }
 
@@ -373,8 +387,9 @@
     '/* default geometry: the cards must be usable before any JS runs, so layout',
     '   is not only computed — applyLayout() overrides these with px */',
     '#c-cur{left:14px;top:14px;width:calc(58% - 21px);height:calc(66% - 21px)}',
-    '#c-nxt{left:calc(58% + 7px);top:14px;width:calc(42% - 21px);height:calc(40% - 21px)}',
-    '#c-pmt{left:calc(58% + 7px);top:calc(40% + 7px);width:calc(42% - 21px);height:calc(60% - 21px)}',
+    '#c-nxt{left:calc(58% + 7px);top:14px;width:calc(42% - 21px);height:calc(32% - 21px)}',
+    '#c-pmt{left:calc(58% + 7px);top:calc(32% + 7px);width:calc(42% - 21px);height:calc(68% - 21px)}',
+    /* four cards: the right column is two rows — next slide, then the prompt takes the rest */
     '#c-ovw{left:14px;top:calc(66% + 7px);width:calc(58% - 21px);height:calc(34% - 21px)}',
     '.phead{display:flex;align-items:center;gap:9px;padding:7px 11px;flex:none;cursor:move;',
     '  background:rgba(128,128,128,.10);border-bottom:1px solid var(--s-rule);user-select:none}',
@@ -391,7 +406,21 @@
     '  padding:2px 9px;letter-spacing:.08em;background:transparent;border:1px solid var(--s-rule);opacity:.75}',
     '#b-ink:hover,#b-ink:focus-visible{opacity:1;border-color:var(--s-accent);color:var(--s-accent)}',
     '#b-ink.on{opacity:1;border-color:var(--s-accent);color:var(--s-accent);background:rgba(128,128,128,.14)}',
-    '.pcard.moved,.pcard.sized{z-index:9000;border-color:var(--s-accent);transition:none}',
+    /* top-right badge on 当前页: "a clip has the audience screen right now". It is --s-warn on
+       purpose — that colour is the one already measured against the card background (≥4.5:1),
+       so a badge a deck made unreadable by its own palette is not a thing here. */
+    '.pfs{flex:none;font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.08em;cursor:pointer;',
+    '  border-radius:99px;padding:3px 9px 3px 7px;background:transparent;border:1px solid currentColor;',
+    '  color:var(--s-warn);display:inline-flex;align-items:center;gap:6px}',
+    '.pfs[hidden]{display:none}',
+    '.pfs::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;',
+    '  animation:pfs-blink 1.5s ease-in-out infinite}',
+    '.pfs:hover{background:rgba(128,128,128,.14)}',
+    '@keyframes pfs-blink{0%,100%{opacity:1}50%{opacity:.25}}',
+    '/* the interaction cue only. Stacking is a PERSISTED inline z-index (see save/apply):',
+    '   a card that drops back to z-index:auto after a resize falls behind its siblings, and',
+    '   since 当前页 is first in the DOM, enlarging it used to bury it under the other tiles. */',
+    '.pcard.moved,.pcard.sized{border-color:var(--s-accent);transition:none}',
     '#c-pmt .pbody{padding:14px 18px;overflow-y:auto;font-size:19px;line-height:1.85}',
     '#pmt-body p{margin:0 0 .8em}',
     '#pmt-body strong{color:var(--s-warn)}',
@@ -435,7 +464,7 @@
     '#b-layout{margin-left:auto;font:inherit;font-size:11px;color:inherit;cursor:pointer;',
     '  background:transparent;border:1px solid var(--s-rule);border-radius:5px;padding:3px 9px}',
     'body.dragging *{user-select:none}',
-    '@media (prefers-reduced-motion: reduce){.pcard{transition:none}}'
+    '@media (prefers-reduced-motion: reduce){.pcard{transition:none}.pfs::before{animation:none}}'
   ].join('\n');
 
   /* ---- generated presenter document: behaviour (static; reads window.__P) -- */
@@ -451,29 +480,51 @@
     '  b.textContent=inkOn?C.copy.inkBtnOn:C.copy.inkBtn;}',
     'function sendInk(m){send(ifCur.contentWindow,m)}',
     'function send(w,m){try{w&&w.postMessage(m,"*")}catch(e){}}',
+    '/* ---- the mirrored fullscreen badge ---------------------------------------------',
+    '   A clip sent fullscreen from inside the 当前页 tile does NOT fill this window: the ask',
+    '   crosses the bridge, the AUDIENCE window takes the screen the room is looking at, and',
+    '   this window keeps showing exactly the page it showed a moment before — one chip in the',
+    '   corner of the tile is the only thing that moves. The audience state is the truth, so',
+    '   Escape, the audience button and a page turn all clear the badge by themselves. */',
+    'var mfs={on:false,id:-1};',
+    'function setFs(on,id){on=!!on;if(id===undefined)id=mfs.id;',
+    '  if(mfs.on===on&&mfs.id===(on?id:-1))return false;mfs={on:on,id:on?id:-1};return true}',
+    'function paintFs(){var b=el("fs-cur");if(!b)return;b.hidden=!mfs.on;',
+    '  if(mfs.on){b.textContent=C.copy.fsBadge;b.setAttribute("title",C.copy.fsTip)}',
+    '  else{b.textContent="";b.removeAttribute("title")}}',
+    'function pushFs(on,id){tellHost({type:"presenter-media-fs",id:id,on:on});',
+    '  send(ifCur.contentWindow,{type:"preview-media-fs",id:id,on:on})}',
+    'function askFs(on){var i=mfs.id;if(!setFs(on,i))return;paintFs();if(i>=0)pushFs(on,i)}',
     '/* the host deck is window.opener in a real popup; when the presenter document is',
     '   embedded instead (iframe), fall back to parent. Never self: parent===window. */',
     'function peer(){if(window.opener)return window.opener;',
     '  try{if(window.parent!==window)return window.parent}catch(e){}return null}',
     'function tellHost(m){try{var h=peer();h&&h.postMessage(m,"*")}catch(e){}}',
     '/* ---- layout: remember where the speaker put the cards ---- */',
-    '/* banner(52) + hint(34) = 86px are chrome, not card territory */',
+    '/* banner(52) + hint(34) = 86px are chrome, not card territory.',
+    '   z is part of the layout: the tile you last touched stays on top after you let go,',
+    '   which is what keeps an enlarged 当前页 from sinking behind its neighbours. */',
+    'var topZ=0;',
+    'function raise(c){topZ+=1;c.style.zIndex=topZ}',
     'function base(){var w=Math.max(640,innerWidth),h=Math.max(360,innerHeight-86);',
-    '  var a=Math.round(w*0.58),b=Math.round(h*0.66);',
-    '  return {"c-cur":{x:14,y:14,w:a-28,h:b-21},"c-nxt":{x:a+7,y:14,w:w-a-21,h:Math.round(h*0.40)-21},',
-    '          "c-pmt":{x:a+7,y:Math.round(h*0.40)+7,w:w-a-21,h:h-Math.round(h*0.40)-21},',
-    '          "c-ovw":{x:14,y:b+7,w:a-28,h:h-b-21}}}',
+    '  var a=Math.round(w*0.58),b=Math.round(h*0.66),r=Math.round(h*0.32);',
+    '  return {"c-cur":{x:14,y:14,w:a-28,h:b-21,z:1},"c-nxt":{x:a+7,y:14,w:w-a-21,h:r-21,z:2},',
+    '          "c-pmt":{x:a+7,y:r+7,w:w-a-21,h:h-r-21,z:3},',
+    '          "c-ovw":{x:14,y:b+7,w:a-28,h:h-b-21,z:4}}}',
     'function clean(L){if(!L)return null;var vw=Math.max(MINW,innerWidth),vh=Math.max(MINH,innerHeight-86),o={};',
     '  for(var i=0;i<IDS.length;i++){var l=L[IDS[i]];if(!l)return null;',
     '    var w=Math.min(Math.max(+l.w||0,MINW),vw),h=Math.min(Math.max(+l.h||0,MINH),vh);',
     '    var x=Math.min(Math.max(+l.x||0,0),Math.max(0,vw-MINW)),y=Math.min(Math.max(+l.y||0,0),Math.max(0,vh-MINH));',
-    '    if(![w,h,x,y].every(isFinite))return null;o[IDS[i]]={x:x,y:y,w:w,h:h}}return o}',
+    '    var z=Math.max(1,Math.round(+l.z||1));',
+    '    if(![w,h,x,y,z].every(isFinite))return null;o[IDS[i]]={x:x,y:y,w:w,h:h,z:z}}return o}',
     'function read(){var s=null;try{s=JSON.parse(localStorage.getItem(KEY))}catch(e){}return clean(s)||base()}',
-    'function save(){var o={};IDS.forEach(function(i){var n=el(i);o[i]={x:parseInt(n.style.left,10)||0,',
-    '  y:parseInt(n.style.top,10)||0,w:parseInt(n.style.width,10)||300,h:parseInt(n.style.height,10)||200}});',
+    'function save(){var o={};IDS.forEach(function(i){var n=el(i);if(!n)return;o[i]={x:parseInt(n.style.left,10)||0,',
+    '  y:parseInt(n.style.top,10)||0,w:parseInt(n.style.width,10)||300,h:parseInt(n.style.height,10)||200,',
+    '  z:parseInt(n.style.zIndex,10)||1}});',
     '  try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}',
     'function apply(L){IDS.forEach(function(i){var n=el(i),l=L[i];if(!n||!l)return;',
-    '  n.style.left=l.x+"px";n.style.top=l.y+"px";n.style.width=l.w+"px";n.style.height=l.h+"px"});scaleAll()}',
+    '  n.style.left=l.x+"px";n.style.top=l.y+"px";n.style.width=l.w+"px";n.style.height=l.h+"px";',
+    '  n.style.zIndex=l.z||1;if((l.z||1)>topZ)topZ=l.z});scaleAll()}',
     '/* ---- the preview is the deck itself at 1280x720, scaled into the card ---- */',
     'function scaleOne(f){if(!f||f.style.display==="none")return;var b=f.parentElement;',
     '  var cw=b.clientWidth,ch=b.clientHeight;if(!cw||!ch)return;',
@@ -537,10 +588,18 @@
     'function nav(n,fromHost){n=Math.max(0,Math.min(total-1,n));if(n===idx&&fromHost!=="boot")return;idx=n;fill();',
     '  if(!fromHost)tellHost({type:"presenter-goto",idx:n});}',
     'addEventListener("message",function(e){var d=e.data;if(!d)return;',
-    '  if(d.type==="preview-ready"){var f=e.source===ifCur.contentWindow?ifCur:(e.source===ifNxt.contentWindow?ifNxt:null);',
+    '  if(d.type==="preview-ready"){',
+    '    var f=e.source===ifCur.contentWindow?ifCur:(e.source===ifNxt.contentWindow?ifNxt:null);',
     '    if(f){ready[f===ifCur?"cur":"nxt"]=true;scaleOne(f);send(f.contentWindow,{type:"preview-goto",idx:f===ifCur?idx:idx+1});',
-    '      if(f===ifCur&&C.hasInk)send(f.contentWindow,{type:"ink-cmd",cmd:"ask"});return}',
+    '      if(f===ifCur){if(mfs.on)send(f.contentWindow,{type:"preview-media-fs",id:mfs.id,on:true});',
+    '        if(C.hasInk)send(f.contentWindow,{type:"ink-cmd",cmd:"ask"})}return}',
     '    for(var mk in mounted){if(mounted[mk].contentWindow===e.source){scaleOne(mounted[mk]);return}}return}',
+    '  if(d.type==="media-fs"){                        /* from the tile, or relayed from the audience */',
+    '    var tile=(e.source===ifCur.contentWindow);',
+    '    if(!tile&&e.source!==peer())return;           /* the overview thumbnails carry the same ids */',
+    '    if(!setFs(d.on,d.id))return;paintFs();',
+    '    if(tile)tellHost({type:"presenter-media-fs",id:d.id,on:d.on});',
+    '    send(ifCur.contentWindow,{type:"preview-media-fs",id:d.id,on:d.on});return}',
     '  if(d.type==="ink-state"){if(e.source===ifCur.contentWindow)setInkChip(d.on);return}',
     '  if(d.type==="ink-cmd"&&d.cmd==="store"){tellHost({type:"ink-store",store:d.store,rev:d.rev});return}',
     '  if(d.type==="ink-store"){var m={type:"ink-cmd",cmd:"store",store:d.store,rev:d.rev};send(ifCur.contentWindow,m);send(ifNxt.contentWindow,m);return}',
@@ -548,8 +607,8 @@
     '/* ---- drag + resize ---- */',
     'Array.prototype.forEach.call(document.querySelectorAll("[data-drag]"),function(h){',
     '  h.addEventListener("mousedown",function(ev){if(ev.button!==0)return;',
-    '    if(ev.target.closest&&ev.target.closest("button"))return;var c=h.closest(".pcard");',
-    '    ev.preventDefault();c.classList.add("moved");document.body.classList.add("dragging");',
+    '    if(ev.target.closest&&ev.target.closest("button,#fs-cur"))return;var c=h.closest(".pcard");',
+    '    ev.preventDefault();c.classList.add("moved");document.body.classList.add("dragging");raise(c);',
     '    var sx=ev.clientX,sy=ev.clientY,ox=c.offsetLeft,oy=c.offsetTop;',
     '    function mv(e){c.style.left=Math.max(0,Math.min(innerWidth-90,ox+e.clientX-sx))+"px";',
     '      c.style.top=Math.max(0,Math.min(innerHeight-98,oy+e.clientY-sy))+"px"}',
@@ -558,7 +617,7 @@
     '    document.addEventListener("mousemove",mv);document.addEventListener("mouseup",up)})});',
     'Array.prototype.forEach.call(document.querySelectorAll("[data-resize]"),function(g){',
     '  g.addEventListener("mousedown",function(ev){if(ev.button!==0)return;var c=g.closest(".pcard");',
-    '    ev.preventDefault();ev.stopPropagation();c.classList.add("sized");document.body.classList.add("dragging");',
+    '    ev.preventDefault();ev.stopPropagation();c.classList.add("sized");document.body.classList.add("dragging");raise(c);',
     '    var sx=ev.clientX,sy=ev.clientY,ow=c.offsetWidth,oh=c.offsetHeight;',
     '    function mv(e){c.style.width=Math.max(MINW,ow+e.clientX-sx)+"px";',
     '      c.style.height=Math.max(MINH,oh+e.clientY-sy)+"px";',
@@ -574,6 +633,7 @@
     'function resetTimer(){t0=Date.now();el("t-clock").textContent="00:00"}',
     '/* ---- controls ---- */',
     'if(el("b-ink")){setInkChip(false);el("b-ink").addEventListener("click",function(){setInkChip(!inkOn);sendInk({type:"ink-cmd",cmd:"on",arg:inkOn})})}',
+    'if(el("fs-cur"))el("fs-cur").addEventListener("click",function(){askFs(false)});',
     'el("b-prev").addEventListener("click",function(){nav(idx-1)});',
     'el("b-next").addEventListener("click",function(){nav(idx+1)});',
     'el("b-reset").addEventListener("click",resetTimer);',
@@ -582,7 +642,10 @@
     '  switch(e.key){case "ArrowRight":case "ArrowDown":case " ":case "PageDown":e.preventDefault();nav(idx+1);break;',
     '    case "ArrowLeft":case "ArrowUp":case "PageUp":e.preventDefault();nav(idx-1);break;',
     '    case "Home":nav(0);break;case "End":nav(total-1);break;',
-    '    case "r":case "R":resetTimer();break;case "Escape":window.close();break}});',
+    '    case "r":case "R":resetTimer();break;',
+    '    /* Escape with the badge lit hands the screen back first — quitting the window while the',
+    '       room is watching a clip nobody asked for is the worse of the two mistakes. */',
+    '    case "Escape":if(mfs.on){askFs(false);break}window.close();break}});',
     '/* ---- boot: lay out first, then load each iframe exactly once ---- */',
     'apply(read());ovwBuild();fill();',
     'try{ifCur.src=C.deckUrl+"?preview="+(idx+1);',
@@ -637,6 +700,15 @@
     if (pw && !pw.closed) { try { pw.postMessage({ type: 'ink-store', store: e.detail.store, rev: e.detail.rev }, '*'); } catch (err) {} }
   });
 
+  /* fullscreen relay: the audience window is the one that can own a screen, so it is also the
+     one that decides what the badge on the 当前页 tile says. deck-shell.js broadcasts
+     'audience-media-fs' from every path that changes that state — its own button, a double
+     click, the bridge, Escape, a page turn — and this is the only thing that forwards it. */
+  function pushFs() {
+    var i = deck.mediaBig;
+    if (i >= 0 && pw && !pw.closed) { try { pw.postMessage({ type: 'media-fs', id: i, on: true }, '*'); } catch (e) {} }
+  }
+
   window.addEventListener('message', function (e) {
     var d = e.data;
     if (!d) return;
@@ -645,8 +717,11 @@
     } else if (d.type === 'presenter-open') {
       pushToPresenter(deck.index);
       pushInk();
+      pushFs();
     } else if (d.type === 'presenter-close') {
       pw = null;
+    } else if (d.type === 'audience-media-fs') {
+      if (pw && !pw.closed) { try { pw.postMessage({ type: 'media-fs', id: d.id, on: d.on }, '*'); } catch (e) {} }
     } else if (d.type === 'ink-store') {
       if (window.InkOverlay && window.InkOverlay.applyRemote) window.InkOverlay.applyRemote(d.store, d.rev);
     }

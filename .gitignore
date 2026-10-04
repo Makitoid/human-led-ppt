@@ -1,0 +1,8 @@
+# 宣传物料：只留在本地，不入库
+# 这两张 SVG 是本地源文件，按用户要求不提交。
+/promo/human-led-ppt-poster-16x9.svg
+/promo/human-led-ppt-bilibili-cover.svg
+
+# 同目录的 PNG 是渲染产物。若要连 PNG 一起屏蔽，取消下面两行注释：
+# /promo/human-led-ppt-poster-16x9.png
+# /promo/human-led-ppt-bilibili-cover.png

@@ -156,11 +156,15 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 |---|---|---|
 | `visual` ★ | 画面指令：什么图、轴怎么标、哪块用 warn 色 | 构建时照它画图 |
 | `layout` ★ | 版面：几栏、主次、留白在哪（"左 40% 标题区，右 60% 图表"） | 决定 `.slide-body` 结构 |
-| `media` | 图片 / 截图 / 插画 / 录屏：内容、来源与授权、必须让人看到什么。单文件离线，录屏只能是几秒的轻量 GIF，否则改成 `demo` 现场做 | `.img-frame` + `aspect-ratio` |
+| `image` ★ | 图片 / 截图 / 插画：内容、来源与授权、必须让人看到什么、**落在哪一块**（"右栏通高" / "左下小图"）。**图片直接 base64 内联进 HTML**——deck 仍是单文件离线；照片级大图（>800KB）改用 `visual` 画图 | `.img-frame` + `aspect-ratio` |
+| `audio` | 音频：**文件名（与 html 同一个文件夹）**、内容（是什么声音、哪几句值得听）。不内联 | `.mp` 播放器卡（拖放条 / 倍速由壳生成） |
+| `video` | 视频：**文件名（与 html 同一个文件夹）**、内容、必须让人看到什么。不内联 | `.mp` 播放器卡 |
 | `icon` | 图标语义（不用 emoji 充当图标） | 内联 SVG |
 | `emphasis` ★ | 本页唯一的视觉重点：用 accent 还是 warn、落在哪个元素 | 一页只允许一处强色 |
 | `before-after` | 前后对照 / 改前改后 / 误读 vs 纠正 | 双栏 |
 | `diagram` | 结构图的构成：原理图、架构图、流程图、**归因树 / 5Why / 鱼骨**——有哪几块、怎么连、箭头朝哪。因果链的节点允许是名词（不像 `steps` 必须动词开头） | 内联 SVG |
+
+> 媒体类三词各管一种文件归属——**图片内联，音视频 sibling 文件**。单文件 HTML 装不下几十 MB 的音视频——base64 会再胀大三分之一，`file://` 下首屏还要把整个 data URL 读完才显示，deck 直接打不开。所以音视频的物理文件必须和 `.html` 放在同一个文件夹一起交付，拷贝时别只拷 html。落屏位置仍由 `layout` 和词序决定，这三个词只声明"放什么媒体、放哪一块、要不要自动播"。
 
 **E 论证 —— 怎么说服**
 
@@ -190,7 +194,7 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | `discuss` | 开放讨论 / 征集观点：问题 + 想收到哪几种回答 + 收上来怎么用。**没有标准答案，讲者只负责收集**——这是它和 `quiz` / `poll` 的分界 | 讨论卡，答案落在 `hint` |
 | `handoff` | 交接给下一位讲者 | 分工 deck |
 
-> 答辩的"预置问答"不再单列一词：问题写进该页的 `counter`，怎么答写进该页的 `hint`。原先的 `qa` 与 `hint` 定义几乎逐字重复，删掉。
+> 答辩的"预置问答"不单列一词：问题写进该页的 `counter`，怎么答写进该页的 `hint`。
 
 ### 起步词集（按场合的抄板，仍需按实际页删词）
 
@@ -200,7 +204,7 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | 数据汇报 | `topic title kpi table compare bars data visual emphasis caveat takeaway action hint` |
 | 答辩 / 评审 | `topic title points data table compare evidence caveat takeaway action counter hint` |
 | 技术分享 | `topic title sub code diagram steps before-after demo example takeaway hint` |
-| 路演 / 说服 | `topic title kpi quote pull points compare timeline media emphasis ask lines hint` |
+| 路演 / 说服 | `topic title kpi quote pull points compare timeline image emphasis ask lines hint` |
 
 **没有角色就不选 `lines` / `role` / `handoff`。** 单人陈述的 deck 硬塞台词，等于把上面那种写法又变成唯一一种。
 

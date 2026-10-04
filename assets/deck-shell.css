@@ -85,6 +85,120 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
 #deckhelp .dh-f{margin:6px 0 0;padding-top:10px;border-top:1px solid var(--rule,rgba(128,128,128,.3));
                 font-size:12px;opacity:.6}
 
+/* ---------- media player (built by deck-shell.js — a deck never hand-writes a control bar)
+   Markup contract:  <figure class="mp" data-mp><video data-src="clip.mp4"></video></figure>
+   The shell injects the transport and keeps the source detached until the slide first opens
+   (a 30 MB clip must not start downloading with the deck).
+   Layout: two rows — the picture, then one control strip BELOW it. The strip holds play, the
+   loudspeaker (its volume is a pull-up popover, not a permanent slider), the thick PowerPoint
+   style scrub bar, the time, the rate and fullscreen. Because the strip is part of the card,
+   the card's height must include it: see 05-build.md's media sizing rule and the reachability
+   assertion in 06-verify.md §2.1, which is what catches a card that pushes its own strip off
+   the slide. The shell does not clamp it — that is a build error, not a runtime surprise. */
+.mp{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;
+    min-width:0;min-height:0;max-width:100%;max-height:100%;margin:0;
+    --mp-line:rgba(128,128,128,.42)}
+.mp-el{display:block;width:100%;height:100%;min-height:0;object-fit:contain;background:#000}
+.mp[data-kind="audio"]{grid-template-rows:auto;align-content:center;align-self:center}
+.mp[data-kind="audio"] .mp-el{display:none}
+/* An audio card is a sound that happens to be on this slide, not a second transport: at rest
+   the strip folds and the loudspeaker chip is left — the PowerPoint cue for "this makes noise".
+   It unfolds on hover and on keyboard focus, and on tap for a touchscreen (deck-shell.js puts
+   [data-open] on the figure). .mp-fold is display:contents when open so the strip stays one
+   row of items with the bar's own gaps, and the loudspeaker leads because that is the part
+   that is always there. */
+.mp[data-kind="audio"] .mp-fold{display:none}
+.mp[data-kind="audio"]:hover .mp-fold,
+.mp[data-kind="audio"]:focus-within .mp-fold,
+.mp[data-kind="audio"][data-open="1"] .mp-fold{display:contents}
+.mp-bar{display:flex;align-items:center;gap:9px;width:100%;min-width:0;padding:5px 10px;
+        font-family:inherit;font-size:12.5px;color:var(--ink,#14281F);
+        background:var(--panel,#fff);border:1px solid var(--rule,rgba(128,128,128,.3));
+        border-top:0;border-radius:0 0 9px 9px}
+.mp[data-kind="audio"] .mp-bar{border-top:1px solid var(--rule,rgba(128,128,128,.3));border-radius:9px;
+        width:auto;gap:0;padding:4px;justify-self:center}
+.mp[data-kind="audio"]:hover .mp-bar,
+.mp[data-kind="audio"]:focus-within .mp-bar,
+.mp[data-kind="audio"][data-open="1"] .mp-bar{width:100%;gap:9px;padding:5px 10px}
+.mp-bar button{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:6px;
+  background:transparent;border:1px solid transparent;color:inherit;font:inherit;cursor:pointer;
+  opacity:.88;padding:0;transition:background .14s,opacity .14s,color .14s}
+.mp-bar button:hover{background:rgba(128,128,128,.18);opacity:1}
+.mp-bar button:focus-visible{outline:2px solid var(--accent,#0F766E);outline-offset:2px}
+.mp-bar button svg{width:15px;height:15px;display:block;fill:currentColor}
+.mp-bar button[aria-pressed="true"]{color:var(--accent,#0F766E);opacity:1}
+/* the rate chip is a value, not an icon: keep the numbers tabular */
+.mp-bar .mp-rate{width:auto;min-width:38px;height:24px;font-size:11.5px;
+  font-variant-numeric:tabular-nums;letter-spacing:.02em}
+/* the readouts must be allowed to shrink, or their max-content width becomes the whole
+   bar's width and the transport overflows a narrow card instead of truncating */
+.mp-t{flex:0 0 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-variant-numeric:tabular-nums;font-size:11.5px;opacity:.8}
+.mp-t i{opacity:.45;font-style:normal;margin:0 1px}
+/* volume: NOT a permanent slider. The loudspeaker is a button; a vertical slider pulls up out
+   of it — on hover and keyboard focus for a mouse, on tap for a touchscreen (data-vol="1").
+   A real range input, so it drags, takes arrow keys and announces a value. */
+.mp-volwrap{position:relative;flex:none;display:grid;place-items:center;width:26px;height:26px}
+.mp-volpop{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,6px);
+  display:none;place-items:center;padding:9px 7px 8px;z-index:3;
+  background:var(--panel,#fff);border:1px solid var(--rule,rgba(128,128,128,.35));border-radius:9px;
+  box-shadow:0 10px 26px rgba(0,0,0,.28);opacity:0;transition:opacity .14s ease,transform .14s ease}
+.mp-volwrap:hover .mp-volpop,.mp-volwrap:focus-within .mp-volpop,
+.mp-volwrap[data-vol="1"] .mp-volpop{display:grid;opacity:1;transform:translate(-50%,0)}
+.mp-volr{-webkit-appearance:none;appearance:none;writing-mode:vertical-lr;direction:rtl;
+  width:16px;height:74px;margin:0;padding:0;background:transparent;cursor:pointer}
+.mp-volr::-webkit-slider-runnable-track{width:3px;border-radius:99px;background:var(--mp-line)}
+.mp-volr::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:3px;
+  border-radius:2px;background:var(--accent,#0F766E);box-shadow:0 0 0 2px rgba(0,0,0,.14)}
+.mp-volr::-moz-range-track{width:3px;border-radius:99px;background:var(--mp-line)}
+.mp-volr::-moz-range-thumb{width:13px;height:3px;border:0;border-radius:2px;background:var(--accent,#0F766E)}
+.mp-volr:focus-visible{outline:2px solid var(--accent,#0F766E);outline-offset:4px;border-radius:4px}
+/* the scrub bar: a thick PowerPoint-style bar inside the strip — 5px track, the played part
+   filled, and a rectangular head. Always visible; it is the strip's flexible middle. */
+.mp-track{position:relative;flex:1 1 0;min-width:44px;height:20px;cursor:pointer;touch-action:none}
+.mp-track::before{content:"";position:absolute;left:0;right:0;top:50%;height:5px;margin-top:-2.5px;
+  border-radius:99px;background:var(--mp-line)}
+.mp-buf,.mp-play{position:absolute;top:50%;height:5px;margin-top:-2.5px;border-radius:99px;left:0;width:0}
+.mp-buf{background:rgba(128,128,128,.45)}
+.mp-play{background:var(--accent,#0F766E)}
+.mp-knob{position:absolute;top:50%;left:0;width:4px;height:15px;margin:-7.5px 0 0 -2px;
+  border-radius:2px;background:var(--accent,#0F766E);box-shadow:0 0 0 2px rgba(0,0,0,.16);
+  pointer-events:none;transition:height .12s,margin-top .12s}
+.mp-track:hover .mp-knob{height:19px;margin-top:-9.5px}
+.mp[data-state="error"] .mp-bar{border-color:var(--warn,#B4541F)}
+.mp-note{font-size:12.5px;line-height:1.6;opacity:.7;padding:6px 2px 0}
+/* media fullscreen: the figure itself goes fullscreen so its strip rides along with it */
+.mp:fullscreen,.mp:-webkit-full-screen{width:100vw;height:100vh;max-width:none;background:#000;
+  align-content:center;grid-template-rows:minmax(0,1fr) auto}
+.mp:fullscreen .mp-el,.mp:-webkit-full-screen .mp-el{background:transparent}
+/* ---------- the CSS take-over: the same picture when fullscreen cannot be granted --------
+   A mirrored request (presenter tile → audience window) lands without user activation and
+   without focus, so requestFullscreen() rejects it; deck-shell.js puts [data-takeover] on the
+   card instead, and drops it the moment real fullscreen is granted (the rules above carry the
+   look from there). The geometry is expressed in canvas units because #stage is transformed —
+   a fixed descendant is contained by it, so "the whole window" has to be divided by the scale.
+   !important, not as a shortcut but for parity: the UA's own :fullscreen rules are !important,
+   and an author's `.mp.wide{width:780px}` would otherwise out-order this box — while a clip owns
+   the screen the shell holds the box, exactly as it does in real fullscreen. */
+.mp[data-takeover]{position:fixed !important;z-index:2147483000 !important;margin:0 !important;
+  border-radius:0 !important;background:#000 !important;max-width:none !important;
+  left:var(--mpfs-l,0) !important;top:var(--mpfs-t,0) !important;
+  width:var(--mpfs-w,100vw) !important;height:var(--mpfs-h,100vh) !important;
+  align-content:center;grid-template-rows:minmax(0,1fr) auto}
+.mp[data-takeover] .mp-el{background:transparent}
+
+/* thumbnails: buildOverview() deep-clones the slide, so deck-shell.js swaps every cloned
+   player for this one static chip — a control bar inside a thumbnail answers to nothing and
+   reads as a broken player (and puts four dead buttons in front of a screen reader).
+   Scoped to #overview so the live card on stage is untouched. */
+#overview .mp-ph{display:grid;place-items:center;height:100%;min-height:48px;
+  background:#0B0C0E;border:1px solid var(--rule,rgba(128,128,128,.28));border-radius:9px}
+#overview .mp-ph::before{content:"";width:0;height:0;margin-left:6px;opacity:.9;
+  border-left:22px solid var(--accent,#0F766E);border-top:14px solid transparent;
+  border-bottom:14px solid transparent}
+/* an audio figure collapses to its bar by design; in a thumbnail the chip needs a box */
+#overview .mp[data-kind="audio"] .mp-ph{min-height:56px}
+
 /* ---------- a11y: honour the OS "reduce motion" setting ---------- */
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;
@@ -101,4 +215,8 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
   .slide{position:static;opacity:1 !important;visibility:visible !important;
          break-after:page;page-break-after:always}
   #overview,#rotate-mask,#deckhelp,#aria{display:none !important}
+  /* a printed page carries the frame, not the transport: the poster still shows,
+     the bar and the scrub line are meaningless on paper */
+  .mp-bar,.mp-track{display:none !important}
+  .mp-el{break-inside:avoid}
 }

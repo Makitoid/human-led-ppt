@@ -3,7 +3,7 @@
 Adds a live ink layer on top of a finished deck: presenters draw on the slide while talking,
 flip pages normally, and the ink follows the slide. It is **opt-in** — offer it when the deck
 will be presented live, taught, reviewed in front of an audience, or when the user says
-批注 / annotate / draw on screen / 白板 / 讲课. Skip it for decks that are only ever exported
+批注 / annotate / draw on screen / 黑板 / 讲课. Skip it for decks that are only ever exported
 to PDF or handed out as files, and say why.
 
 ## 1. Install
@@ -106,9 +106,17 @@ discipline as the number audit.
 | Keyboard | **nothing is blocked** — arrows, Space, PageUp/Down, Home/End and 1–9 keep paging while annotating | presenters navigate while drawing; only `Esc` and the tool keys are ours |
 | Toolbar, popovers, hint, help, status pill | `stopPropagation()` on **each element itself** | a window-capture block here would also kill our own click handlers; `stopPropagation` only affects other nodes, so same-node listeners still run |
 | Touch drawing | `touch-action:none` on the canvas | otherwise the browser turns a stroke into a scroll/zoom |
+| **This layer's own keys** | `stopImmediatePropagation` in the `window` capture phase | when another layer also owns the same key (`S` is the presenter's "open window" too), both firing means one keypress does two jobs. The shell registers first (the ink block lands first at assembly), so **the shell wins**; in the other direction, when the key sits inside a media transport `M` belongs to the media and `[` `]` to the rate — both have to step aside completely |
 
 `isolate()` at the bottom of the block wires the second column's counterpart — extend it if you
 add a new ink surface, otherwise clicks on it will flip slides.
+
+**Once a key is "owned" by a layer, uproot it entirely**: `preventDefault` only blocks the default
+behaviour, `stopPropagation` only blocks travel downward, and neither blocks **other listeners on
+the same node**. Two handlers registered side by side on the `window` capture phase can only cut
+each other off with `stopImmediatePropagation`. The live symptom of leaving this out is that with
+annotation on, pressing `S` downloads a PNG **and** pops the presenter window — each is "correct" on
+its own; together they are an incident.
 
 ## 5. Data model (do not "optimise" this away)
 
@@ -123,6 +131,11 @@ add a new ink surface, otherwise clicks on it will flip slides.
   entries so you cannot erase an eraser).
 - One array per slide (`p0`, `p1`, …); the slide index is locked at pen-down, so pressing → mid
   stroke cannot leak the stroke onto the next slide.
+- **The blackboard uses a single key `bd`** and is not split per page. It is one whole sheet of
+  "what was written before here" that belongs to no slide — keying it per page would carry the board
+  away on every page turn, and then it is gone. Board ink and any slide's ink are never mutually
+  visible (`pkey()` returns `bd` in board mode), and clearing the board never touches any page's
+  ink.
 - Keys: `ink.v1|<deck title>` for ink, `.size` for the two pen widths, `.color` for the custom
   swatch, `.hint` for the one-off toast, `.fab` for the dragged corner-button position.
   Title-based, so renaming the file keeps the ink. Everything is wrapped in `try/catch`: if storage
@@ -136,12 +149,13 @@ add a new ink surface, otherwise clicks on it will flip slides.
 
 ## 6. Feature summary (for the delivery note)
 
-`A` or the corner button toggles annotation · pen · highlighter · eraser · 5 colours + 1 custom ·
-click the active tool again for its popover (width slider + number for the two pens, two eraser
-modes for the eraser) · `[` `]` nudge the active pen · `C` cycles colours · right-drag erases with
-any tool · `Ctrl+Z` / `Ctrl+Shift+Z` · `X` clears the slide (undoable) · `V` hides ink without
-deleting it · `S` exports the slide's ink as PNG · JSON export/import for backup · `?` shortcuts ·
-`Q`, the shell's shortcut panel (this layer's keys are registered into it).
+`A` or the corner button toggles annotation · **blackboard (`B`, see §6.1)** · pen · highlighter ·
+eraser · 5 colours + 1 custom · click the active tool again for its popover (width slider + number
+for the two pens, two eraser modes for the eraser) · `[` `]` nudge the active pen · `C` cycles
+colours · right-drag erases with any tool · `Ctrl+Z` / `Ctrl+Shift+Z` · `X` clears the current
+surface (page or blackboard, undoable) · `V` hides ink without deleting it · `S` exports the current
+surface's ink as PNG · JSON export/import for backup · `?` shortcuts · `Q`, the shell's shortcut
+panel (this layer's keys are registered into it).
 Stylus pressure varies pen width; mouse and touch stay uniform.
 
 **The corner button** keeps the original slim pen glyph and is **draggable**: moving past 6px parks
@@ -151,10 +165,38 @@ ending annotation closes the layer, so the glyph should say what the click does 
 deliberately carries **no selected-state highlight**: `.on` belongs to the currently chosen tool and to the
 visibility toggles, never to the power glyph, so do not give it a blue frame again. The pen and highlighter icons
 stay far apart in silhouette: pen = slim diagonal body with a wavy stroke under the tip; highlighter
-= a self-drawn **narrow** barrel (tilted 45°, only 3 units wide) with a cap/body divider, a chisel
-nib and a translucent band underneath — the band is what tells them apart. They must read apart at
-17px; do not return them to two near-identical pens, and do not fatten the barrel back.
+= a **solid filled body** (tilted 45°, with a real gap between cap and body as the
+dividing line and a slanted trapezoid tip) + a **low-opacity colour band** under the tip — "has the
+band or not" is the boundary between the two pens. They must read apart at
+17px; do not return them to two near-identical outlined pens, and do not delete the band.
 `assets/icon.svg` remains the skill's own logo; it is no longer embedded in the toolbar.
+
+### 6.1 Blackboard (`B`)
+
+One button (on the toolbar, a blackboard glyph) turns the whole page into **one dark board**, the
+slides fold away, and you write directly on the board.
+Pressing `B` again returns to the slides, with annotation still live.
+
+- **The surface is a CSS variable**, `--ink-board` (`#1D2A26`, one fixed dark slate): it is
+  deliberately **not derived from the deck palette**, so the board is this same dark ground whatever
+  the deck is. It is the background of `#inkboard` under `body.board`, layered below the canvas and
+  above the slides, and the JS constant `BOARD_BG` must equal it.
+- **The palette has to switch too**: on a dark ground the old deep-ink pens vanish, so
+  `PALETTE_BOARD` is a chalk set (`#FF8F87`/`#FFD86B`/`#7FE3D6`/`#F2F5F1`/`#9EC6FF`; measured against
+  `#1D2A26`: 6.75 / 10.83 / 9.82 / 13.54 / 8.48 — all ≥4.5:1). Order and count are unchanged, so
+  "colour 3" still sits in the same place as on slides. Because every pen on a dark ground has to be
+  light, this set separates by **hue** (≈4°/44°/172°/achromatic near-white/217°), not by lightness.
+  On switching, rebuild the swatches with `buildSwatches()` rather than only mutating the `COLORS`
+  array — otherwise the swatch DOM and the array diverge.
+- **The highlighter's band alpha is surface-dependent too**: `.30` on slides (unchanged), `.55` on
+  the board — `.30` over the dark ground only reaches 1.8–2.3:1, and at `.55` the measured band is
+  coral 3.01:1 and yellow 4.32:1, clearing 3:1 as a non-text band.
+- **The clear button's wording switches as well**: "clear blackboard" on the board, "clear this page"
+  on a slide. Users should not meet two different labels on one shared bin.
+- **It does not print**: `@media print` hides it together with the canvas and the toolbar.
+- With presenter mode installed alongside, the blackboard **is not moved into the presenter window**:
+  it is raised in the audience window with `B`, and the presenter window carries four cards with no
+  board tile in them (see `08-presenter-mode.md` §2).
 
 **Annotating in the presenter window** (requires step 8): the preview iframe already is this deck,
 so the current-slide card gets `pointer-events` back and an "Annotate" chip in its header that
@@ -231,10 +273,23 @@ Then reload and confirm the ink came back, and clear your own test data
    measurement group.
 8. `getImageData` coordinates are device pixels (multiply by `cv.width / innerWidth`), and sampling
    a point that fell outside the canvas reads transparent — return `OUT` rather than a fake 0.
+9. **`a[download]` is not navigation.** The shell has an "open every link in a new tab with
+   `window.open`" fallback that also swallows the `<a download="…">` this layer builds for exporting:
+   `window.open` on a multi-megabyte `data:` URL is not a download but a window holding the whole
+   image, and it steals focus too. The shell now lets `download` anchors through, so **keep your own
+   download logic in this file and do not edit the shell's link fallback**.
+10. **With the ink layer on, `S` belongs to the ink layer** (export PNG); open the presenter window
+    by pressing `A` first to leave annotation, or by using the top-right bubble.
+11. **Media keys collide with ink keys by name**: `M` (mute / highlighter), `[` `]` (rate / pen
+    width), `Space` (play / page). The shell cuts off later listeners on the `window` capture phase
+    with `stopImmediatePropagation`, so the key belongs to the media when focus is inside the
+    transport and to the ink otherwise. **Except `←` `→`, which belong to neither and always page** —
+    otherwise clicking play pins the presenter to one slide.
 
 ## 9. Limits to state when delivering
 
-- Ink is **not** in print or PDF export (`@media print` hides the layer on purpose). A merged
+- Ink is **not** in print or PDF export (`@media print` hides the layer on purpose, the blackboard
+  surface likewise). A merged
   slide+ink image needs a screenshot; compositing in-page would require html2canvas and breaks the
   zero-dependency rule.
 - Storage is per browser profile and per origin; `file://` shares one bucket for all local files.

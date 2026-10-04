@@ -156,11 +156,15 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 |---|---|---|
 | `visual` ★ | 画面の指示：どのグラフか、軸をどうラベルするか、どのブロックが warn 色を取るか | 構築はそれに従って描く |
 | `layout` ★ | 構成：段数、階層、余白がどこか（「左 40% はタイトル、右 60% はグラフ」） | `.slide-body` の形を決める |
-| `media` | 写真 / スクリーンショット / イラスト / 画面録画：内容、ライセンス、見る人に必ず見えなければならないもの。デッキはオフラインの単一ファイルなので、録画は数秒の軽い GIF にする——でなければ `demo` としてライブでやる | `.img-frame` + `aspect-ratio` |
+| `image` ★ | 写真 / スクリーンショット / イラスト：内容、ライセンス、見る人に必ず見えなければならないもの、**どのブロックに置くか**（「右段は段いっぱい」/「左下の小さな図」）。**base64 で HTML に直接インライン化する**——デッキはオフラインの単一ファイルのまま；写真並みの大容量ファイル（800KB 超）は `visual` で描く | `.img-frame` + `aspect-ratio` |
+| `audio` | 音声：**ファイル名（html と同じフォルダー）**、内容（何の音で、どこを聞くべきか）。インライン化しない | `.mp` 再生カード（ドラッグシーク / 再生速度は壳が生成） |
+| `video` | 映像：**ファイル名（html と同じフォルダー）**、内容、見る人に必ず見えなければならないもの。インライン化しない | `.mp` 再生カード |
 | `icon` | アイコンの意味（emoji はアイコンではない） | インライン SVG |
 | `emphasis` ★ | そのスライド唯一の視覚的な焦点：accent か warn か、どの要素に置くか | 1 スライドに強い色は 1 つ |
 | `before-after` | 昔と今 / パッチと修正 / 誤読と訂正 | 2 段組 |
 | `diagram` | 構造図：原理、アーキテクチャ、流れ、**帰属ツリー / 5-Why / フィッシュボーン**——どのブロックがあり、どうつながり、矢印がどちらを向くか。因果連鎖のノードは名詞でよい（動詞を要求する `steps` とは違う） | インライン SVG |
+
+> メディア系の 3 語はそれぞれ 1 通りのファイルの置き場所を受け持つ——**画像はインライン、音声と映像は兄弟ファイル。** 単一ファイル HTML に数十 MB のメディアは載らない——base64 はさらに 3 分の1 膨らみ、`file://` では最初の描画が data URL 全体の読み込みを待つので、デッキが開かない。だから音声・映像の実ファイルは `.html` と同じフォルダーに置いて一緒に配る——html だけをコピーしないこと。画面のどこに落ちるかはこれまでどおり `layout` と語順が決め、この 3 語は「どのメディアを、どのブロックに置くか」だけを宣言する。
 
 **E 論証 —— どう説得するか**
 
@@ -190,7 +194,7 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | `discuss` | オープンな議論 / 意見の集約：問い + どんな答えを期待するか + それをどう使うか。**模範解答は無く、話者は集めるだけ** | 議論カード、反応は `hint` に落ちる |
 | `handoff` | 次の話者への引き継ぎ | 分担執筆のデッキ |
 
-> 審査の想定問答はもう独立したキーワードを持たない：問いはそのスライドの `counter` に、答えはその `hint` に書く。かつての `qa` は `hint` とほぼ一語一句重複していたので削除した。
+> 審査の想定問答は独立したキーワードを持たない：問いはそのスライドの `counter` に、答えはその `hint` に書く。
 
 ### 場面別のスターターセット（出発点の一枚——それでも実際に使う分だけに削る）
 
@@ -200,7 +204,7 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | データ報告 | `topic title kpi table compare bars data visual emphasis caveat takeaway action hint` |
 | 審査 / レビュー | `topic title points data table compare evidence caveat takeaway action counter hint` |
 | 技術トーク | `topic title sub code diagram steps before-after demo example takeaway hint` |
-| ピッチ / 説得 | `topic title kpi quote pull points compare timeline media emphasis ask lines hint` |
+| ピッチ / 説得 | `topic title kpi quote pull points compare timeline image emphasis ask lines hint` |
 
 **語り手がいなければ → `lines` / `role` / `handoff` は選ばない。** 単一声のデッキにセリフを無理に押し込むと、上の 1 つの様式がまた唯一の様式に戻ってしまうだけである。
 

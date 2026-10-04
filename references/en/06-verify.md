@@ -20,6 +20,8 @@ grep -c 'class="foot"' <topic>.html
 grep -c '⧉\|legend start' <topic>.html
 ```
 
+Do not grep a built deck for `data-src` and count the hits: the inlined shell's own JS comments carry the markup example `data-src="clip.mp4"`, so those two comment lines always match. Count media figures inside `#stage`, or grep `class="mp"` instead.
+
 Also confirm: `<meta name="viewport">` present; `#viewport/#stage/#overview/#aria/#rotate-mask` all exist; nothing from `.notes` renders visibly.
 
 ## 2. Live browser test
@@ -86,6 +88,82 @@ const ratio = (a,b) => { const [x,y]=[lum(a),lum(b)].sort((p,q)=>q-p); return ((
 
 Mobile: resize to 390×844 portrait — the mask must appear; rotate to 844×390 — it must disappear and the canvas must fit.
 
+### 2.1 Media (mandatory when there is `image` / `audio` / `video`)
+
+```js
+// 1) structure: after the shell takes over it looks like this, and carries no author-made controls
+const fig = document.querySelector('#stage .slide.active [data-mp]');
+out.mp = {kind: fig.dataset.kind,
+          hasBar: !!fig.querySelector('.mp-bar'),
+          elClass: fig.querySelector('video,audio').className,   // should contain mp-el
+          controls: fig.querySelector('video,audio').controls,   // must be false
+          dataSrcLeft: fig.querySelector('video,audio').hasAttribute('data-src')};  // must be false: already removed
+// 2) the box is constrained inside the card: an audio-only page **rests as one small loudspeaker chip** (.mp under 48px tall,
+//    roughly one button wide), not a whole blank panel; the full strip unfolds only on hover / Tab focus / a touchscreen tap
+//    (data-open="1" on fig)
+out.audioBox = fig.getBoundingClientRect().height;
+// 3) walk the slide: K plays → the play button's aria-label flips play → pause → press again to get play
+// 4) paging stops it: after leaving the slide, video.paused === true and currentTime === 0
+// 5) ← → always page: with focus on a transport-bar button, press ArrowRight and the slide index must still change
+// 6) fault branch: temporarily point one slide's data-src at a file that does not exist, then assert
+//    fig.dataset.state === 'error' and that fig.querySelector('.mp-note') has copy (human words, not an error code)
+// 7) overflow self-check (mandatory): the bar sits below the picture, part of the card — the card must not break .slide's clip box
+const s = fig.closest('.slide'), bar = fig.querySelector('.mp-bar');
+const limit = s.clientHeight - parseFloat(getComputedStyle(s).paddingBottom);
+const br = bar.getBoundingClientRect();
+const hit = document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2);
+out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
+                fits: fig.offsetTop + fig.offsetHeight <= limit,
+                barReachable: !!(hit && hit.closest && hit.closest('.mp-bar'))};
+//   both must be true: fits=false means the card is taller than the space left on this slide (the bar is clipped outside the canvas),
+//   barReachable=false means the bar sits in the DOM but cannot be clicked — that is the same as having no player. The shell will not
+//   clamp it for you; this is a build error, go back and resize per 05-build's "card height includes the bar".
+//   the scrub bar .mp-track lives inside the strip and is always on, so running the same elementFromPoint on its midpoint must hit it too.
+//   an audio page must be **unfolded before it is measured**: at rest .mp-fold is display:none, so the bar is not meant to be hit —
+//   set fig.setAttribute('data-open','1') for that step and remove it once measured; in the resting state assert instead that the
+//   loudspeaker .mp-mute is itself clickable.
+// 8) volume and fullscreen: volume is not a permanent slider — hovering .mp-mute (or tapping it on a touchscreen) pulls up .mp-volpop, and dragging
+//    its slider .mp-volr changes el.volume continuously (0–1, no steps); dragging to 0 mutes, and a mouse click on the loudspeaker toggles mute;
+//    with the deck already fullscreen (F), clicking the video card's .mp-fs must nest into media fullscreen — Escape comes back to the deck's fullscreen,
+//    not straight down to the window.
+// 9) fullscreen ownership: in a normal window the video card exposes .mp-fs, and what it fills is **this window**. Inside a `?preview=N` iframe
+//    (the presenter's current-slide tile) the same button is there and clickable too, but the picture must **not** fill the presenter window:
+//    that request crosses the media-fs → presenter-media-fs bridge to the audience window, the audience window takes the screen, the tile still
+//    shows the page as it was before fullscreen, and a "Video fullscreen" badge lights up at the top-right of the tile (see 08-presenter-mode.md §3).
+//    When the audience window itself presses Esc or pages away, the badge must go out with it — the state belongs to the audience window, not to the tile.
+```
+
+Check 7 is the new mandatory item in this version, and it must run for **every** media slide (a `for` loop over `#stage [data-mp]` is enough). In a narrow window `#rotate-mask` covers the whole screen and `elementFromPoint` always returns it — that is the test environment, not a bug: widen the window first (or temporarily `mask.classList.remove('show')`) before judging `barReachable`.
+
+The source files must **really sit next to the HTML** when you test — on `file://` a wrong path *is* the fault branch from check 6, so one pass verifies both.
+Inlined images get their own check: `img.complete === true && img.naturalWidth > 0`, plus confirm that `img.src` starts with `data:image/`.
+
+Three probe traps, hit in a live session — read them before writing the script:
+
+- Scope media selectors to `#stage`. `[data-mp]` now matches **live players only**; the overview
+  thumbnails hold a static `.mp-ph` chip instead (a black box with a play glyph — no bar, no media
+  element). If counting players gives double the expected number, you are looking at an old build.
+- Transport-scoped keys (`, . [ ] M Space Enter`) must be dispatched **on a control inside the bar**,
+  e.g. `fig.querySelector('.mp-btn-play').dispatchEvent(new KeyboardEvent('keydown',{key:']',bubbles:true,cancelable:true}))`.
+  A synthetic keydown on `document` has `target === document`, so `target.closest('[data-mp]')` is
+  null and the shell correctly ignores it — you "measure" a dead shortcut that works fine for a real
+  key press. `K` is the only global media key. Also: if the browser panel has lost OS focus, real
+  key presses are silently dropped — re-focus, or dispatch on the element.
+- On `file://` the built-in browser strips the query string, so `?preview=N` (and the `?v=N`
+  cache-buster used elsewhere in this document) never reach the page; test preview mode over
+  `http://localhost`, or open the presenter window once. A CJK **directory** path may fail to load in
+  the built-in browser (keep the test deck in an ASCII directory) — but CJK and spaces inside a
+  `data-src` **file name** are fine and were verified working, with no manual URL-encoding.
+
+### 2.2 Annotation / blackboard (when step 7 is installed)
+
+- With annotation opened by `A`, the arrow keys / space / digits still page as usual;
+- `B` enters the blackboard: `body` carries `board`, the page becomes the dark board, the status pill appears, the palette switches to the chalk set (every pen ≥4.5:1 against `#1D2A26`; per-colour values are documented in `07-annotation.md` §6.1), and the board's highlighter band is drawn at `.55` alpha so it clears 3:1 on the dark ground;
+  **board ink survives paging** (one shared body, not one per page), and **returning to the slides does not leak board ink onto them while the slides' own ink is untouched**;
+- `X` clears only the current surface (pressing it on the board does not wipe any slide's ink);
+- with annotation on, `S` exports a PNG and does **not** also pop the presenter window (the two layers' `S` must be mutually exclusive, see `07-annotation.md` §8);
+- presenter window (if installed alongside): exactly four `.pcard` tiles (`c-cur` `c-nxt` `c-pmt` `c-ovw`), none of them a board and no iframe carrying `board=1`; resize or drag a card, and after **mouseup** it must stay raised above the neighbours it crossed (`parseInt(card.style.zIndex,10)` grew, no fallback to `z-index:auto`), and that front-to-back order must survive a reload, because `z` is stored in the layout record `pv.v2|` together with x/y/w/h.
+
 Optional review pass with marketplace skills (user installs first): `vercel-labs-web-design-guidelines` for a UI/UX/a11y audit, `entur-accessibility` for WCAG 2.1 checks.
 
 ## 3. Number audit (never skip)
@@ -107,6 +185,7 @@ The reply to the user contains:
 - clickable links to all three files (HTML first), plus skeleton and source file
 - slide count, summed duration, style name
 - **what was actually tested**: navigation, G overview, click-half paging, hash, portrait mask, zero external requests, per-slide overflow, font floor, number audit
+- **when there is media**: the list of audio/video file names plus the reminder that they must be copied along with the folder; images are inlined, so they are unaffected
 - **what was not tested and what was assumed**: e.g. print pagination not exercised, some source unreachable due to network, deep link verified on desktop only
 - open decisions for the user (credits, whether to keep a given slide)
 - which optional layer was enabled and the exception it brings (the ink layer's localStorage; the presenter layer's popup permission and non-printing prompts) — fill this in per `07-annotation.md` §7 and `08-presenter-mode.md` §9
