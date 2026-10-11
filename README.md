@@ -69,19 +69,6 @@ The five step documents exist as [English](references/en), [中文](references/z
 
 Full notes: [CHANGELOG.md](CHANGELOG.md).
 
-## What's new in 1.5
-
-- **Media: images, audio and video can all be inserted.** Images are inlined as base64 so the deck stays one file; audio and video sit in the `.html`'s own folder, with one shell-injected strip below the picture — play / pause, a volume slider that pulls up from the loudspeaker, a thick PowerPoint-style scrub bar, the time, the rate, and fullscreen for video, plus `K` / `,` `.` / `[` `]` / `M` on the keyboard. The source attaches only when that slide first appears, and a missing file explains itself under the card.
-- **An audio card rests as a small loudspeaker** (≈36px); it unfolds on hover, `Tab` focus or the first tap, and nothing jumps.
-- **The presenter window**: clicking fullscreen in a mirror tile fills **the audience window** and starts playing there, while the tile keeps its own picture and lights a “Video fullscreen” badge that trusts only what the audience window broadcasts; a cross-window `requestFullscreen` is usually refused, so a CSS take-over stands by. The window also drops from five tiles to four (the blackboard card is gone) and its stacking is now persisted, fixing an enlarged current-slide tile sinking behind its neighbours.
-- **Annotation blackboard (`B`)**: one button turns the whole page into a dark board (`--ink-board` is fixed at `#1D2A26` and deliberately does not follow the deck's palette) and the palette switches to five chalk pens (all measured ≥4.5:1 against the board, separated by hue rather than lightness); the board is one shared sheet per deck and lives in the audience window.
-- **Highlighter**: alpha is per surface — `.30` on slides, `.55` on the board (`.30` over a dark ground only reaches 1.8–2.3:1); the icon is redrawn as a solid body, a real cap gap, a chisel tip and a colour band, so at 17px it reads apart from the pen at a glance.
-- **Three new skeleton keywords** define where the file goes: `image` (base64, in the HTML) / `audio` / `video` (sibling file) replace the ambiguous `media`; the library grows from 51 to 54 words.
-- **The skill self-checks for overflow**: 05-build states the rule that the card's height must include the strip, and 06-verify measures every media page and proves with `elementFromPoint` that the strip is really clickable — both have to be true.
-- **A few defects fixed**: with annotation on, `S` both exported a PNG and popped the presenter window; clicking a video's fullscreen while the deck was already fullscreen exited it instead; and the shell treated the ink layer's export `<a download>` as an ordinary link, popping a window and stealing focus.
-
-Full history: [CHANGELOG.md](CHANGELOG.md).
-
 ## Credit and provenance
 
 The layout-template system and the presenter mode of v1.2 onward were modelled on [**`lewislulu/html-ppt-skill`**](https://github.com/lewislulu/html-ppt-skill) ("HTML PPT Studio") — its way of organising a template (one `:root` token set plus a fixed menu of existing page types, with `--accent-ink` and image-container rules) and its two-window preview, magnetic cards, prompt card and timer. **The reference is to method and interaction design, not code: nothing was copied.** Every piece was rewritten against this skill's own constraints — single file, zero external dependencies, layers appended before `</body>` and assembled by `assemble.cjs`, prompt text owned by skeleton §7 — and window sync was rebuilt on `postMessage` because `BroadcastChannel` is unreliable across `file://` opaque origins.
