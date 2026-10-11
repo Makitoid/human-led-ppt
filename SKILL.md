@@ -9,7 +9,7 @@ A **human-led, agent-assisted** design system for single-file HTML decks: the us
 
 Language: `references/zh/` is the Chinese original (中文母本), `references/en/` and `references/ja/` are its English and Japanese mirrors — same content, so a revision touches all three. Work entirely inside the folder matching the user's language.
 
-Version 1.5 (2026-10-04) · License: MIT, copyright Makitoid Wang (see `LICENSE`). Every `<…>` / `……` is a placeholder: fill it with real, sourced content, and never let a placeholder reach the finished deck.
+Version 1.5.1 (2026-10-11) · License: MIT, copyright Makitoid Wang (see `LICENSE`). Every `<…>` / `……` is a placeholder: fill it with real, sourced content, and never let a placeholder reach the finished deck.
 
 ## Workflow
 

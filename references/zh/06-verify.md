@@ -122,7 +122,7 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 //   进度条就在条里、常驻，所以对 .mp-track 的中点做同样的 elementFromPoint 也要命中它。
 //   音频页要**先展开再量**：静止时 .mp-fold 是 display:none，条本来就不该命中——
 //   那一步先 fig.setAttribute('data-open','1')，量完再摘掉；静止态另断言喇叭 .mp-mute 自己可点。
-// 8) 音量与全屏：音量不是常驻滑杆——鼠标移到 .mp-mute 上（触屏则点一下）才弹出 .mp-volpop，
+// 8) 音量与全屏：音量不是常驻滑杆——鼠标移到 .mp-mute 上（触屏则点一下）才弹出 .mp-volpop，**弹层必须与按钮零间隙相接**：给 wrap 打上 data-vol="1" 后，从 .mp-volwrap 顶边向上 0–6px 逐点 elementFromPoint，每一枪都要命中 .mp-volpop（命中落回 #stage 就说明中间有死区，鼠标永远抓不到滑杆，只能先点一下喇叭）；滑杆本身要对按钮水平居中（pop 中心与 wrap 中心之差 ≤ 1px），
 //    上拉条 .mp-volr 拖动要连续改 el.volume（0–1 无级），拖到 0 即静音；鼠标单击喇叭是切静音。
 //    稿子已经全屏（按过 F）时再点视频卡的 .mp-fs，应当嵌套进媒体全屏——按 Esc 回到稿子的全屏，
 //    而不是直接掉回窗口。

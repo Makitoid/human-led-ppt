@@ -4,7 +4,7 @@
 
 以人主导、Agent 辅助的单文件 HTML PPT 设计系统——人定主题、风格与措辞，Agent 管证据、结构与构建纪律。先用五步把这些定下来：每步产出一个可审核的文件，用户点头之后才允许构建。
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.5](https://img.shields.io/badge/version-1.5-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.5.1](https://img.shields.io/badge/version-1.5.1-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 ## 它解决什么
 
@@ -63,6 +63,14 @@
 - 风格预设是对品牌观感的合理近似，不是官方设计令牌。改稿前请对照品牌规范；动过颜色就要重测对比度。
 - 文档里提到的第三方 skill 名称是 2026-09-25 的市场快照，未安装也未验证正文，调用前请先复核并让用户确认。
 - 文档里的示例全是占位符（`<…>` / `……`），不要照抄数字，也不许让占位符进成品。
+
+## 1.5.1 更新要点
+
+- **`#aria` 移出可视区**——壳的“第 N 页：…”翻页播报原先一直印在每份稿子的左上角。
+- **音量条回到正中、鼠标抓得住**——旧写法用 `writing-mode: vertical`（滑块停在行首），弹层还悬在喇叭上方 8px，指针穿过就关掉；现在弹层与按钮零间隙相接。
+- **批注工具条改纯色**——顶部渐变在浅色稿上看出一条脏带，`--ink-tint` 退役。
+
+完整记录见 [CHANGELOG_zh-cn.md](CHANGELOG_zh-cn.md)。
 
 ## 1.5 更新要点
 

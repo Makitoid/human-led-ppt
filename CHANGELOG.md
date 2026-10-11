@@ -2,6 +2,15 @@
 
 **English** · [中文](CHANGELOG_zh-cn.md) · [日本語](CHANGELOG_ja.md)
 
+## v1.5.1 (2026-10-11)
+
+Three fixes, all found while presenting a real deck rather than in review.
+
+- **The page-turn announcement no longer paints on the slide.** The shell writes "Slide N: …" into `#aria` for screen readers, but nothing ever hid it, so the sentence sat in the top-left corner of every deck. `#aria` is now a proper off-screen live region (1px, `clip-path: inset(50%)`, moved out of the viewport) — still announced, never visible.
+- **The volume slider is centred, and its popover reaches the button with zero gap.** Two separate bugs made it unusable with a mouse: a `writing-mode: vertical` range parks its thumb on the inline edge, so the handle read as off-centre inside the popover; and the popover floated 8px above the loudspeaker, so crossing that gap dropped `:hover`, closed the popover mid-travel and left the slider ungrabbable — the workaround people found was tapping the loudspeaker first, which pins it open via `[data-vol]`. The slider is now a horizontal range rotated `-90deg` (value still grows upward) and the popover sits at `bottom: 100%`, with the visual lift moved into `padding-bottom`, so continuity is structural rather than hover-dependent.
+- **The annotation toolbar is one flat colour.** It used to stack a top tint gradient and a fractal-noise sheet on the acrylic base; on light decks the gradient read as a dirty band across the bar. `--ink-surface` now carries the whole colour, and `--ink-tint` is retired — still declared so decks assembled before this change keep parsing, but no longer read.
+- **Docs kept honest**: `07-annotation` reads ten custom properties instead of eleven (zh / en / ja), and `06-verify` gained the assertions that would have caught the volume bug — set `data-vol="1"`, then `elementFromPoint` every 2px upward from the button’s top edge and every probe must land on `.mp-volpop` (falling back to `#stage` means there is a dead band), plus `|pop centre − wrap centre| ≤ 1px`.
+
 ## v1.5 (2026-10-04)
 
 - **Media: images, audio and video, all three done in one round.**

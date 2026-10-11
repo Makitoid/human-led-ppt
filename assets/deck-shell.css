@@ -31,6 +31,12 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
 /* ---------- hero numerals ---------- */
 .num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 
+/* ---------- screen-reader live region ----------
+   The shell writes "第 N 页：…" into #aria on every page turn. It must stay in the DOM for
+   assistive tech but must never paint: an unstyled #aria drops that sentence into the
+   top-left corner of the slide, on top of the deck. */
+#aria{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;
+      clip-path:inset(50%);white-space:nowrap;pointer-events:none}
 /* ---------- G overview (thumbnail wall) ---------- */
 #overview{position:fixed;inset:0;z-index:50;display:none;overflow:auto;
           background:var(--ovl-bg);color:var(--ovl-ink);padding:40px}
@@ -135,23 +141,41 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
 .mp-t{flex:0 0 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   font-variant-numeric:tabular-nums;font-size:11.5px;opacity:.8}
 .mp-t i{opacity:.45;font-style:normal;margin:0 1px}
-/* volume: NOT a permanent slider. The loudspeaker is a button; a vertical slider pulls up out
-   of it — on hover and keyboard focus for a mouse, on tap for a touchscreen (data-vol="1").
-   A real range input, so it drags, takes arrow keys and announces a value. */
+/* volume: NOT a permanent slider. The loudspeaker is a button; a slider pulls up out of it
+   — on hover and keyboard focus for a mouse, on tap for a touchscreen (data-vol="1").
+   A real range input, so it drags, takes arrow keys and announces a value.
+
+   Two traps this block exists to avoid, both reported by users:
+   · CENTRE IT. A writing-mode:vertical range parks its thumb on the inline edge, so the
+     handle reads as off-centre inside the popover. A horizontal range rotated -90deg keeps
+     the thumb on the track centreline, and the value still grows upward.
+   · LEAVE NO GAP. The popover used to sit 8px above the button, and crossing that gap
+     dropped :hover, closed the popover mid-travel and made the slider ungrabbable — the
+     workaround users found was tapping the loudspeaker first, which pins it open via
+     [data-vol]. The box now starts at the button top (bottom:100%) and the visual lift is
+     padding-bottom, so continuity is structural rather than hover-dependent. */
 .mp-volwrap{position:relative;flex:none;display:grid;place-items:center;width:26px;height:26px}
-.mp-volpop{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,6px);
-  display:none;place-items:center;padding:9px 7px 8px;z-index:3;
+.mp-volpop{position:absolute;left:50%;bottom:100%;transform:translate(-50%,6px);
+  /* bottom:100% — the popover box starts exactly at the button top, so the pointer never
+     leaves .mp-volwrap on its way up. The old 8px offset was the whole bug: crossing it
+     dropped :hover, closed the popover mid-travel, and the slider could not be grabbed.
+     The visual lift now lives in padding-bottom, which is part of the box. */
+  display:none;place-items:center;padding:9px 7px 15px;width:30px;height:99px;box-sizing:border-box;
+  z-index:3;
   background:var(--panel,#fff);border:1px solid var(--rule,rgba(128,128,128,.35));border-radius:9px;
   box-shadow:0 10px 26px rgba(0,0,0,.28);opacity:0;transition:opacity .14s ease,transform .14s ease}
+.mp-volpop::before{content:"";position:absolute;top:calc(100% - 4px);left:50%;transform:translateX(-50%);
+  width:26px;height:8px}   /* sub-pixel seam guard only — the real fix is bottom:100% above */
 .mp-volwrap:hover .mp-volpop,.mp-volwrap:focus-within .mp-volpop,
 .mp-volwrap[data-vol="1"] .mp-volpop{display:grid;opacity:1;transform:translate(-50%,0)}
-.mp-volr{-webkit-appearance:none;appearance:none;writing-mode:vertical-lr;direction:rtl;
-  width:16px;height:74px;margin:0;padding:0;background:transparent;cursor:pointer}
-.mp-volr::-webkit-slider-runnable-track{width:3px;border-radius:99px;background:var(--mp-line)}
-.mp-volr::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:3px;
-  border-radius:2px;background:var(--accent,#0F766E);box-shadow:0 0 0 2px rgba(0,0,0,.14)}
-.mp-volr::-moz-range-track{width:3px;border-radius:99px;background:var(--mp-line)}
-.mp-volr::-moz-range-thumb{width:13px;height:3px;border:0;border-radius:2px;background:var(--accent,#0F766E)}
+.mp-volr{-webkit-appearance:none;appearance:none;position:absolute;left:50%;top:50%;
+  width:74px;height:16px;margin:0;padding:0;background:transparent;cursor:pointer;
+  transform:translate(-50%,-50%) rotate(-90deg)}
+.mp-volr::-webkit-slider-runnable-track{height:3px;border-radius:99px;background:var(--mp-line)}
+.mp-volr::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:3px;height:13px;
+  margin-top:-5px;border-radius:2px;background:var(--accent,#0F766E);box-shadow:0 0 0 2px rgba(0,0,0,.14)}
+.mp-volr::-moz-range-track{height:3px;border-radius:99px;background:var(--mp-line)}
+.mp-volr::-moz-range-thumb{width:3px;height:13px;border:0;border-radius:2px;background:var(--accent,#0F766E)}
 .mp-volr:focus-visible{outline:2px solid var(--accent,#0F766E);outline-offset:4px;border-radius:4px}
 /* the scrub bar: a thick PowerPoint-style bar inside the strip — 5px track, the played part
    filled, and a rectangular head. Always visible; it is the strip's flexible middle. */

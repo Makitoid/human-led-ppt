@@ -4,7 +4,7 @@
 
 人主導・エージェント支援の、単一ファイル HTML プレゼン設計システムです。テーマ・スタイル・文言は人が決め、エージェントが根拠・構成・構築の規律を担います。まず 5 ステップでそれらを確定させ、各ステップがレビュー可能なファイルを 1 つ残し、骨子の承認後に初めて構築に入ります。
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.5](https://img.shields.io/badge/version-1.5-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.5.1](https://img.shields.io/badge/version-1.5.1-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 ## 何を解決するか
 
@@ -60,6 +60,14 @@ HTML に載る数字と主張はすべて、必ず資料ファイルまでたど
 - スタイルプリセットはブランドの見え方を近似したもので、公式のデザイントークンではありません。変更前にブランドガイドラインと突き合わせ、色を触ったらコントラスト比を測り直してください。
 - 文書に出てくる第三者のスキル名は 2026-09-25 時点のマーケットプレイスのスナップショットで、インストールも本文の確認もしていません。使う前に必ず再確認し、ユーザーの同意を得てください。
 - 文書中の例はすべてプレースホルダー（`<…>` / `……`）です。例の数字を写さないでください。プレースホルダーが完成したデッキに残ることも許されません。
+
+## 1.5.1 の更新要点
+
+- **`#aria` を画面外へ**——シェルの「スライド N：…」読み上げがすべてのデッキの左上に表示されていました。
+- **音量スライダーが中央になり、マウスで掴めます**——旧実装は `writing-mode: vertical`（つまみが行頭に寄る）で、ポップオーバーはスピーカーの上に 8px 浮いていて、その隙を抜けると閉じました。いまはボタンと隙間なく接します。
+- **注記ツールバーは単色に**——上部グラデーションが明色のデッキで帯状の汚れに見えたため、`--ink-tint` は引退しました。
+
+完全な記録は [CHANGELOG_ja.md](CHANGELOG_ja.md)。
 
 ## 1.5 の更新要点
 

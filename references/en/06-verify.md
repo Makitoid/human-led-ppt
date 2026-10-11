@@ -122,7 +122,11 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 //   an audio page must be **unfolded before it is measured**: at rest .mp-fold is display:none, so the bar is not meant to be hit —
 //   set fig.setAttribute('data-open','1') for that step and remove it once measured; in the resting state assert instead that the
 //   loudspeaker .mp-mute is itself clickable.
-// 8) volume and fullscreen: volume is not a permanent slider — hovering .mp-mute (or tapping it on a touchscreen) pulls up .mp-volpop, and dragging
+// 8) volume and fullscreen: volume is not a permanent slider — hovering .mp-mute (or tapping it on a touchscreen) pulls up .mp-volpop.
+//    The popover must meet the button with ZERO gap: set data-vol="1" on the wrap, then elementFromPoint every 2px upward from the
+//    wrap top edge for 0–6px — every probe has to land on .mp-volpop. A probe that falls back to #stage means there is a dead band,
+//    a mouse can never grab the slider, and the only way in is tapping the loudspeaker first (that is the bug this guards). The slider
+//    must also sit centred on the button: |pop centre − wrap centre| ≤ 1px. Then keep dragging
 //    its slider .mp-volr changes el.volume continuously (0–1, no steps); dragging to 0 mutes, and a mouse click on the loudspeaker toggles mute;
 //    with the deck already fullscreen (F), clicking the video card's .mp-fs must nest into media fullscreen — Escape comes back to the deck's fullscreen,
 //    not straight down to the window.

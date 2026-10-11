@@ -22,13 +22,15 @@ marked in the file.
 
 ## 2. CONFIG BLOCK 1 · theme (CSS) — the bar must look like it grew out of this deck
 
-The overlay reads eleven custom properties. Map them onto the deck's own tokens; do not invent a
-new look, and do not ship the dark-teal defaults.
+The overlay reads ten custom properties. Map them onto the deck's own tokens; do not invent a
+new look, and do not ship the dark-teal defaults. **The bar's surface is one flat colour**
+(`--ink-surface` plus blur and saturate) — the top tint gradient and the noise sheet are gone,
+because on light decks that gradient read as a dirty band across the bar.
 
 | Token | Map to | Note |
 |---|---|---|
 | `--ink-surface` | deck `--panel` (or `--bg`) + alpha `.62–.70` | the acrylic base; alpha is what lets the slide show through |
-| `--ink-tint` | deck `--accent` at `.10–.15` | top gradient only |
+| ~~`--ink-tint`~~ | — | **retired**: the surface is flat now; kept only so older decks still parse |
 | `--ink-line` / `--ink-hi` | hairline + inner top highlight | dark decks → white at `.14–.18`; light decks → white at `.6–.8` **plus** a dark inner bottom (`--ink-lo`) |
 | `--ink-lo` | inner bottom shade | dark → black `.25`; light → the deck's darkest ink at `.08–.12` |
 | `--ink-ink` | deck `--ink` (primary text) | icons and labels |

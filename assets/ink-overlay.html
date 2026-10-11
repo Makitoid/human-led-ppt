@@ -42,7 +42,7 @@
      12–13px labels) against --ink-surface composited on the deck background.      */
   #inkc,#inkbar,#inkfab,#inkmenu,#inkpop,#inkstatus,#inkhint,#inkhelp,#inkboard{
     --ink-surface:rgba(17,27,24,.66);      /* deck --panel + alpha                    */
-    --ink-tint:rgba(79,209,197,.13);       /* deck --accent, low alpha, top gradient  */
+    --ink-tint:rgba(79,209,197,.13);       /* RETIRED — the surface is flat now; kept so older decks still parse */
     --ink-line:rgba(255,255,255,.15);      /* hairline                                */
     --ink-hi:rgba(255,255,255,.17);        /* inner highlight, top edge               */
     --ink-lo:rgba(0,0,0,.28);              /* inner shade, bottom edge                */
@@ -86,13 +86,13 @@
   #deckhelp.open ~ #inkpop,#deckhelp.open ~ #inkhint,#deckhelp.open ~ #inkhelp,#deckhelp.open ~ #inkstatus,
   #deckhelp.open ~ #inkboard{display:none !important}
 
-  /* ─── acrylic: blur + saturate + tint + noise + inner highlight ───────────── */
+  /* ─── surface: one solid colour + blur + saturate + inner highlight ─────────
+     It used to stack a top tint gradient and a fractal-noise sheet on the base. On light
+     decks the gradient read as a dirty band across the bar, so the surface is flat now:
+     --ink-surface carries the whole colour. --ink-tint is no longer read (it stays in the
+     config block only so decks assembled before this change keep parsing).            */
   .acrylic{
     background-color:var(--ink-surface);
-    background-image:
-      linear-gradient(180deg,var(--ink-tint),rgba(0,0,0,0) 58%),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.055'/></svg>");
-    background-blend-mode:normal,overlay;
     backdrop-filter:blur(var(--ink-blur)) saturate(var(--ink-sat));
     -webkit-backdrop-filter:blur(var(--ink-blur)) saturate(var(--ink-sat));
     border:1px solid var(--ink-line);

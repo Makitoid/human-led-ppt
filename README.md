@@ -4,7 +4,7 @@
 
 A **human-led, agent-assisted** design system for single-file HTML presentations: you own the topic, style and wording; the agent owns evidence, structure and build discipline. Five steps settle all of that first — each leaves a file you can review — and the build starts only after you approve the skeleton.
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.5](https://img.shields.io/badge/version-1.5-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.5.1](https://img.shields.io/badge/version-1.5.1-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 ## What it solves
 
@@ -60,6 +60,14 @@ The five step documents exist as [English](references/en), [中文](references/z
 - The style presets approximate a brand's look rather than quoting official design tokens. Check against the brand guideline before changing anything, and re-measure contrast after any colour tweak.
 - Third-party skill names mentioned in the references are a 2026-09-25 marketplace snapshot that was neither installed nor read — re-verify and get user confirmation before use.
 - Every example in the docs is a placeholder (`<…>` / `……`). Never let one reach a finished deck or copy an example figure.
+
+## What's new in 1.5.1
+
+- **`#aria` is off-screen now** — the shell's "Slide N: …" page-turn announcement used to print in the top-left corner of every deck.
+- **The volume slider is centred and grabbable with a mouse** — it was drawn with `writing-mode: vertical` (thumb parked off-centre) under a popover that floated 8px above the loudspeaker, so crossing that gap closed it mid-reach. The popover now meets the button with zero gap.
+- **The annotation toolbar is one flat colour** — the top tint gradient read as a dirty band on light decks; `--ink-tint` is retired.
+
+Full notes: [CHANGELOG.md](CHANGELOG.md).
 
 ## What's new in 1.5
 
