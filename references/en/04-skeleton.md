@@ -45,6 +45,7 @@ deck:
   charts: inline SVG or pure CSS; no external dependency; no network requests, no localStorage
   presenter: off | on (on = run step 8; prompts live in §7; when on, localStorage is used only by the presenter window)
   footnotes: citation bar bottom-right of every slide, "source · year", 9–11px
+  evidence_chain: off | on          # on = a serious deck (defence / research / data report / review) shows the bottom-right evidence chain; the build adds data-evidence="1" to <html> or <body>
   accessibility: ordered h1/h2 per slide; aria-live announcement on page change; body contrast ≥ 4.5:1
   motion: <transition type, duration, easing; in-page animation type>; off under prefers-reduced-motion
 ```

@@ -88,7 +88,7 @@ async () => {
 
 Deep link and print: opening `<topic>.html#s7` must land on slide 7; `Ctrl+P` should give one slide per page (if the embedded browser cannot render print, verify the `@media print` rules exist and state that print was not exercised).
 
-Shortcut panel: a real `Q` keypress opens `#deckhelp` with at least the shell's own "paging & view" section, which lists `E` (evidence chain); with the optional layers installed, `window.__deckHelp` must also carry the sections the ink and presenter layers registered. `Esc` closes it, every ink surface steps aside while it is open (the `#deckhelp.open ~ …` sibling selectors), clicking the panel must not page, and `Q` inside `?preview=N` must do nothing.
+Shortcut panel: a real `Q` keypress opens `#deckhelp` with at least the shell's own "paging & view" section; with the optional layers installed, `window.__deckHelp` must also carry the sections the ink and presenter layers registered. `Esc` closes it, every ink surface steps aside while it is open (the `#deckhelp.open ~ …` sibling selectors), clicking the panel must not page, and `Q` inside `?preview=N` must do nothing.
 
 Contrast (mandatory for glass / low-contrast schemes):
 
@@ -118,7 +118,8 @@ out.audioBox = fig.getBoundingClientRect().height;
 // 4) paging stops it: after leaving the slide, video.paused === true and currentTime === 0
 // 5) ← → always page: with focus on a transport-bar button, press ArrowRight and the slide index must still change
 // 6) fault branch: temporarily point one slide's data-src at a file that does not exist, then assert
-//    fig.dataset.state === 'error' and that fig.querySelector('.mp-note') has copy (human words, not an error code)
+//    fig.dataset.state === 'error', and a .mp-missing appears INSIDE the player box ("Video not found" / "Audio not found"),
+//    with the picture and the bar stepping aside (.mp-el / .mp-bar are display:none); the old .mp-note under the card is retired
 // 7) overflow self-check (mandatory): the bar sits below the picture, part of the card — the card must not break .slide's clip box
 const s = fig.closest('.slide'), bar = fig.querySelector('.mp-bar');
 const limit = s.clientHeight - parseFloat(getComputedStyle(s).paddingBottom);
@@ -185,23 +186,21 @@ const body = bg.querySelector('.slide-body');
 out.bgContent = parseFloat(getComputedStyle(body).zIndex) >= 1;
 // the scrim exists (::after carries a gradient); its contrast is the number audit's job in §3
 
-// evidence chain: invisible by default
+// evidence chain: this is a PER-DECK choice — a deck whose skeleton §1 says evidence_chain: on gets data-evidence="1" on <html>/<body> at build time, and only then is the badge built
+const evDecl = document.documentElement.getAttribute('data-evidence') || document.body.getAttribute('data-evidence') || '';
+out.evDeclared = /^(1|on|yes|true)$/i.test(evDecl);          // did this deck opt in?
 const ev = document.getElementById('evidence');
-out.ev0 = {exists: !!ev, visible: getComputedStyle(ev).visibility};        // must be exists:true, visible:'hidden'
-// reveal: press E, it becomes visible and counts > 0 (given this page wrote a .foot)
-document.dispatchEvent(new KeyboardEvent('keydown',{key:'e',bubbles:true,cancelable:true}));
-await sleep(60);
-out.ev1 = {visible: getComputedStyle(ev).visibility};                      // must be 'visible'
-// expand: click the chip, an .ev-list appears; its rows match the page .foot (nothing fabricated)
-ev.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); await sleep(60);
-out.ev2 = {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('.ev-list li').length,
+out.ev = ev ? {exists:true, visible:getComputedStyle(ev).visibility, text:ev.textContent.trim().slice(0,20)}
+            : {exists:false};                                // a deck that did not opt in MUST be {exists:false}
+// an opted-in deck: the badge is visible and counts > 0 (given this page wrote a .foot); a plain deck: ev is null, the corner is empty
+if (ev) { ev.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); await sleep(60); }
+out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('.ev-list li').length,
            matchesFoot: (()=>{const f=document.querySelector('#stage .slide.active .foot');
                               return !f || ev.textContent.indexOf(f.textContent.replace(/↗|\s+/g,' ').trim().slice(0,8))>=0;})()};
 // not printed: the @media print rule includes #evidence
-// tidy up: press E again to close
 ```
 
-> Skip this whole subsection when there is no `background` keyword and the user did not ask for the evidence chain. The chain is a **on-demand** feature: if `out.ev0.visible` comes back `'visible'` someone reverted it to always-on — exactly what must not happen.
+> Skip this whole subsection when there is no `background` keyword and the deck did not opt into the chain. The chain is **not a hotkey and not always-on** — it is decided while writing: a serious deck (defence / research / data report / review) writes `evidence_chain: on` (`out.ev.exists` is true and visible); a casual deck writes nothing (`out.ev.exists` MUST be false, the corner clean). A chain appearing on a plain deck, or any toggle hotkey, means this version's design was reverted.
 
 ### 2.2 Annotation / blackboard (when step 7 is installed)
 
@@ -237,7 +236,7 @@ The reply to the user contains:
 - **what was not tested and what was assumed**: e.g. print pagination not exercised, some source unreachable due to network, deep link verified on desktop only
 - open decisions for the user (credits, whether to keep a given slide)
 - which optional layer was enabled and the exception it brings (the ink layer's localStorage; the presenter layer's popup permission and non-printing prompts) — fill this in per `07-annotation.md` §7 and `08-presenter-mode.md` §9
-- **Evidence chain**: tell the user it is hidden by default and appears on `E` (or the Q-panel row), gathering this page's footnote; it is on-demand, not broken
+- **Evidence chain**: tell the user it is **per deck** — a serious deck (defence / research / data report) has it, a casual deck has nothing in that corner; when present it gathers this page's footnote and a click lists the sources. There is no toggle hotkey.
 - **Backdrop**: if `background` was used, say the backdrop is inlined into the HTML (no external file) and is a different kind of image from `image`
 - **Who ran the check**: state whether this round was "agent live-tested" or "scripts handed over, verified by the user" (see section 0)
 

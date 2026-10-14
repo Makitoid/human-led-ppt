@@ -88,7 +88,7 @@ async () => {
 
 深いリンクと印刷：`<トピック>.html#s7` を開くと 7 枚目に着地しなければならない；`Ctrl+P` は 1 ページ 1 スライドになるはずです（内蔵ブラウザが印刷を描画できない場合は、`@media print` の規則が存在することを確認し、印刷は未検証だと明記してください）。
 
-ショートカットパネル：実際に `Q` キーを押すと `#deckhelp` が開き、少なくともシェル自身の「ページ送りと表示」セクション（`E`＝エビデンスチェーンの行を含む）が入っていること；任意レイヤーをインストール済みなら、`window.__deckHelp` に ink レイヤーと presenter レイヤーが登録したセクションも入っていなければならない。`Esc` で閉じ、開いている間はすべての ink サーフェスが退く（`#deckhelp.open ~ …` の兄弟セレクタ）。パネルをクリックしてもページ送りせず、`?preview=N` の中での `Q` は何も起こさない。
+ショートカットパネル：実際に `Q` キーを押すと `#deckhelp` が開き、少なくともシェル自身の「ページ送りと表示」セクションが入っていること；任意レイヤーをインストール済みなら、`window.__deckHelp` に ink レイヤーと presenter レイヤーが登録したセクションも入っていなければならない。`Esc` で閉じ、開いている間はすべての ink サーフェスが退く（`#deckhelp.open ~ …` の兄弟セレクタ）。パネルをクリックしてもページ送りせず、`?preview=N` の中での `Q` は何も起こさない。
 
 コントラスト（グラス / 低コントラストの配色では必須）：
 
@@ -118,7 +118,8 @@ out.audioBox = fig.getBoundingClientRect().height;
 // 4) ページを離れると停止する：そのページを出た後、video.paused === true かつ currentTime === 0
 // 5) ← → は必ずページ送り：コントロールバーのボタンにフォーカスがある状態で ArrowRight を押し、ページ番号は変わらなければならない
 // 6) 容錯分岐：ある 1 ページの data-src を一時的に存在しないファイル名へ差し替え、次をアサートする
-//    fig.dataset.state === 'error' かつ fig.querySelector('.mp-note') に文言が入っている（人に通じる言葉で、エラーコードではない）
+//    fig.dataset.state === 'error' かつ、再生ボックス**の中**に .mp-missing が現れる（「動画が見つかりません」/「音声が見つかりません」）、
+//    映像とバーは退く（.mp-el / .mp-bar は display:none）；カードの下の旧 .mp-note は引退した
 // 7) オーバーフローの自己チェック（必須）：バーは映像の下にありカードの一部——カードは .slide のトリミングボックスを破ってはいけない
 const s = fig.closest('.slide'), bar = fig.querySelector('.mp-bar');
 const limit = s.clientHeight - parseFloat(getComputedStyle(s).paddingBottom);
@@ -169,23 +170,21 @@ const body = bg.querySelector('.slide-body');
 out.bgContent = parseFloat(getComputedStyle(body).zIndex) >= 1;
 // スクリムは存在する（::after にグラデーション）。そのコントラストは §3 の数字監査で本文色を測る
 
-// エビデンスチェーン：既定では不可視
+// エビデンスチェーン：これは PER-DECK（稿ごと）の選択——骨子 §1 が evidence_chain: on と言う稿だけが、ビルド時に <html>/<body> に data-evidence="1" を付けられ、そのときだけバッジが建つ
+const evDecl = document.documentElement.getAttribute('data-evidence') || document.body.getAttribute('data-evidence') || '';
+out.evDeclared = /^(1|on|yes|true)$/i.test(evDecl);          // この稿はオプトインしたか？
 const ev = document.getElementById('evidence');
-out.ev0 = {exists: !!ev, visible: getComputedStyle(ev).visibility};        // exists:true, visible:'hidden' であること
-// 呼び出し：E を押すと可視になり、カウント > 0（このページが .foot を書いていれば）
-document.dispatchEvent(new KeyboardEvent('keydown',{key:'e',bubbles:true,cancelable:true}));
-await sleep(60);
-out.ev1 = {visible: getComputedStyle(ev).visibility};                      // 'visible' であること
-// 展開：チップをクリックすると .ev-list が出る。行はページの .foot と一致する（捏造しない）
-ev.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); await sleep(60);
-out.ev2 = {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('.ev-list li').length,
+out.ev = ev ? {exists:true, visible:getComputedStyle(ev).visibility, text:ev.textContent.trim().slice(0,20)}
+            : {exists:false};                                // オプトインしていない稿は {exists:false} でなければならない
+// オプトインした稿：バッジは可視で、カウント > 0（このページが .foot を書いていれば）；普通の稿：ev は null で、右下は空
+if (ev) { ev.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); await sleep(60); }
+out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('.ev-list li').length,
            matchesFoot: (()=>{const f=document.querySelector('#stage .slide.active .foot');
                               return !f || ev.textContent.indexOf(f.textContent.replace(/↗|\s+/g,' ').trim().slice(0,8))>=0;})()};
 // 印刷されない：@media print の規則に #evidence が含まれる
-// 後始末：もう一度 E を押して閉じる
 ```
 
-> `background` キーワードがなく、ユーザーもエビデンスチェーンを求めていないときは、この節ごと飛ばす。エビデンスチェーンは**オンデマンド**の機能で、`out.ev0.visible` が `'visible'` になったなら、誰かが常時表示に戻したということ——それは起きてはならないこと。
+> `background` キーワードがなく、その稿もチェーンにオプトインしていないときは、この節ごと飛ばす。チェーンは**ホットキーではなく、常時表示でもない**——書いている間に決まる：真剣な稿（答弁 / 研究 / データ報告 / レビュー）は `evidence_chain: on` を書き（`out.ev.exists` が true で可視）；普通の稿は何も書かない（`out.ev.exists` は必ず false で、右下はきれい）。普通の稿にチェーンが現れたり、切り替えのホットキーが見つかったりしたら、この版の設計が巻き戻されたということ。
 
 実測で踏んだ 3 つのプローブの罠——スクリプトを書く前に読まないといけない：
 
@@ -242,7 +241,7 @@ out.ev2 = {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('
 - **テストしなかった項目と仮定**：例——印刷のページ割りは未実施、一部の出典はネットワーク到達不可のため未確認、深いリンクはデスクトップでのみ検証
 - ユーザーの判断を仰ぐ未決の点（クレジット表記、あるスライドを残すか）
 - どの任意レイヤーを有効にしたか、それが持ち込む例外（ink レイヤーの localStorage；presenter レイヤーのポップアップ権限と印刷されないプロンプト）——`07-annotation.md` §7 と `08-presenter-mode.md` §9 に従って記入してください
-- **エビデンスチェーン**：既定では非表示で、`E`（または Q パネルの該当行）で現れ、そのページの出典行を集める——オンデマンドの機能で、壊れているわけではない
+- **エビデンスチェーン**：**稿ごと**だと伝える——真剣な稿（答弁 / 研究 / データ報告）にはあり、普通の稿にはその角に何も無い；あるときはこのページの出典行を集め、クリックで出典の一覧を開く。切り替えのホットキーは無い。
 - **背景画像**：`background` を使ったなら、背景は HTML にインライン済み（外部ファイルを産まない）で、`image` とは別種の画像だと伝える
 - **点検の担当**：今回が「エージェントが実測した」のか「スクリプトを渡し、ユーザーが自分で確認する」のかを書き分ける（本ステップ第 0 節を参照）
 

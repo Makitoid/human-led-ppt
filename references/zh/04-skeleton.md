@@ -45,6 +45,7 @@ deck:
   charts: 内联 SVG 或纯 CSS；不引入外部依赖；无网络请求、无 localStorage
   presenter: off | on（on = 走第 8 步，提示词见 §7；启用后 localStorage 只用于演讲者窗布局）
   footnotes: 每页右下角引用条，格式「来源 · 年份」，9–11px
+  evidence_chain: off | on          # on = 严肃稿（答辩/研究/数据报告/评审）在右下角显示证据链；构建时给 <html> 或 <body> 加 data-evidence="1"
   accessibility: 每页 h1/h2 有序；翻页 aria-live 播报；正文对比度 ≥ 4.5:1
   motion: 进场动画随切页自动播放；prefers-reduced-motion 时整体关闭
 ```

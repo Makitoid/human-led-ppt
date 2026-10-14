@@ -82,21 +82,18 @@
       panel: '键盘快捷键', sec: '翻页与视图', foot: '按 Q 或 Esc 关闭',
       keysArrows: '← → ↑ ↓ · 空格', page: '翻页', firstLast: '第一页 / 最后一页',
       jump: '直达第 N 页', overview: '总览墙（全部缩略图）', fullscreen: '全屏',
-      evidence: '证据链（默认不显示，按需唤出）',
       thisPanel: '本面板', dismiss: '关闭浮层', ariaSlide: '第 %d 页：'
     },
     ja: {
       panel: 'キーボードショートカット', sec: 'ページ送りとビュー', foot: 'Q または Esc で閉じる',
       keysArrows: '← → ↑ ↓ · スペース', page: 'ページ送り', firstLast: '最初 / 最後のページ',
       jump: 'N ページへジャンプ', overview: '総覧ウォール（全サムネイル）', fullscreen: 'フルスクリーン',
-      evidence: 'エビデンスチェーン（既定は非表示、必要時に表示）',
       thisPanel: 'このパネル', dismiss: 'オーバーレイを閉じる', ariaSlide: 'スライド %d：'
     },
     en: {
       panel: 'Keyboard shortcuts', sec: 'Paging & view', foot: 'press Q or Esc to close',
       keysArrows: '← → ↑ ↓ · Space', page: 'page', firstLast: 'first / last slide',
       jump: 'jump to slide N', overview: 'overview wall', fullscreen: 'fullscreen',
-      evidence: 'evidence chain (hidden by default, reveal on demand)',
       thisPanel: 'this panel', dismiss: 'dismiss overlay', ariaSlide: 'Slide %d: '
     }
   }[LANG];
@@ -109,7 +106,6 @@
       ['1 – 9', CH.jump],
       ['G', CH.overview],
       ['F', CH.fullscreen],
-      ['E', CH.evidence],
       ['Q', CH.thisPanel],
       ['Esc', CH.dismiss]
     ]
@@ -277,12 +273,15 @@
   var MC = {
     zh: { play:'播放', pause:'暂停', mute:'静音', unmute:'取消静音', rate:'倍速', track:'播放进度',
           vol:'音量', fs:'全屏', exitFs:'退出全屏',
+          missVideo:'视频未找到', missAudio:'音频未找到',
           err:'找不到媒体文件 <b>%s</b>', errNote:'音视频要放在这份 .html 所在的同一个文件夹里，文件名也要完全一致。' },
     ja: { play:'再生', pause:'一時停止', mute:'ミュート', unmute:'ミュート解除', rate:'再生速度', track:'再生位置',
           vol:'音量', fs:'全画面', exitFs:'全画面を終了',
+          missVideo:'動画が見つかりません', missAudio:'音声が見つかりません',
           err:'メディアが見つかりません <b>%s</b>', errNote:'音声・動画は、この .html と同じフォルダーに置いてください。' },
     en: { play:'Play', pause:'Pause', mute:'Mute', unmute:'Unmute', rate:'Speed', track:'Seek',
           vol:'Volume', fs:'Fullscreen', exitFs:'Exit fullscreen',
+          missVideo:'Video not found', missAudio:'Audio not found',
           err:'Media file not found: <b>%s</b>', errNote:'Audio and video must sit in the same folder as this .html, with exactly the same file name.' }
   }[LANG];
   var RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -566,14 +565,18 @@
     el.addEventListener('timeupdate', sync);
     el.addEventListener('volumechange', paintVol);
     /* the whole reason audio/video are sibling files: this is the state a user hits when
-       they copy the .html somewhere and forget the folder. Say so, don't fail silently. */
+       they copy the .html somewhere and forget the folder. Say so **inside the player box**
+       ("Video not found" / "Audio not found"), not in a note under the card — the picture
+       area was blank anyway, and the bar is meaningless for a file that is not there. The
+       longer "put it next to the .html" wording moves into the title attribute, on hover. */
     el.addEventListener('error', function () {
       fig.setAttribute('data-state', 'error');
-      if (fig.querySelector('.mp-note')) return;
-      var n = document.createElement('p');
-      n.className = 'mp-note';
-      n.innerHTML = MC.err.replace('%s', esc(src0)) + '<br>' + MC.errNote;
-      fig.appendChild(n);
+      if (fig.querySelector('.mp-missing')) return;
+      var m = document.createElement('p');
+      m.className = 'mp-missing';
+      m.textContent = isVideo ? MC.missVideo : MC.missAudio;
+      m.title = MC.err.replace(/<[^>]*>/g, '').replace('%s', src0) + ' — ' + MC.errNote;
+      fig.insertBefore(m, fig.firstChild);
     });
 
     /* --- track: drag to scrub --- */
@@ -719,15 +722,23 @@
      guarantees the overview wall shows it; nothing here is deferred like the media sources */
   [].forEach.call(slides, applyBackdrop);
 
-  /* ---------- evidence-chain badge (hidden by default; surfaced on demand) ----------
-     The traceability the skill promises, made inspectable without cluttering the page. Every
-     source the author already wrote — the bottom-right `.foot` ("source · year") plus any
-     inline `.srcline` / `.src` / `[data-src-cite]` / `[data-src]` — is read back into one chip.
-     The chip ships `visibility:hidden` (so it is also invisible in a screenshot or when the
-     deck is printed) and only appears after E / the Q panel / a click on the count. Nothing is
-     invented: the badge reports what the author put on the page, and says so when there is
-     nothing. Its count is refreshed on every page turn from live DOM, so it cannot drift. */
+  /* ---------- evidence-chain badge (per-deck, off unless the deck asks for it) ----------
+     A serious deck — academic, a defence, research, a data report, anything where every claim
+     must be traceable — shows its chain in the bottom-right. A casual deck shows nothing.
+     That choice is made when the deck is written, not at presentation time: the author sets
+     `data-evidence="1"` on <html> or <body> (skeleton §1 `evidence_chain`), and only then does
+     the shell build the badge. It reads back every source the author already wrote — the
+     bottom-right `.foot` ("source · year") plus any inline `.srcline` / `.src` /
+     `[data-src-cite]` / `[data-src]` — into one chip; clicking it lists the sources. Nothing is
+     invented: it reports what the author put on the page, and says so when there is nothing.
+     Its count is refreshed on every page turn from live DOM, so it cannot drift. */
   var evidence = null, evOpen = false, evOn = false, evInfo = null;
+  /* absent / "0" / "off" / "false" → no chain; anything else (e.g. "1", "on", "yes") → chain */
+  var evWanted = (function () {
+    var v = document.documentElement.getAttribute('data-evidence') ||
+            (document.body && document.body.getAttribute('data-evidence'));
+    return !!v && !/^(0|off|false|no)$/i.test(String(v).trim());
+  })();
   function evidenceRoot() {
     return (document.fullscreenElement || document.webkitFullscreenElement) || document.body;
   }
@@ -804,17 +815,10 @@
     if (evOn) { evInfo = computeEv(); renderEv(evOpen); }
     else if (evidence) { evidence.innerHTML = ''; }
   }
-  /* E cycles the three states, so there is always a way back to a clean page:
-     off → the count chip → the source list → off. */
-  function toggleEv() {
-    if (!evOn) { setEvOn(true); return; }
-    if (!evOpen) { evOpen = true; paintEv(); renderEv(true); return; }
-    setEvOn(false);
-  }
-  /* a click on the badge itself only deals with the list (chip ↔ list); it never turns the
-     badge off, so a stray click on the page cannot make the evidence chain vanish */
+  /* a click on the badge only folds the list in and out (chip ↔ list); it never turns the
+     chain off — whether the deck shows one at all is settled when the deck is written */
   function clickEv() {
-    if (!evOn) { setEvOn(true); return; }
+    if (!evOn) return;
     evOpen = !evOpen; paintEv(); renderEv(evOpen);
   }
   function evRefresh() {
@@ -822,7 +826,8 @@
     evInfo = computeEv();            /* page changed: recount and keep the open/closed state */
     renderEv(evOpen);
   }
-  if (!previewMode) { buildBadge(); window.__deckEvidence = { get on() { return evOn; }, get open() { return evOpen; } }; }
+  if (!previewMode && evWanted) { buildBadge(); setEvOn(true); }
+  if (!previewMode) window.__deckEvidence = { get wanted() { return evWanted; }, get on() { return evOn; }, get open() { return evOpen; } };
 
   /* ---------- the presenter bridge for video fullscreen ------------------------
      A tile in the presenter window cannot take a screen it does not own, so the request
@@ -1030,7 +1035,6 @@
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'g' || e.key === 'G') { ovOpen ? closeOverview() : openOverview(); return; }
-    if (e.key === 'e' || e.key === 'E') { e.preventDefault(); toggleEv(); return; }
     if (e.key === 'q' || e.key === 'Q') { e.preventDefault(); toggleHelp(); return; }
     if (e.key === 'Escape') {
       if (helpOpen()) { toggleHelp(false); return; }

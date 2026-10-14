@@ -205,7 +205,22 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
   border-radius:2px;background:var(--accent,#0F766E);box-shadow:0 0 0 2px rgba(0,0,0,.16);
   pointer-events:none;transition:height .12s,margin-top .12s}
 .mp-track:hover .mp-knob{height:19px;margin-top:-9.5px}
-.mp[data-state="error"] .mp-bar{border-color:var(--warn,#B4541F)}
+/* a media file that is not there says so INSIDE the player box — "视频未找到" / "Audio not
+   found" — rather than in a note under the card. The picture area was blank anyway and the
+   bar is meaningless for a file that never loaded, so both step aside and the box itself
+   carries the message; the longer "put the file next to the .html" wording lives in its
+   title attribute. */
+.mp[data-state="error"] .mp-el,
+.mp[data-state="error"] .mp-bar{display:none}
+.mp[data-state="error"]{grid-template-rows:minmax(0,1fr);background:#0B0C0E;overflow:hidden;
+  border:1px solid var(--warn,#B4541F);border-radius:9px}
+.mp[data-kind="audio"][data-state="error"]{grid-template-rows:auto;background:transparent;
+  border:0;min-height:0;align-content:center}
+.mp-missing{display:grid;place-items:center;box-sizing:border-box;min-height:0;
+  padding:14px 16px;text-align:center;color:var(--ovl-ink,#E8ECE8);
+  font-size:15px;line-height:1.5;letter-spacing:.02em}
+.mp[data-kind="audio"] .mp-missing{min-height:48px;font-size:14px;padding:10px 18px;
+  background:#0B0C0E;border:1px solid var(--warn,#B4541F);border-radius:9px}
 .mp-note{font-size:12.5px;line-height:1.6;opacity:.7;padding:6px 2px 0}
 /* media fullscreen: the figure itself goes fullscreen so its strip rides along with it */
 .mp:fullscreen,.mp:-webkit-full-screen{width:100vw;height:100vh;max-width:none;background:#000;
@@ -239,12 +254,13 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
 /* an audio figure collapses to its bar by design; in a thumbnail the chip needs a box */
 #overview .mp[data-kind="audio"] .mp-ph{min-height:56px}
 
-/* ---------- evidence-chain badge (built by deck-shell.js; hidden by default) ----------
-   The skill's traceability promise, made inspectable only when asked for. The badge is
-   `visibility:hidden` until [data-on="1"], so it never decorates a page, never prints and
-   never lands in a screenshot. It sits in the bottom-right corner, pulled clear of the
-   page footnote, and grows upward so a long source list does not spill off the canvas.
-   Keys: `E` toggles it, the chip opens the list, the Q panel lists it as well. */
+/* ---------- evidence-chain badge (built by deck-shell.js — per deck, not per keystroke) ----------
+   A serious deck declares `data-evidence="1"` on <html>/<body> (skeleton §1 `evidence_chain`);
+   only then does the shell build this badge and show it. A casual deck never gets one, so the
+   corner stays clean and the badge never prints or lands in a screenshot. It sits in the
+   bottom-right, pulled clear of the page footnote, and grows upward so a long source list does
+   not spill off the canvas. The count chip is the resting state; a click folds the source list
+   in and out. `visibility:hidden` until `[data-on="1"]` is the belt-and-braces default. */
 #evidence{position:fixed;right:26px;bottom:18px;z-index:40;display:flex;flex-direction:column;
   align-items:flex-end;gap:4px;max-width:min(440px,64vw);visibility:hidden;
   font-size:12.5px;line-height:1.5;color:var(--ovl-ink,var(--ink,#E8ECE8));

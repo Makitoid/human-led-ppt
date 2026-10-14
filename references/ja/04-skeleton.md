@@ -45,6 +45,7 @@ deck:
   charts: インライン SVG または純粋な CSS；外部依存なし；ネットワークリクエストなし、localStorage なし
   presenter: off | on（on = ステップ 8 を実行；プロンプトは §7 にある；on のとき、localStorage は発表者ウィンドウだけが使う）
   footnotes: すべてのスライドの右下に出典バー、「出典 · 年」、9–11px
+  evidence_chain: off | on          # on = 真剣な稿（答弁・研究・データ報告・レビュー）は右下にエビデンスチェーンを表示。ビルド時に <html> / <body> に data-evidence="1" を付ける
   accessibility: スライドごとに h1/h2 の順序を守る；ページ変更時に aria-live で読み上げ；本文のコントラスト ≥ 4.5:1
   motion: <切り替えの種類、時間、イージング；ページ内アニメーションの種類>；prefers-reduced-motion では無効
 ```

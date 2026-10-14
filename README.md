@@ -65,7 +65,7 @@ The five step documents exist as [English](references/en), [中文](references/z
 
 - **The style library grows to 22 presets** — an electronic-magazine preset (five e-ink palettes) plus Bold Signal / Creative Voltage / Terminal Green / Notebook Tabs; presets C/D/F/G drop their brand names for Paper-neutral / Editorial / Doc-list / Manga.
 - **Full-bleed backdrops and generated images** — a new `background` keyword (a page-filling image) and a `draw` keyword (an AI image, prompt reviewed first); step 3 gains a "Candidate images" section.
-- **The evidence chain is hidden by default** — the bottom-right badge is summoned with `E` or the Q panel; never shown, never printed.
+- **The evidence chain is per-deck** — only a serious deck (defence / research / data report) shows it in the bottom-right; it is decided while writing, not by a hotkey; a video/audio file that is missing says "not found" inside the player box.
 - **A shorter audio strip, and the check asks first** — the audio bar unfolds into a compact centred strip; step 6 asks whether the agent or the user runs the final check.
 
 Full notes: [CHANGELOG.md](CHANGELOG.md).

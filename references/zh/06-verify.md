@@ -88,8 +88,7 @@ async () => {
 
 深链与打印：直接访问 `<主题>.html#s7` 应落在第 7 页；`Ctrl+P` 预览应一页一纸（内置浏览器做不到时用 `@media print` 规则存在性核对，并说明未实测）。
 
-快捷键面板：按真按键 `Q` 应弹出 `#deckhelp`，分区块里至少有壳那段「翻页与视图」，其中含 `E`（证据链）
-一行；装了可选层的话，
+快捷键面板：按真按键 `Q` 应弹出 `#deckhelp`，分区块里至少有壳那段「翻页与视图」；装了可选层的话，
 `window.__deckHelp` 里还应有批注层和演讲者层注册的段落。`Esc` 关闭，面板打开时批注工具条与小按钮
 全部隐藏（`#deckhelp.open ~ …` 的兄弟选择器），点面板空白处不翻页。`?preview=N` 里按 `Q` 应无反应。
 
@@ -120,7 +119,8 @@ out.audioBox = fig.getBoundingClientRect().height;
 // 4) 翻页即停：离开这一页后 video.paused === true 且 currentTime === 0
 // 5) ← → 永远翻页：焦点落在控制条按钮上时按 ArrowRight，页码仍要变
 // 6) 容错分支：临时把某一页的 data-src 改成不存在的文件名，断言
-//    fig.dataset.state === 'error' 且 fig.querySelector('.mp-note') 有文案（人话，不是报错码）
+//    fig.dataset.state === 'error'，且播放框**内**出现 .mp-missing（「视频未找到」/「音频未找到」），
+//    画面与控制条让位（.mp-el / .mp-bar 为 display:none）；下方那层旧 .mp-note 已退役，查不到是正常的
 // 7) 溢出自查（必查）：控制条在画面下方、是卡片的一部分，卡片不许顶破 .slide 的裁剪框
 const s = fig.closest('.slide'), bar = fig.querySelector('.mp-bar');
 const limit = s.clientHeight - parseFloat(getComputedStyle(s).paddingBottom);
@@ -167,23 +167,24 @@ const body = bg.querySelector('.slide-body');
 out.bgContent = parseFloat(getComputedStyle(body).zIndex) >= 1;
 // 遮罩存在（::after 有 background-image 渐变），且对比度达标留给第 3 节数字审计按正文色量
 
-// 证据链：默认不可见
+// 证据链：**按稿开启**——骨架 §1 写了 evidence_chain: on 的稿子，构建时给 <html>/<body> 加了 data-evidence="1"，才会建徽标
+const evDecl = document.documentElement.getAttribute('data-evidence') || document.body.getAttribute('data-evidence') || '';
+out.evDeclared = /^(1|on|yes|true)$/i.test(evDecl);          // 这份稿子有没有开
 const ev = document.getElementById('evidence');
-out.ev0 = {exists: !!ev, visible: getComputedStyle(ev).visibility};        // 应为 exists:true, visible:'hidden'
-// 唤出：按 E 后可见，且计数 > 0（前提是这一页写了 .foot）
-document.dispatchEvent(new KeyboardEvent('keydown',{key:'e',bubbles:true,cancelable:true}));
-await sleep(60);
-out.ev1 = {visible: getComputedStyle(ev).visibility};                      // 应为 'visible'
-// 展开：点一下徽标，出现 .ev-list；来源条内容与页面 .foot 一致（不许编造）
-ev.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); await sleep(60);
-out.ev2 = {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('.ev-list li').length,
+out.ev = ev ? {exists:true, visible:getComputedStyle(ev).visibility, text:ev.textContent.trim().slice(0,20)}
+            : {exists:false};                                // 未开启时应为 {exists:false}
+// 开了的稿子：徽标可见、计数 > 0（前提是这一页写了 .foot）；没开的稿子 ev 必须为 null，右下角干净
+if (ev) { ev.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); await sleep(60); }
+out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('.ev-list li').length,
            matchesFoot: (()=>{const f=document.querySelector('#stage .slide.active .foot');
                               return !f || ev.textContent.indexOf(f.textContent.replace(/↗|\s+/g,' ').trim().slice(0,8))>=0;})()};
 // 打印不出现：@media print 规则含 #evidence
-// 收尾：再按一次 E 关掉
 ```
 
-> 没有 `background` 关键字、用户也没要证据链时，这一节整节跳过。证据链是**按需**功能，`out.ev0.visible === 'hidden'` 若成了 `'visible'`，说明有人把默认显示改回来了——那正是要避免的。
+> 没有 `background` 关键字、也没开证据链时，这一节整节跳过。证据链**不是热键、也不是默认常驻**，而是写稿时就定的：
+> 答辩 / 研究 / 数据报告 / 评审这类严肃稿写 `evidence_chain: on`（`out.ev.exists` 为 true 且可见）；课堂随堂讲、
+> 活动路演这类普通稿**什么都不写**（`out.ev.exists` 必须是 false，右下角干干净净）。看到普通稿里冒出证据链、
+> 或找不到任何开关热键，都说明这一版的设计被改回去了。
 
 三条探针坑（实测踩过，写脚本前先读）：
 
@@ -235,7 +236,7 @@ out.ev2 = {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('
 - **未验证项与假设**：例如打印分页未实测、某来源因网络不可达未核实、深链只在桌面验证
 - 需要用户拍板的点（如署名、是否保留某页）
 - 启用了哪个可选层，以及它带来的例外（批注层的 localStorage / 演讲者层的弹窗权限与不打印提示词）——细节按 `07-annotation.md` §7、`08-presenter-mode.md` §9 补
-- **证据链**：告诉用户它默认不显示，按 `E`（或点 Q 面板里那一行）才出现，逐页汇总这一页的引用条；这是按需功能，不是坏掉了
+- **证据链**：告诉用户它是**按稿开启**的——严肃稿（答辩/研究/数据报告）才有，普通稿右下角本来就没有；开着时它逐页汇总这一页的引用条，点一下展开来源清单。没有开关热键
 - **背景图**：若用了 `background`，说明背景已内联进 HTML（不产生外部文件），是 `image` 之外的另一类图
 - **自检归属**：写清这一轮是"agent 实测通过"还是"脚本已交付、由用户自行验证"（见本步第 0 节）
 
