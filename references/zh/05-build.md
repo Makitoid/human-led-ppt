@@ -86,6 +86,27 @@ node <skill目录>/assets/assemble.cjs deck.src.html <主题>.html --ink --prese
 </div>
 ```
 
+**满版背景（`background` 关键字）**：不是 `.img-frame` 里的 `<img>`，而是铺在 **`<section>` 自己身上**的一层底。壳读 `data-bg` 铺上去、读 `data-bg-scrim` 压遮罩，你只负责写属性 + 把这一页的内容抬到遮罩之上：
+
+```html
+<!-- 背景：只给 section 两个属性；内容容器必须抬到 z-index:1，否则会被背景和遮罩盖住 -->
+<section class="slide" data-i="1"
+  data-bg="data:image/jpeg;base64,…"
+  data-bg-scrim="linear-gradient(180deg,rgba(8,10,20,.30),rgba(8,10,20,.72))">
+  <header class="slide-head">…</header>
+  <div class="slide-body">…</div>
+</section>
+```
+
+```css
+/* 这一页的内容整体抬一层；配合壳给 section 铺的底与 ::after 遮罩 */
+.slide[data-bg] > *{position:relative;z-index:1}
+```
+
+- **只接受内联 data: 图片。** 写成 `https://…` 会被壳拒绝并在控制台点名那一页——deck 必须离线、单文件，背景也不能破例。
+- **遮罩就是可读性的保险。** 上面有正文的满版图，几乎一定需要 `data-bg-scrim`；先按上例的深色渐变兜底，图很暗时才调浅。遮罩色也建议写进 `linear-gradient` 让 **底部更重**（白字多半压在下方）。
+- **背景按整图算进文件大小。** 一张背景图只在**一页**用（别逐页复制同一张 data URL，见已知坑 17）；要贯穿全稿的底纹改用 `visual` 画 CSS 渐变色。图源与授权来自第 3 步的「候选图片」区，生成图先过 `draw`。
+
 要点：
 
 - **图片进 HTML，音视频不进。** 图片 base64 之后文件只大三分之一以内，拷走仍能看；音视频一旦
@@ -117,6 +138,8 @@ node <skill目录>/assets/assemble.cjs deck.src.html <主题>.html --ink --prese
 | **Q 键快捷键面板**（分区块列出本稿全部键位：壳自带一段，批注层/演讲者层加载时各自往 `window.__deckHelp` push 自己那段；面板打开时按当时注册表渲染） | deck-shell |
 | **移动端竖屏遮罩**（窄屏 + 竖屏时提示转横屏，转屏即消失） | deck-shell |
 | 数字递增动画 + 后台标签页兜底落终值 | deck-shell |
+| **满版背景层**（`data-bg` 铺底 + `data-bg-scrim` 遮罩，只认内联 data: 图） | deck-shell |
+| **证据链徽标**（`E` 键 / Q 面板 / 点一下唤出；默认 `visibility:hidden` 不显示、不打印；逐页从 `.foot` 等来源现算，绝不编造） | deck-shell |
 | **媒体播放条**（画面下方一条：播放/暂停、喇叭上拉出**无级音量**、PowerPoint 式**粗进度条**可拖、时间、倍速、视频**全屏**；`K` 播放/暂停、`,` `.` 微调 ±1 秒、`[` `]` 倍速、`M` 静音；源延迟到该页首次出现才挂） | deck-shell |
 | **媒体键不越权**：`←` `→` 永远翻页（即使焦点在控制条上），其余媒体键只在焦点落在传输条内时生效 | deck-shell |
 | `prefers-reduced-motion` 全局关闭动效 | deck-shell |
@@ -130,7 +153,8 @@ node <skill目录>/assets/assemble.cjs deck.src.html <主题>.html --ink --prese
 - **图片**：一律包在带 `aspect-ratio` + `object-fit` 的容器里（`.img-frame` 之类），裸 `<img>` 不许出现；深底压浅图配 scrim，必须看全的图用 `contain` 并在容器里给底色。
 - **密度**：每页 ≤ 4 个数字；一页一个主张（`key`）；其余进 `.notes`。页面上出现的每个数字，都必须能在该页 §4 里承载它的某个关键字中找到出处（`table` / `kpi` / `compare` / `formula` / `code` …）——关键字库与选词规则见 `04-skeleton.md` §4。
 - **字号**：正文 ≥ 骨架里 `min_body_px`（默认 22px）；关键数字 72–120px 且 `tabular-nums`；引用条 9–11px 但对比度仍要能读。
-- **引用条**：每页右下角「来源 · 年份」；⚠️ / 🔍 徽标紧贴数值，样式统一成两枚小徽标，并在来源页解释含义。
+- **引用条**：每页右下角「来源 · 年份」；⚠️ / 🔍 徽标紧贴数值，样式统一成两枚小徽标，并在来源页解释含义。**证据链徽标就是把这些引用条收进右下角一枚小徽标**——默认不显示（壳已 `visibility:hidden`），用户按 `E` 或点 Q 面板才出现；你要做的只是把 `.foot` 写全（来源 · 年份），徽标自己会去数。**别为它单独写一套样式，也别在页面上另外画一条"证据链"。**
+- **满版背景**：`data-bg` 只给 `<section>`，内容抬到 `z-index:1`（见上）；背景图不进正文流、不装框，和 `image` 的 `.img-frame` 是两回事。
 - **角色胶囊**：底部常驻；某角色"说话"时该胶囊描边 + 名字前加 `›`；一页最多两人说话。
 - **图表**：内联 SVG / 纯 CSS。常用五种——对数条形（跨量级对比）、指数折线（2024=100，两线共起点，起点值并入 x 轴标签避免压线，图内注明"中间为线性示意走势"）、瀑布/台阶（自我修订叙事）、冰山对比（直接 vs 间接）、生命周期带（横向多段挂数据卡，问题段用 warn 色）。
 - **图表文字**：统一加白色描边光晕（`paint-order:stroke;stroke:<bg>;stroke-width:4px`）避免被线压住；坐标轴、单位、年份都要标全；估算/推算值在图内写明。
@@ -178,7 +202,14 @@ node <skill目录>/assets/assemble.cjs deck.src.html <主题>.html --ink --prese
     暗示"缩略图里能播"。
 17. **同一张内联图片用两次 = HTML 里两份 base64**：366 KB 的截图内联后是 488 KB 字符串，每多在一页里
     出现一次就再涨 488 KB（实测：同一张图放两页，成品从 ~540 KB 变 1032 KB）。要贯穿全稿复用的图改用
-    `visual` 画图，或者只出现在一页。
+    `visual` 画图，或者只出现在一页。**背景图同理**——同一张背景铺三页就是三份 base64。
+18. **背景被内容盖住或反过来盖住内容**：`data-bg` 铺在 section 上、遮罩是 section 的 `::after`，两者都在
+    内容之下；只要这一页的正文容器是普通文档流（`static`），它就在遮罩**之下**，页面会呈现"一片半透明
+    蒙版、字全看不见"。给 `.slide[data-bg] > *` 抬 `position:relative;z-index:1` 即可。另：`data-bg`
+    写成外链 `https://…` 会被壳拒绝（控制台点名该页）——背景也必须内联，deck 才离线。
+19. **证据链徽标默认不显示是设计要求，不是 bug**：它 `visibility:hidden`，按 `E` / 点 Q 面板 / 点徽标才
+    出现；打印与截图里都不该有它。别因为它"看不见"就以为没做出来，也别自作主张让它常驻——那正是这一版
+    要修掉的东西。它逐页从 `.foot` 等来源现算，作者把来源写全它才有内容可数。
 
 ## 产出
 

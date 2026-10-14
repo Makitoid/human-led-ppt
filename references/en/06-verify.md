@@ -1,6 +1,18 @@
 # Step 6 · Verify and deliver
 
-Order: static checks → live browser test → number audit → delivery. If anything fails, go back and fix it; never present unverified work as done.
+Order: **ask first** → static checks → live browser test → number audit → delivery. If anything fails, go back and fix it; never present unverified work as done.
+
+## 0. Ask the user who runs the check (do not skip this)
+
+The **first thing** step 6 does is ask the user one question:
+
+> The deck is written. For this final check, do you want me to **run it myself** (I execute the assertions below and hand you the pass list and the untested items), or do you want to **check it yourself** (I do the static cross-check only and leave the assertion scripts for you to rerun)?
+
+- The user wants the agent to run it → go through the whole flow below (static + live browser + number audit).
+- The user wants to check it themselves → still do **section 1's static checks** (zero-dependency, page count, placeholder leakage — skipping those is a dereliction), and let the live test and the number audit follow the user's wish: if they want to see it, hand them the script and the expected values; if they want to run it, hand them the script.
+- Either way, the **delivery note states which items were live-tested and which the user is verifying**, and never claims an untested item as passed.
+
+**Do not run it by default**: some users want to walk it themselves, and racing ahead blocks them. This question is a fixed action of this step.
 
 ## 1. Static checks
 
@@ -76,7 +88,7 @@ async () => {
 
 Deep link and print: opening `<topic>.html#s7` must land on slide 7; `Ctrl+P` should give one slide per page (if the embedded browser cannot render print, verify the `@media print` rules exist and state that print was not exercised).
 
-Shortcut panel: a real `Q` keypress opens `#deckhelp` with at least the shell's own "paging & view" section; with the optional layers installed, `window.__deckHelp` must also carry the sections the ink and presenter layers registered. `Esc` closes it, every ink surface steps aside while it is open (the `#deckhelp.open ~ …` sibling selectors), clicking the panel must not page, and `Q` inside `?preview=N` must do nothing.
+Shortcut panel: a real `Q` keypress opens `#deckhelp` with at least the shell's own "paging & view" section, which lists `E` (evidence chain); with the optional layers installed, `window.__deckHelp` must also carry the sections the ink and presenter layers registered. `Esc` closes it, every ink surface steps aside while it is open (the `#deckhelp.open ~ …` sibling selectors), clicking the panel must not page, and `Q` inside `?preview=N` must do nothing.
 
 Contrast (mandatory for glass / low-contrast schemes):
 
@@ -122,6 +134,8 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 //   an audio page must be **unfolded before it is measured**: at rest .mp-fold is display:none, so the bar is not meant to be hit —
 //   set fig.setAttribute('data-open','1') for that step and remove it once measured; in the resting state assert instead that the
 //   loudspeaker .mp-mute is itself clickable.
+//   Unfolded, the audio strip is a **centred, narrow bar**: `.mp-bar` width ≤ 520px (`min(100%,520px)`),
+//   never the full card — measure `fig.querySelector('.mp-bar').getBoundingClientRect().width`; >560 means the narrow rule did not take effect.
 // 8) volume and fullscreen: volume is not a permanent slider — hovering .mp-mute (or tapping it on a touchscreen) pulls up .mp-volpop.
 //    The popover must meet the button with ZERO gap: set data-vol="1" on the wrap, then elementFromPoint every 2px upward from the
 //    wrap top edge for 0–6px — every probe has to land on .mp-volpop. A probe that falls back to #stage means there is a dead band,
@@ -159,6 +173,36 @@ Three probe traps, hit in a live session — read them before writing the script
   the built-in browser (keep the test deck in an ASCII directory) — but CJK and spaces inside a
   `data-src` **file name** are fine and were verified working, with no manual URL-encoding.
 
+### 2.3 Full-bleed backdrop and evidence chain (when a `background` keyword is used, or the evidence chain is wanted)
+
+```js
+// backdrop: the shell inlines data-bg into style.backgroundImage; the attribute is kept (the author's CSS needs it to lift the content), and the value still lives in the file only once
+const bg = document.querySelector('#stage .slide[data-i="1"]');
+out.bg = {attrKept: bg.hasAttribute('data-bg'),   // must be true — the attribute is kept
+          style: /^url\("data:image\//.test(bg.style.backgroundImage)};   // must be true — inlined
+// content lifted: this page's text block must have z-index > 0, or the scrim hides it
+const body = bg.querySelector('.slide-body');
+out.bgContent = parseFloat(getComputedStyle(body).zIndex) >= 1;
+// the scrim exists (::after carries a gradient); its contrast is the number audit's job in §3
+
+// evidence chain: invisible by default
+const ev = document.getElementById('evidence');
+out.ev0 = {exists: !!ev, visible: getComputedStyle(ev).visibility};        // must be exists:true, visible:'hidden'
+// reveal: press E, it becomes visible and counts > 0 (given this page wrote a .foot)
+document.dispatchEvent(new KeyboardEvent('keydown',{key:'e',bubbles:true,cancelable:true}));
+await sleep(60);
+out.ev1 = {visible: getComputedStyle(ev).visibility};                      // must be 'visible'
+// expand: click the chip, an .ev-list appears; its rows match the page .foot (nothing fabricated)
+ev.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); await sleep(60);
+out.ev2 = {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('.ev-list li').length,
+           matchesFoot: (()=>{const f=document.querySelector('#stage .slide.active .foot');
+                              return !f || ev.textContent.indexOf(f.textContent.replace(/↗|\s+/g,' ').trim().slice(0,8))>=0;})()};
+// not printed: the @media print rule includes #evidence
+// tidy up: press E again to close
+```
+
+> Skip this whole subsection when there is no `background` keyword and the user did not ask for the evidence chain. The chain is a **on-demand** feature: if `out.ev0.visible` comes back `'visible'` someone reverted it to always-on — exactly what must not happen.
+
 ### 2.2 Annotation / blackboard (when step 7 is installed)
 
 - With annotation opened by `A`, the arrow keys / space / digits still page as usual;
@@ -193,5 +237,8 @@ The reply to the user contains:
 - **what was not tested and what was assumed**: e.g. print pagination not exercised, some source unreachable due to network, deep link verified on desktop only
 - open decisions for the user (credits, whether to keep a given slide)
 - which optional layer was enabled and the exception it brings (the ink layer's localStorage; the presenter layer's popup permission and non-printing prompts) — fill this in per `07-annotation.md` §7 and `08-presenter-mode.md` §9
+- **Evidence chain**: tell the user it is hidden by default and appears on `E` (or the Q-panel row), gathering this page's footnote; it is on-demand, not broken
+- **Backdrop**: if `background` was used, say the backdrop is inlined into the HTML (no external file) and is a different kind of image from `image`
+- **Who ran the check**: state whether this round was "agent live-tested" or "scripts handed over, verified by the user" (see section 0)
 
 Do not just say "done". The user judges from this whether they can go on stage.

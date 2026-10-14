@@ -8,6 +8,8 @@ Goal: lock a set of executable design decisions and write them into skeleton §1
 2. Brand colour: corporate palette, departmental VI, or "you pick". If a brand guideline exists, ask for it — never guess.
 3. Deal-breakers: what they explicitly do not want (gradients, glass, cartoon, emoji, colour charts, serifs…).
 
+**Background** is not part of these three questions: the ground is flat colour by default, and the `background` keyword (see `04-skeleton.md` / `05-build.md`) only comes up when the user asks for a full-bleed photo or a generated backdrop. Do not add a backdrop to every page — it inflates the deck, and the more backdrops the harder body contrast is to hold.
+
 Do not ask about light/dark separately — every preset has light/dark palettes; pick one per deck and write it into the skeleton (**never mix within one deck**): projected classrooms favour light, dark rooms / keynotes / code-and-data-dense favour dark. If the user says "you decide", pick the one closest to the subject, justify it in one line, and leave room to swap.
 
 ## Helper skills per style
@@ -15,48 +17,55 @@ Do not ask about light/dark separately — every preset has light/dark palettes;
 Two kinds of helper:
 
 - **General-purpose design skills (call directly if present)** — `frontend-design` (distinctive visual direction, typography, avoiding templated defaults), `material-3` (Google Material Design 3 / Material You tokens, components, adaptive layout, expressive theming).
-- **Marketplace candidates (in a skill market; not installed here)** — use the canonicalName below only, and let the user install and confirm first: third-party skills execute code, change files. Availability changes, so before recommending re-verify it with the platform's own skill search. The entries below are a snapshot from 2026-09-25; not installed, not read.
+- **Marketplace candidates (in a skill market; not installed here)** — use the canonicalName below only, and let the user install and confirm first: third-party skills execute code, change files. Availability changes, so before recommending re-verify it with the platform's own skill search. The entries below are a snapshot re-verified on 2026-10-14 with the platform's skill search; not installed, not read.
 
 | Preset | Primary helper | Also useful |
 |---|---|---|
 | A Fluent Design 2 | `fluent-design` (bingfoon) — Windows 11 language, Mica/Acrylic materials, WinUI 3 control specs, type hierarchy, layout patterns, dark mode, accessibility, Electron adaptation | `frontend-design` |
 | B Material Design 3 | `material-3` | `web-animation-design` for expressive motion |
-| C OpenAI | `frontend-design` | `agrimsingh-bringhurst-typography` (Bringhurst typographic rules applied to slides) |
-| D Claude | `frontend-design` | `ds-ref-typography`-class type pairing, or `majiayu000-brand-typography-systems` (modular scale, serif/sans decision framework, WCAG type rules) |
+| C Paper-neutral | `frontend-design` | `agrimsingh-bringhurst-typography` (Bringhurst typographic rules applied to slides) |
+| D Editorial | `frontend-design` | `ds-ref-typography`-class type pairing, or `majiayu000-brand-typography-systems` (modular scale, serif/sans decision framework, WCAG type rules) |
 | E Liquid Glass | `majiayu000-axiom-liquid-glass` — WWDC 2025 liquid-glass design principles, API patterns, visual-artifact debugging, performance and review checklists (Swift-first; treat it as the *design* authority and re-derive the CSS yourself) | `frontend-design` |
-| F Notion | `frontend-design` | `vercel-labs-web-design-guidelines` (UI review pass) |
-| G Anime / manga | `frontend-design` (no dedicated web style skill found) | `animation-shader` only if you are doing cel-shaded *illustration*, not UI |
-| H Academic / paper | `agrimsingh-bringhurst-typography` | `entur-accessibility` (WCAG 2.1), `astoreyai-latex-check` only if a real LaTeX/Beamer deliverable is also required |
+| F Doc-list | `frontend-design` | `vercel-labs-web-design-guidelines` (UI review pass) |
+| G Manga | `frontend-design` (no dedicated web style skill found) | `animation-shader` only if you are doing cel-shaded *illustration*, not UI |
+| H Academic / paper | `agrimsingh-bringhurst-typography` | `boisenoise-antigravity-wcag-audit-patterns` (WCAG 2.2 audit; the former `entur-accessibility` is no longer listed), `astoreyai-latex-check` only if a real LaTeX/Beamer deliverable is also required |
 | I Playful | `frontend-design` | `web-animation-design` for spring/overshoot timing |
+| R Magazine | `frontend-design` (serif/sans pairing, editorial grid) | — |
+| S Bold Signal | `frontend-design` (heavy weights + high-contrast cards) | `web-animation-design` |
+| T Creative Voltage | `frontend-design` (neon duo + halftone texture) | `web-animation-design` |
+| U Terminal Green | `frontend-design` (mono type, terminal feel) | — |
+| V Notebook Tabs | `frontend-design` (index cards and tabs) | `vercel-labs-web-design-guidelines` (UI review pass) |
 | Any — motion detail | `web-animation-design` — easing, duration, springs, stagger, page transitions, microinteractions, `prefers-reduced-motion`, animation performance | — |
-| Any — before delivery | `vercel-labs-web-design-guidelines` (UI/UX/a11y review), `entur-accessibility` (WCAG 2.1 contrast and semantics) | `cognitive-design` (Gestalt grouping, pre-attentive processing, cognitive load) for data-heavy decks |
+| Any — before delivery | `vercel-labs-web-design-guidelines` (UI/UX/a11y review), `boisenoise-antigravity-wcag-audit-patterns` (WCAG 2.2 contrast and semantics) | `lyndonkl-cognitive-design` (Gestalt grouping, pre-attentive processing, cognitive load) for data-heavy decks |
 
 Adjacent skills that *overlap* with this skill and may compete for the same request: `frontendslides` (zero-dependency animated HTML decks), `ppt-visual-designer` (Block-style PPT visual strategy), `doc2slides`, `image-to-editable-ppt-slide`. Do not chain them silently — mention them if the user asks for alternatives.
 
 ## Style presets
 
-Presets come in two families. **A–I temperament presets** (palette, type and motion character). **J–Q layout templates** (a slide's information structure, emphasis devices and signature elements). The mature move is **one deck = 1 temperament + 1 layout template**: temperament supplies the tokens, the template supplies the skeleton. Picking only one is fine; picking both signatures onto the same page is noise.
+Presets come in two families. **A–I temperament presets** (palette, type and motion character). **J–V templates** (J–Q: a slide's information structure, emphasis devices and signature elements; R–V: five complete systems that bring their own palettes and signatures). The mature move is **one deck = 1 temperament + 1 layout template**: temperament supplies the tokens, the template supplies the skeleton. Picking only one is fine; picking both signatures onto the same page is noise. **R–V are self-contained looks — use one of them as the temperament**, never layer an A–I temperament on top, and never stack them on each other.
 
 > These are **usable starting values**, not official design tokens: only Material 3 and Liquid Glass have a skill carrying the spec; the rest are reasonable approximations of a brand's look. Re-check with `frontend-design` before finalising, or ask whether the user has a brand guideline. Retune the colours to the subject; do not paste them blindly.
 >
 > **Contrast was measured** (body ≥ 4.5:1, large numerals/headings ≥ 3:1, using the ratio script in `06-verify.md`), re-measure after any colour change: brand colours used directly as body text usually sit at 2–3:1 (OpenAI `#10A37F`, Fluent `#0078D4`, Notion's grey chips), so each preset gives a darkened variant and keeps the original for large type or graphics only.
-**Index**: open **that one file only** for the full light + dark palettes, signature elements, type stack, motion and risks. Do not read the other 16.
+**Index**: open **that one file only** for the full light + dark palettes, signature elements, type stack, motion and risks. Do not read the other 21.
 
 | ID | Name and character | Suits | File |
 |---|---|---|---|
 | A | Fluent Design 2 · layered depth + acrylic backplates + hairline cards, strong order | policy, data, formal reporting | `02-presets/A-fluent.md` |
 | B | Material Design 3 · tonal surfaces + explicit role colours, component-like | process, method, teaching | `02-presets/B-material-3.md` |
-| C | OpenAI · paper-neutral ground + hairlines + generous whitespace | technical surveys, serious topics | `02-presets/C-openai.md` |
-| D | Claude · cream ground + terracotta accent + serif headings, publishery | humanities, education, opinion, interview narrative | `02-presets/D-claude.md` |
+| C | Paper-neutral · paper ground + hairlines + generous whitespace | technical surveys, serious topics | `02-presets/C-openai.md` |
+| D | Editorial · cream ground + terracotta accent + serif headings, publishery | humanities, education, opinion, interview narrative | `02-presets/D-claude.md` |
 | E | Liquid Glass · refracting layers + specular edges, keynote energy | showcase decks (**real projector risk**: low contrast and thin type turn to mush) | `02-presets/E-liquid-glass.md` |
-| F | Notion · white ground + warm-grey text + faint dividers + coloured chips | bullet-dense, checklist, retrospective | `02-presets/F-notion.md` |
-| G | Anime / manga · saturated accents + thick-outlined cards + screentone and speed lines | science popularisation, clubs, student audiences (**never use copyrighted characters**) | `02-presets/G-anime.md` |
-| H | Academic / paper · paper ground + serif headings + strict chart conventions | thesis defence, lab meetings, technical review | `02-presets/H-academic.md` |
+| F | Doc-list · white ground + warm-grey text + faint dividers + coloured chips | bullet-dense, checklist, retrospective | `02-presets/F-notion.md` |
+| G | Manga · saturated accents + thick-outlined cards + screentone and speed lines | science popularisation, clubs, student audiences (**never use copyrighted characters**) | `02-presets/G-anime.md` |
+| H | Academic · paper ground + serif headings + strict chart conventions | thesis defence, lab meetings, technical review | `02-presets/H-academic.md` |
 | I | Playful · candy blocks + very large radii + inline-SVG geometric faces | icebreakers, events, young or informal internal audiences | `02-presets/I-playful.md` |
 
-## Layout template library (J–Q)
+## Template library (J–V)
 
-**Orthogonal** to the presets: pick the temperament (A–I) first, then decide whether to layer a template. Again, read only the one you choose.
+J–Q are **layout templates** (a slide's information structure, emphasis devices and signatures); R–V are five **complete systems** that arrive with their own palette, type and signatures — use one as the **temperament** (choosing it settles the look), and they also work as layout-language references. Sources: R distils `op7418/guizang-ppt-skill`'s electronic-magazine system; S–V distil `zarazhangrui/frontend-slides` (MIT, © Zara Zhang) — design language only, the code is rewritten to this skill's constraints.
+
+**Orthogonal** to the presets: pick the temperament (A–I) first, then decide whether to layer a J–Q template. Again, read only the one you choose.
 
 | ID | Name and character | Pairs with | One hard limit | File |
 |---|---|---|---|---|
@@ -68,7 +77,17 @@ Presets come in two families. **A–I temperament presets** (palette, type and m
 | O | One colour per slide · whole canvas in a single hue + 160px-class heading | any preset's type stack | retire the moment a page needs a table; never complementary hues on adjacent slides | `02-presets/O-one-colour.md` |
 | P | VC roadshow · oversized KPIs + one traction curve | A or C | every KPI must resolve to a row in the source file | `02-presets/P-vc-roadshow.md` |
 | Q | Macaron cards · three blurred blobs + italic serif display + rounded cards | I (one notch calmer) | tightest set in the table (accent 4.81 / warn 4.60) — re-measure after any tweak | `02-presets/Q-macaron.md` |
+| R | Electronic magazine · serif display + sans body + mono metadata, five e-ink palettes | use as the temperament | no custom hex — pick one of the five ink palettes | `02-presets/R-magazine.md` |
+| S | Bold Signal · charcoal ground + bright-orange focus card + oversized section numbers | use as the temperament | orange only ever on the focus card, never as body colour | `02-presets/S-bold-signal.md` |
+| T | Creative Voltage · electric blue + neon yellow + halftone texture | use as the temperament | neon yellow goes on dark grounds only — glaring on light | `02-presets/T-creative-voltage.md` |
+| U | Terminal Green · near-black terminal ground + phosphor-green mono | use as the temperament | phosphor green is the only accent — do not add a second colour | `02-presets/U-terminal-green.md` |
+| V | Notebook Tabs · cream paper + binder holes + coloured right-edge tabs | use as the temperament | ≤ 4 tab colours or it becomes a sticky-note wall | `02-presets/V-notebook-tabs.md` |
+
+(S–V are the four chosen from `frontend-slides`'s twelve; its Swiss Modern and Paper & Ink are left out — the first overlaps A/H's grid character and the second overlaps C's paper character, so one look does not get two treatments.)
+
 ## Five template disciplines (distilled from a mature template system; they hold for every preset)
+
+0. **One backdrop per page, and it never ships without a scrim.** A full-bleed backdrop (third-party photo or generated image) goes through the `background` keyword and `data-bg` layer, with a readable gradient scrim on top; a backdrop is **never** dropped into the text flow as an `<img>` (that is what `image` is for). If contrast will not hold, dim the backdrop — do not lighten body text. See the background-layer rules in `05-build.md`.
 
 1. **Colour lives only in `:root`.** Outside gradient endpoints, no literal hex should appear in slide CSS: `color:var(--ink)`, `background:var(--panel)`, `border:1px solid var(--rule)`. One hard-coded value is one place a theme or mode switch will miss (that is exactly known trap 8 in `05-build.md`).
 2. **Text on an accent fill takes `--accent-ink`, never `#fff`/`#000`.** Accents span near-white to near-black across themes, so one literal ranges from 17:1 to 1:1 (see O's measurement). Every template above lists its own accent-ink per mode, measured.
@@ -78,7 +97,7 @@ Presets come in two families. **A–I temperament presets** (palette, type and m
 
 ## Custom route
 
-When the user designs their own, walk the same field list as the presets (look / light palette / dark palette / type / shape / rules / motion / risks) and drive the decisions with `frontend-design` (palette relationships, type pairing, avoiding the templated look). Pull `material-3` as needed for component specs. Given a reference screenshot, measure its hex values and type scale before deciding — never work from impression. **The "five template disciplines" hold for custom too**: every colour in `:root`, a measured `--accent-ink`, one mode only, ≤ 8 reused page types, images always framed.
+When the user designs their own, walk the same field list as the presets (look / light palette / dark palette / type / shape / rules / motion / risks) and drive the decisions with `frontend-design` (palette relationships, type pairing, avoiding the templated look). Pull `material-3` as needed for component specs. Given a reference screenshot, measure its hex values and type scale before deciding — never work from impression. **The "five template disciplines" (including the background rule 0) hold for custom too**: every colour in `:root`, a measured `--accent-ink`, one mode only, ≤ 8 reused page types, images always framed, backdrops always scrimmed.
 
 ## Deck-level hard requirements, whatever is chosen
 

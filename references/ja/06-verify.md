@@ -1,6 +1,18 @@
 # ステップ 6 · 自検と交付
 
-順序：静的チェック → ブラウザ実機テスト → 数字監査 → 交付。どれかが失敗したら戻って直してください；未検証のものを完成品として提示してはならない。
+順序：**先に一言** → 静的チェック → ブラウザ実機テスト → 数字監査 → 交付。どれかが失敗したら戻って直してください；未検証のものを完成品として提示してはならない。
+
+## 0. まずユーザーに聞く：自己点検は誰が走らせるか（省かないこと）
+
+ステップ 6 で**最初にするのはユーザーへの一言**：
+
+> デッキは書き上がりました。この最後の点検、**私が自分で 1 回走らせますか**（下のアサーションを実行し、通過項目と未確認項目を挙げます）、それとも**ご自身で確認しますか**（私は静的な突き合わせだけ行い、アサーションのスクリプトは必要なときに再実行できるよう残します）。
+
+- エージェントが走らせる場合 → 下の流れを全部通す（静的 + ブラウザ実測 + 数字監査）。
+- ユーザーが自分で確認する場合 → **第 1 節の静的チェックは必ず行う**（依存ゼロ・ページ数・プレースホルダーの漏れ——これを走らせないのは職務怠慢）。ブラウザ実測と数字監査はユーザーの希望に従う：見たいならスクリプトと期待値を渡し、自分で走らせるならスクリプトを渡す。
+- どちらの場合も、**納品説明に「実測した項目」と「ユーザーが確認する項目」を書き分ける**。走らせていないものを走らせたことにしない。
+
+**既定で勝手に走らせない**：自分で一通り見たいユーザーもおり、先回りして走り切るとその邪魔になる。この問いは本ステップの定型動作。
 
 ## 1. 静的チェック
 
@@ -76,7 +88,7 @@ async () => {
 
 深いリンクと印刷：`<トピック>.html#s7` を開くと 7 枚目に着地しなければならない；`Ctrl+P` は 1 ページ 1 スライドになるはずです（内蔵ブラウザが印刷を描画できない場合は、`@media print` の規則が存在することを確認し、印刷は未検証だと明記してください）。
 
-ショートカットパネル：実際に `Q` キーを押すと `#deckhelp` が開き、少なくともシェル自身の「ページ送りと表示」セクションが入っていること；任意レイヤーをインストール済みなら、`window.__deckHelp` に ink レイヤーと presenter レイヤーが登録したセクションも入っていなければならない。`Esc` で閉じ、開いている間はすべての ink サーフェスが退く（`#deckhelp.open ~ …` の兄弟セレクタ）。パネルをクリックしてもページ送りせず、`?preview=N` の中での `Q` は何も起こさない。
+ショートカットパネル：実際に `Q` キーを押すと `#deckhelp` が開き、少なくともシェル自身の「ページ送りと表示」セクション（`E`＝エビデンスチェーンの行を含む）が入っていること；任意レイヤーをインストール済みなら、`window.__deckHelp` に ink レイヤーと presenter レイヤーが登録したセクションも入っていなければならない。`Esc` で閉じ、開いている間はすべての ink サーフェスが退く（`#deckhelp.open ~ …` の兄弟セレクタ）。パネルをクリックしてもページ送りせず、`?preview=N` の中での `Q` は何も起こさない。
 
 コントラスト（グラス / 低コントラストの配色では必須）：
 
@@ -122,6 +134,8 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 //   オーディオページは**展開してから測る**こと：静止時は .mp-fold が display:none なので、バーが命中してはそもそもならない——
 //   そのステップだけ fig.setAttribute('data-open','1') を行って測り、測り終えたら外す；静止状態では代わりにスピーカー .mp-mute
 //   自身がクリックできることをアサートする。
+//   展開後の音声バーは**中央寄せの細いバー**：`.mp-bar` の幅 ≤ 520px（`min(100%,520px)`）、カード全面にはしない。
+//   `fig.querySelector('.mp-bar').getBoundingClientRect().width` を測り、560 を超えるなら細バーの規則が効いていない。
 // 8) 音量と全画面：音量は常設のスライダーではない。.mp-mute にホバーする（タッチパネルならタップする）と .mp-volpop が上に現れる。
 //    ポップオーバーはボタンと隙間なく接していなければならない：wrap に data-vol="1" を付け、.mp-volwrap の上辺から 0–6px まで
 //    2px ごとに elementFromPoint すると、すべて .mp-volpop に当たらなければならない。#stage に落ちるということは死帯があることで、
@@ -142,6 +156,36 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 
 ソースファイルはテスト前に**本当に HTML の隣に置く**こと——`file://` ではパスが違うということは 6 番目の容錯分岐にほかならないので、2 つのことを 1 回の実行で確認できる。
 インライン化した画像は独立した確認が 1 つ要る：`img.complete === true && img.naturalWidth > 0`、および `img.src` が `data:image/` で始まること。
+
+### 2.3 全面の背景とエビデンスチェーン（`background` キーワードを使ったとき、またはエビデンスチェーンを見たいとき）
+
+```js
+// 背景：シェルは data-bg を style.backgroundImage にインライン化する。属性は保持する（著者の CSS が持ち上げに使う）。値はファイル内で依然 1 つだけ
+const bg = document.querySelector('#stage .slide[data-i="1"]');
+out.bg = {attrKept: bg.hasAttribute('data-bg'),   // true であること：属性は保持
+          style: /^url\("data:image\//.test(bg.style.backgroundImage)};   // true であること：インライン済み
+// 内容を持ち上げているか：このページの本文ブロックは z-index > 0 でないとスクリムに隠れる
+const body = bg.querySelector('.slide-body');
+out.bgContent = parseFloat(getComputedStyle(body).zIndex) >= 1;
+// スクリムは存在する（::after にグラデーション）。そのコントラストは §3 の数字監査で本文色を測る
+
+// エビデンスチェーン：既定では不可視
+const ev = document.getElementById('evidence');
+out.ev0 = {exists: !!ev, visible: getComputedStyle(ev).visibility};        // exists:true, visible:'hidden' であること
+// 呼び出し：E を押すと可視になり、カウント > 0（このページが .foot を書いていれば）
+document.dispatchEvent(new KeyboardEvent('keydown',{key:'e',bubbles:true,cancelable:true}));
+await sleep(60);
+out.ev1 = {visible: getComputedStyle(ev).visibility};                      // 'visible' であること
+// 展開：チップをクリックすると .ev-list が出る。行はページの .foot と一致する（捏造しない）
+ev.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); await sleep(60);
+out.ev2 = {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('.ev-list li').length,
+           matchesFoot: (()=>{const f=document.querySelector('#stage .slide.active .foot');
+                              return !f || ev.textContent.indexOf(f.textContent.replace(/↗|\s+/g,' ').trim().slice(0,8))>=0;})()};
+// 印刷されない：@media print の規則に #evidence が含まれる
+// 後始末：もう一度 E を押して閉じる
+```
+
+> `background` キーワードがなく、ユーザーもエビデンスチェーンを求めていないときは、この節ごと飛ばす。エビデンスチェーンは**オンデマンド**の機能で、`out.ev0.visible` が `'visible'` になったなら、誰かが常時表示に戻したということ——それは起きてはならないこと。
 
 実測で踏んだ 3 つのプローブの罠——スクリプトを書く前に読まないといけない：
 
@@ -198,5 +242,8 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 - **テストしなかった項目と仮定**：例——印刷のページ割りは未実施、一部の出典はネットワーク到達不可のため未確認、深いリンクはデスクトップでのみ検証
 - ユーザーの判断を仰ぐ未決の点（クレジット表記、あるスライドを残すか）
 - どの任意レイヤーを有効にしたか、それが持ち込む例外（ink レイヤーの localStorage；presenter レイヤーのポップアップ権限と印刷されないプロンプト）——`07-annotation.md` §7 と `08-presenter-mode.md` §9 に従って記入してください
+- **エビデンスチェーン**：既定では非表示で、`E`（または Q パネルの該当行）で現れ、そのページの出典行を集める——オンデマンドの機能で、壊れているわけではない
+- **背景画像**：`background` を使ったなら、背景は HTML にインライン済み（外部ファイルを産まない）で、`image` とは別種の画像だと伝える
+- **点検の担当**：今回が「エージェントが実測した」のか「スクリプトを渡し、ユーザーが自分で確認する」のかを書き分ける（本ステップ第 0 節を参照）
 
 「完了しました」と言うだけで済ませないでください。ユーザーはこのメモで、そのまま舞台に立てるかどうかを判断します。

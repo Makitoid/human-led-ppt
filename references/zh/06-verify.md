@@ -1,6 +1,18 @@
 # 第 6 步 · 自检与交付
 
-顺序：静态自检 → 浏览器实测 → 数字审计 → 交付。任何一项没过就回去改，不要把未验证的东西当完成品交出去。
+顺序：**先问一句** → 静态自检 → 浏览器实测 → 数字审计 → 交付。任何一项没过就回去改，不要把未验证的东西当完成品交出去。
+
+## 0. 先问用户：自检由谁跑（这一步别省）
+
+进第 6 步**做的第一件事，是问用户一句**：
+
+> 成品已经写完。这最后一轮自检，你要**我自己跑一遍**（我按下面的脚本实测，把通过项与未验证项列给你），还是**你自己检查**（我只做静态核对，断言脚本留给你按需重跑）？
+
+- 用户说要 agent 跑 → 走下面全部流程（静态 + 浏览器实测 + 数字审计）。
+- 用户说自己检查 → 仍然做完**第 1 节的静态自检**（零依赖、页数、占位符泄漏——这些不跑就是失职），浏览器实测与数字审计按用户要求来：他要看就贴脚本与预期，他要自己跑就交脚本。
+- 无论哪种，**交付说明都要写清"哪些是实测过的、哪些是用户自己验的"**，不要把没跑的说成跑了。
+
+**别默认直接跑**：有的用户就想自己过一遍，你抢着跑完反而挡住他。这一问是本步的固定动作。
 
 ## 1. 静态自检
 
@@ -76,7 +88,8 @@ async () => {
 
 深链与打印：直接访问 `<主题>.html#s7` 应落在第 7 页；`Ctrl+P` 预览应一页一纸（内置浏览器做不到时用 `@media print` 规则存在性核对，并说明未实测）。
 
-快捷键面板：按真按键 `Q` 应弹出 `#deckhelp`，分区块里至少有壳那段「翻页与视图」；装了可选层的话，
+快捷键面板：按真按键 `Q` 应弹出 `#deckhelp`，分区块里至少有壳那段「翻页与视图」，其中含 `E`（证据链）
+一行；装了可选层的话，
 `window.__deckHelp` 里还应有批注层和演讲者层注册的段落。`Esc` 关闭，面板打开时批注工具条与小按钮
 全部隐藏（`#deckhelp.open ~ …` 的兄弟选择器），点面板空白处不翻页。`?preview=N` 里按 `Q` 应无反应。
 
@@ -122,6 +135,8 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 //   进度条就在条里、常驻，所以对 .mp-track 的中点做同样的 elementFromPoint 也要命中它。
 //   音频页要**先展开再量**：静止时 .mp-fold 是 display:none，条本来就不该命中——
 //   那一步先 fig.setAttribute('data-open','1')，量完再摘掉；静止态另断言喇叭 .mp-mute 自己可点。
+//   音频条展开后是**居中、窄条**：`.mp-bar` 宽度 ≤ 520px（`min(100%,520px)`），别铺满整卡——
+//   量 `fig.querySelector('.mp-bar').getBoundingClientRect().width`，>560 说明窄条规则没生效。
 // 8) 音量与全屏：音量不是常驻滑杆——鼠标移到 .mp-mute 上（触屏则点一下）才弹出 .mp-volpop，**弹层必须与按钮零间隙相接**：给 wrap 打上 data-vol="1" 后，从 .mp-volwrap 顶边向上 0–6px 逐点 elementFromPoint，每一枪都要命中 .mp-volpop（命中落回 #stage 就说明中间有死区，鼠标永远抓不到滑杆，只能先点一下喇叭）；滑杆本身要对按钮水平居中（pop 中心与 wrap 中心之差 ≤ 1px），
 //    上拉条 .mp-volr 拖动要连续改 el.volume（0–1 无级），拖到 0 即静音；鼠标单击喇叭是切静音。
 //    稿子已经全屏（按过 F）时再点视频卡的 .mp-fs，应当嵌套进媒体全屏——按 Esc 回到稿子的全屏，
@@ -139,6 +154,36 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 
 源文件要**真的和 HTML 放在一起**再测——`file://` 下路径不对就是第 6 条那个容错分支，两件事一起验完。
 内联图片另测一条：`img.complete === true && img.naturalWidth > 0`，并确认 `img.src` 以 `data:image/` 开头。
+
+### 2.3 满版背景 与 证据链（有 `background` 关键字、或要看证据链时跑）
+
+```js
+// 背景：壳把 data-bg 内联进 style.backgroundImage；属性保留（作者 CSS 靠它抬层），值在文件里仍只有一份
+const bg = document.querySelector('#stage .slide[data-i="1"]');
+out.bg = {attrKept: bg.hasAttribute('data-bg'),   // 应为 true：属性保留
+          style: /^url\("data:image\//.test(bg.style.backgroundImage)};   // 应为 true：已内联
+// 内容抬层：这一页的正文容器 z-index 要 > 0，否则被遮罩盖住、字看不见
+const body = bg.querySelector('.slide-body');
+out.bgContent = parseFloat(getComputedStyle(body).zIndex) >= 1;
+// 遮罩存在（::after 有 background-image 渐变），且对比度达标留给第 3 节数字审计按正文色量
+
+// 证据链：默认不可见
+const ev = document.getElementById('evidence');
+out.ev0 = {exists: !!ev, visible: getComputedStyle(ev).visibility};        // 应为 exists:true, visible:'hidden'
+// 唤出：按 E 后可见，且计数 > 0（前提是这一页写了 .foot）
+document.dispatchEvent(new KeyboardEvent('keydown',{key:'e',bubbles:true,cancelable:true}));
+await sleep(60);
+out.ev1 = {visible: getComputedStyle(ev).visibility};                      // 应为 'visible'
+// 展开：点一下徽标，出现 .ev-list；来源条内容与页面 .foot 一致（不许编造）
+ev.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})); await sleep(60);
+out.ev2 = {open: ev.getAttribute('data-open')==='1', rows: ev.querySelectorAll('.ev-list li').length,
+           matchesFoot: (()=>{const f=document.querySelector('#stage .slide.active .foot');
+                              return !f || ev.textContent.indexOf(f.textContent.replace(/↗|\s+/g,' ').trim().slice(0,8))>=0;})()};
+// 打印不出现：@media print 规则含 #evidence
+// 收尾：再按一次 E 关掉
+```
+
+> 没有 `background` 关键字、用户也没要证据链时，这一节整节跳过。证据链是**按需**功能，`out.ev0.visible === 'hidden'` 若成了 `'visible'`，说明有人把默认显示改回来了——那正是要避免的。
 
 三条探针坑（实测踩过，写脚本前先读）：
 
@@ -190,5 +235,8 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 - **未验证项与假设**：例如打印分页未实测、某来源因网络不可达未核实、深链只在桌面验证
 - 需要用户拍板的点（如署名、是否保留某页）
 - 启用了哪个可选层，以及它带来的例外（批注层的 localStorage / 演讲者层的弹窗权限与不打印提示词）——细节按 `07-annotation.md` §7、`08-presenter-mode.md` §9 补
+- **证据链**：告诉用户它默认不显示，按 `E`（或点 Q 面板里那一行）才出现，逐页汇总这一页的引用条；这是按需功能，不是坏掉了
+- **背景图**：若用了 `background`，说明背景已内联进 HTML（不产生外部文件），是 `image` 之外的另一类图
+- **自检归属**：写清这一轮是"agent 实测通过"还是"脚本已交付、由用户自行验证"（见本步第 0 节）
 
 不要只说"已完成"。用户要靠这段判断能不能直接上台。

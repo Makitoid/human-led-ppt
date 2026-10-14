@@ -2,6 +2,21 @@
 
 **English** · [中文](CHANGELOG_zh-cn.md) · [日本語](CHANGELOG_ja.md)
 
+## v1.6 (2026-10-14)
+
+- **The style library grows from 17 to 22 presets.**
+  - **R Electronic magazine** (distilled from `op7418/guizang-ppt-skill`): serif display + sans body + mono metadata, five e-ink palettes (Ink Classic / Indigo Porcelain / Forest Ink / Kraft Paper / Dune) — pick one, no custom hex.
+  - **S Bold Signal / T Creative Voltage / U Terminal Green / V Notebook Tabs** (distilled from `zarazhangrui/frontend-slides`, MIT © Zara Zhang): four complete systems, each with its own palette, type and signatures. Its Swiss Modern and Paper & Ink are left out — they overlap A/H and C.
+  - **C/D/F/G lose their brand names**: OpenAI → Paper-neutral, Claude → Editorial, Notion → Doc-list, Anime → Manga.
+- **New `background` keyword (full-bleed backdrop)**: `<section data-bg="data:image/…" data-bg-scrim="…">`, the shell lays the ground and paints the scrim and the content lifts to `z-index:1`. **Only inline data: images are accepted** — the deck stays one offline file, and an external URL is refused with the slide named. A backdrop is a ground, kept apart from `image`'s frame.
+- **Step 3 gains an image module**: a new "Image assets" / "Candidate images" section — web images are downloaded and registered (file / content / source URL / licence / placement), unclear licences flagged ⚠️, external hot-links disallowed.
+- **New `draw` keyword (generated image)**: the AI prompt, aspect and placement go into the skeleton, the **user reviews the prompt first**, then it is generated and rewritten as `image` or `background`. The keyword library grows from 54 to 56.
+- **The evidence chain is hidden by default**: the shell adds a bottom-right badge that recounts each page's `.foot` sources into one chip, **`visibility:hidden` until asked for** (never shown, never printed, never in a screenshot) and revealed by `E`, the Q panel or a click; clicking expands the source list. It only gathers what the author wrote — nothing is fabricated.
+- **A shorter audio strip**: the audio transport now unfolds into a **compact centred bar** (`min(100%,520px)`) instead of the full card width, so the scrub line is shorter and easier to aim at.
+- **Step 6 asks first**: the first thing step 6 does is ask "do you want me to run the check, or will you check yourself", and the answer decides whether the assertions run; the static checks always run. The SKILL workflow table's step-6 gate now reads "ask first".
+- **Recommended-skill table re-verified on 2026-10-14**: `entur-accessibility` is no longer listed, replaced with `boisenoise-antigravity-wcag-audit-patterns`; `cognitive-design` corrected to `lyndonkl-cognitive-design`; the rest confirmed present via the platform's search.
+- **Three-language sync**: `references/zh|en|ja/02–06`, `SKILL.md`, all three READMEs and this changelog were updated in the same pass.
+
 ## v1.5.1 (2026-10-11)
 
 Three fixes, all found while presenting a real deck rather than in review.

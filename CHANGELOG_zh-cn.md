@@ -2,6 +2,21 @@
 
 [English](CHANGELOG.md) · **中文** · [日本語](CHANGELOG_ja.md)
 
+## v1.6 (2026-10-14)
+
+- **风格库从 17 套扩到 22 套。**
+  - **R 电子杂志**（提炼自 `op7418/guizang-ppt-skill`）：衬线大标题 + 非衬线正文 + 等宽元数据，5 套电子墨水配色（墨水经典 / 靛蓝瓷 / 森林墨 / 牛皮纸 / 沙丘），只许选一套、不许自定义 hex。
+  - **S Bold Signal / T Creative Voltage / U Terminal Green / V Notebook Tabs**（提炼自 `zarazhangrui/frontend-slides`，MIT © Zara Zhang）：四套完整风格，各带色板、字体、签名件与动效。其 Swiss Modern 与 Paper & Ink 未纳入——与 A/H、C 的气质重叠。
+  - **C/D/F/G 去品牌化改名**：OpenAI → 纸面中性、Claude → 人文出版物、Notion → 文档清单、二次元 / 动漫 → 漫画风。
+- **新增 `background` 关键字（满版背景）**：`<section data-bg="data:image/…" data-bg-scrim="…">`，壳铺底并压遮罩，内容抬到 `z-index:1`。**只接受内联 data: 图片**——deck 保持离线单文件，外链会被壳拒绝并点名该页。背景是“地”，与 `image` 的“框”分开。
+- **资料搜集新增图片模块**：第 3 步新增「图片素材」与「候选图片」一节——网页搜到的图下载后在资料总结登记（文件名 / 内容 / 来源 URL / 授权 / 建议落位），授权不明标 ⚠️；外部链接图不得直接引用。
+- **新增 `draw` 关键字（生成图）**：AI 生成图先把 prompt、画幅、落位写进骨架，**用户过目 prompt 后**再生成，生成后转写成 `image` 或 `background`。词库 54 → 56。
+- **证据链默认隐藏、按需唤出**：壳新增右下角证据链徽标，逐页把 `.foot` 等来源现算成一枚 chip，**默认 `visibility:hidden`**（不显示、不打印、不进截图），按 `E`、点 Q 面板或点徽标才出现；点徽标展开来源清单。只汇总作者写在页面上的来源，绝不编造。
+- **播放条缩短**：音频播放条展开后改为**居中窄条**（`min(100%,520px)`），不再铺满整卡，进度条更短、鼠标更好点。
+- **第 6 步自检先问用户**：进第 6 步的第一件事是问“自检我自己跑，还是你自己检查”，按回答决定是否执行断言脚本；静态自检两项都必跑。SKILL 流程表第 6 步的闸门同步改为“先问”。
+- **推荐前端 skill 表复核到 2026-10-14**：`entur-accessibility` 已检索不到，改用 `boisenoise-antigravity-wcag-audit-patterns`；`cognitive-design` 更正为 `lyndonkl-cognitive-design`；其余条目经平台搜索确认在架。
+- **三语同步**：`references/zh|en|ja` 的 02–06、`SKILL.md`、三份 README 与本变更记录同批更新。
+
 ## v1.5.1 (2026-10-11)
 
 三个修复，全部来自真上台放了一遍，不是审出来的。

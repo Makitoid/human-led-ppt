@@ -4,7 +4,7 @@
 
 以人主导、Agent 辅助的单文件 HTML PPT 设计系统——人定主题、风格与措辞，Agent 管证据、结构与构建纪律。先用五步把这些定下来：每步产出一个可审核的文件，用户点头之后才允许构建。
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.5.1](https://img.shields.io/badge/version-1.5.1-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.6](https://img.shields.io/badge/version-1.6-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 ## 它解决什么
 
@@ -17,7 +17,7 @@
 | 步 | 做什么 | 产出 |
 |---|---|---|
 | 1 主题与叙事 | 定主问题、受众、时长页数、分幕结构 | 需求确认块 |
-| 2 风格方向 | 9 套气质预设（Fluent / Material 3 / OpenAI / Claude / Liquid Glass / Notion / 二次元 / 学术 / 趣味）与 8 套版式模板（J–Q） | 风格决定块 |
+| 2 风格方向 | 9 套气质预设（Fluent / Material 3 / 纸面中性 / 人文出版物 / Liquid Glass / 文档清单 / 漫画风 / 学术 / 趣味）与 13 套模板（J–Q 版式 + R–V 五套完整风格：电子杂志与 frontend-slides 四套） | 风格决定块 |
 | 3 资料库（按需） | 对资料进行循证检索：明确表明争议、二手转引、打不开 | `主题-资料总结.md` |
 | 4 骨架说明书 | 写给 agent 的构建规格：分幕、**每页关键字**（内核三项 `type`/`key`/`sec` 必写，其余从 51 词词库选 5–11 个，每份稿子声明自己用哪 12–24 个）、实现细则，每页演讲者提示词 | `主题-HTML-PPT骨架.md`（**等用户审核，含 §7**） |
 | 5 构建 | 严格按骨架出单文件 HTML | `主题.html` |
@@ -61,14 +61,15 @@
 ## 已知限制
 
 - 风格预设是对品牌观感的合理近似，不是官方设计令牌。改稿前请对照品牌规范；动过颜色就要重测对比度。
-- 文档里提到的第三方 skill 名称是 2026-09-25 的市场快照，未安装也未验证正文，调用前请先复核并让用户确认。
+- 文档里提到的第三方 skill 名称是 2026-10-14 的市场快照，未安装也未验证正文，调用前请先复核并让用户确认。
 - 文档里的示例全是占位符（`<…>` / `……`），不要照抄数字，也不许让占位符进成品。
 
-## 1.5.1 更新要点
+## 1.6 更新要点
 
-- **`#aria` 移出可视区**——壳的“第 N 页：…”翻页播报原先一直印在每份稿子的左上角。
-- **音量条回到正中、鼠标抓得住**——旧写法用 `writing-mode: vertical`（滑块停在行首），弹层还悬在喇叭上方 8px，指针穿过就关掉；现在弹层与按钮零间隙相接。
-- **批注工具条改纯色**——顶部渐变在浅色稿上看出一条脏带，`--ink-tint` 退役。
+- **风格库扩到 22 套**——新增电子杂志（5 套电子墨水配色）与 Bold Signal / Creative Voltage / Terminal Green / Notebook Tabs 四套；C/D/F/G 去掉品牌名，改为纸面中性 / 人文出版物 / 文档清单 / 漫画风。
+- **满版背景与生成图片**——新增 `background` 关键字（整页铺底）与 `draw` 关键字（AI 生成图，prompt 先给用户过目）；资料搜集新增「候选图片」一节。
+- **证据链默认隐藏、按需唤出**——右下角证据链徽标按 `E` 或点 Q 面板才出现，不显示、不打印。
+- **播放条缩短、自检先问用户**——音频条展开后是居中窄条；第 6 步自检开始前先问你“我自己跑还是你自己检查”。
 
 完整记录见 [CHANGELOG_zh-cn.md](CHANGELOG_zh-cn.md)。
 

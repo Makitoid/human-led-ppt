@@ -156,7 +156,9 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 |---|---|---|
 | `visual` ★ | 画面指令：什么图、轴怎么标、哪块用 warn 色 | 构建时照它画图 |
 | `layout` ★ | 版面：几栏、主次、留白在哪（"左 40% 标题区，右 60% 图表"） | 决定 `.slide-body` 结构 |
-| `image` ★ | 图片 / 截图 / 插画：内容、来源与授权、必须让人看到什么、**落在哪一块**（"右栏通高" / "左下小图"）。**图片直接 base64 内联进 HTML**——deck 仍是单文件离线；照片级大图（>800KB）改用 `visual` 画图 | `.img-frame` + `aspect-ratio` |
+| `image` ★ | 图片 / 截图 / 插画：内容、来源与授权、必须让人看到什么、**落在哪一块**（"右栏通高" / "左下小图"）。**图片直接 base64 内联进 HTML**——deck 仍是单文件离线；照片级大图（>800KB）改用 `visual` 画图。分两类：**网页搜索来的**要把来源 + 授权写进资料总结的「候选图片」区，骨架这行只写"《文件名》——授权/出处"；**AI 生成的**直接用 `draw` 词，不要在这里重复 | `.img-frame` + `aspect-ratio` |
+| `background` | **满版背景**：一张铺满整页的底图（第三方照片或生成图），上面还要写字的，就是它。写清"整页满铺 / 只封面或幕间页 / 铺哪几页"、来源与授权。**只接受内联 data: 图片**（`<section data-bg="data:image/…">`），可再给 `data-bg-scrim` 遮罩；**和 `image` 分开用**——背景是地，插图是框，别把背景塞进正文流当 `<img>`。生成图同样先出 `draw` | `data-bg` + `data-bg-scrim`（壳负责铺底与遮罩） |
+| `draw` | **AI 生成图**：写生成提示词（prompt）、画幅比例、要落的位置、以及"给用户过目再生成"这一条。搜来的图若改为生成，也用它。**生成前先把 prompt 放进骨架让用户看一遍**，点头后再生成、再按 `image` / `background` 落位 | 先 `draw` 声明 → 用户确认 → 成为 `image` 或 `background` |
 | `audio` | 音频：**文件名（与 html 同一个文件夹）**、内容（是什么声音、哪几句值得听）。不内联 | `.mp` 播放器卡（拖放条 / 倍速由壳生成） |
 | `video` | 视频：**文件名（与 html 同一个文件夹）**、内容、必须让人看到什么。不内联 | `.mp` 播放器卡 |
 | `icon` | 图标语义（不用 emoji 充当图标） | 内联 SVG |
@@ -164,7 +166,9 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | `before-after` | 前后对照 / 改前改后 / 误读 vs 纠正 | 双栏 |
 | `diagram` | 结构图的构成：原理图、架构图、流程图、**归因树 / 5Why / 鱼骨**——有哪几块、怎么连、箭头朝哪。因果链的节点允许是名词（不像 `steps` 必须动词开头） | 内联 SVG |
 
-> 媒体类三词各管一种文件归属——**图片内联，音视频 sibling 文件**。单文件 HTML 装不下几十 MB 的音视频——base64 会再胀大三分之一，`file://` 下首屏还要把整个 data URL 读完才显示，deck 直接打不开。所以音视频的物理文件必须和 `.html` 放在同一个文件夹一起交付，拷贝时别只拷 html。落屏位置仍由 `layout` 和词序决定，这三个词只声明"放什么媒体、放哪一块、要不要自动播"。
+> 媒体类关键词按**文件归属**分工：**图片与背景内联**（`image` → `.img-frame` + `<img>`；`background` → `data-bg` 铺满整页），**音视频是 sibling 文件**（`audio` / `video` → `.mp`，放在 `.html` 同目录）。单文件 HTML 装不下几十 MB 的音视频——base64 会再胀大三分之一，`file://` 下首屏还要把整个 data URL 读完才显示，deck 直接打不开。所以音视频的物理文件必须和 `.html` 放在同一个文件夹一起交付，拷贝时别只拷 html。落屏位置仍由 `layout` 和词序决定，这些词只声明"放什么媒体、放哪一块、要不要自动播"。
+>
+> `draw` 是**唯一的"还没拿到图"的词**：它只写生成提示词与落位，生成前必须让用户过目 prompt；生成出来后，按它落在正文还是铺满整页，转写成 `image` 或 `background`。网页搜来的图不进 `draw`，直接进资料总结的「候选图片」区，由 `image` / `background` 引用。
 
 **E 论证 —— 怎么说服**
 

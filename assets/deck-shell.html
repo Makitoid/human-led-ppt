@@ -12,6 +12,9 @@
       assets/deck-shell.css 与 assets/deck-shell.js 的全文，全局替换并校验残留）
   2) 在第二个 <style> 里用自己的主题变量覆盖 :root，再写各页型的样式
   3) 按骨架 §4 逐页替换 <section class="slide"> 的内容；所有“……”都是占位符
+  满版背景（`background` 关键字）：<section class="slide" data-bg="data:image/jpeg;base64,…">
+  —— 只接受内联 data: 图片；再给它一个遮罩 data-bg-scrim="linear-gradient(…)"，
+  并把这一页的内容包进 position:relative;z-index:1 的容器里（见 05-build.md）。
   aria 播报与壳/叠加层的运行时文案会按 <html lang> 在中文 / 日文 / 英文之间自动切换。
   `Q` 快捷键面板由壳自动创建（#deckhelp）；叠加层想上自己的分区，加载时往
   window.__deckHelp 里 push {title, rows} 即可，面板打开时按当时的注册表渲染。

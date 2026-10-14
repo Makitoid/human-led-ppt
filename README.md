@@ -4,7 +4,7 @@
 
 A **human-led, agent-assisted** design system for single-file HTML presentations: you own the topic, style and wording; the agent owns evidence, structure and build discipline. Five steps settle all of that first — each leaves a file you can review — and the build starts only after you approve the skeleton.
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.5.1](https://img.shields.io/badge/version-1.5.1-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.6](https://img.shields.io/badge/version-1.6-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 ## What it solves
 
@@ -17,7 +17,7 @@ Every number and claim that reaches the HTML has to trace back to the source fil
 | Step | What it does | Produces |
 |---|---|---|
 | 1 Topic & narrative | settle the central question, audience, duration, slide count and act structure | requirement block |
-| 2 Style direction | 9 temperament presets (Fluent / Material 3 / OpenAI / Claude / Liquid Glass / Notion / anime / academic / playful) and 8 layout templates (J–Q) | style decision block |
+| 2 Style direction | 9 temperament presets (Fluent / Material 3 / paper-neutral / editorial / Liquid Glass / doc-list / manga / academic / playful) and 13 templates (J–Q layouts + R–V complete systems: electronic magazine and four from frontend-slides) | style decision block |
 | 3 Evidence base *(optional)* | evidence-gated research of the sources: disputed, second-hand and unreachable items are all clearly flagged | `<topic>-sources.md` |
 | 4 Skeleton spec | the build specification: act structure, per-slide **keywords** (three core — `type` / `key` / `sec` — are mandatory, the rest 5–11 chosen from a 51-word library; each deck declares the 12–24 it uses), implementation notes, and speaker prompts for every slide | `<topic>-HTML-PPT-skeleton.md` — **awaits your review, §7 included** |
 | 5 Build | produce the single-file HTML strictly from the skeleton | `<topic>.html` |
@@ -58,14 +58,15 @@ The five step documents exist as [English](references/en), [中文](references/z
 ## Known limitations
 
 - The style presets approximate a brand's look rather than quoting official design tokens. Check against the brand guideline before changing anything, and re-measure contrast after any colour tweak.
-- Third-party skill names mentioned in the references are a 2026-09-25 marketplace snapshot that was neither installed nor read — re-verify and get user confirmation before use.
+- Third-party skill names mentioned in the references are a 2026-10-14 marketplace snapshot that was neither installed nor read — re-verify and get user confirmation before use.
 - Every example in the docs is a placeholder (`<…>` / `……`). Never let one reach a finished deck or copy an example figure.
 
-## What's new in 1.5.1
+## What's new in 1.6
 
-- **`#aria` is off-screen now** — the shell's "Slide N: …" page-turn announcement used to print in the top-left corner of every deck.
-- **The volume slider is centred and grabbable with a mouse** — it was drawn with `writing-mode: vertical` (thumb parked off-centre) under a popover that floated 8px above the loudspeaker, so crossing that gap closed it mid-reach. The popover now meets the button with zero gap.
-- **The annotation toolbar is one flat colour** — the top tint gradient read as a dirty band on light decks; `--ink-tint` is retired.
+- **The style library grows to 22 presets** — an electronic-magazine preset (five e-ink palettes) plus Bold Signal / Creative Voltage / Terminal Green / Notebook Tabs; presets C/D/F/G drop their brand names for Paper-neutral / Editorial / Doc-list / Manga.
+- **Full-bleed backdrops and generated images** — a new `background` keyword (a page-filling image) and a `draw` keyword (an AI image, prompt reviewed first); step 3 gains a "Candidate images" section.
+- **The evidence chain is hidden by default** — the bottom-right badge is summoned with `E` or the Q panel; never shown, never printed.
+- **A shorter audio strip, and the check asks first** — the audio bar unfolds into a compact centred strip; step 6 asks whether the agent or the user runs the final check.
 
 Full notes: [CHANGELOG.md](CHANGELOG.md).
 

@@ -28,6 +28,19 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
 /* ---------- speaker notes: never rendered ---------- */
 .notes{display:none !important}
 
+/* ---------- full-bleed page backdrop (the `background` skeleton keyword) ----------
+   Contract:  <section class="slide" data-bg="data:image/jpeg;base64,…"
+                        data-bg-scrim="linear-gradient(180deg,rgba(8,10,20,.30),rgba(8,10,20,.72))">
+   The shell lays the image on the slide itself and paints the scrim on ::after; the author's
+   slide content carries `position:relative;z-index:1` (see 05-build.md) so the backdrop never
+   swallows it. This is deliberately NOT an `<img>`: an `<img>` is a framed illustration
+   (`image` keyword), a backdrop is a ground. Only data: URLs are accepted — a remote URL is
+   refused and warned about, because the deck must stay offline and single-file. */
+.slide[data-bg]{background-position:center;background-size:cover;background-repeat:no-repeat}
+.slide[data-bg]::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:var(--slide-scrim,linear-gradient(180deg,rgba(8,10,20,.30),rgba(8,10,20,.68)))}
+@media print{.slide[data-bg]{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+
 /* ---------- hero numerals ---------- */
 .num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 
@@ -122,10 +135,13 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
         background:var(--panel,#fff);border:1px solid var(--rule,rgba(128,128,128,.3));
         border-top:0;border-radius:0 0 9px 9px}
 .mp[data-kind="audio"] .mp-bar{border-top:1px solid var(--rule,rgba(128,128,128,.3));border-radius:9px;
-        width:auto;gap:0;padding:4px;justify-self:center}
+        width:auto;max-width:100%;gap:0;padding:4px;justify-self:center}
+/* the unfolded strip stays a compact centred bar, not the full card width: a shorter scrub
+   line is quicker to aim at with a mouse and keeps the transport from stretching edge to edge
+   on a wide slide. It is capped rather than fixed, so a narrow card still fills normally. */
 .mp[data-kind="audio"]:hover .mp-bar,
 .mp[data-kind="audio"]:focus-within .mp-bar,
-.mp[data-kind="audio"][data-open="1"] .mp-bar{width:100%;gap:9px;padding:5px 10px}
+.mp[data-kind="audio"][data-open="1"] .mp-bar{width:min(100%,520px);gap:9px;padding:5px 10px}
 .mp-bar button{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:6px;
   background:transparent;border:1px solid transparent;color:inherit;font:inherit;cursor:pointer;
   opacity:.88;padding:0;transition:background .14s,opacity .14s,color .14s}
@@ -223,6 +239,34 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
 /* an audio figure collapses to its bar by design; in a thumbnail the chip needs a box */
 #overview .mp[data-kind="audio"] .mp-ph{min-height:56px}
 
+/* ---------- evidence-chain badge (built by deck-shell.js; hidden by default) ----------
+   The skill's traceability promise, made inspectable only when asked for. The badge is
+   `visibility:hidden` until [data-on="1"], so it never decorates a page, never prints and
+   never lands in a screenshot. It sits in the bottom-right corner, pulled clear of the
+   page footnote, and grows upward so a long source list does not spill off the canvas.
+   Keys: `E` toggles it, the chip opens the list, the Q panel lists it as well. */
+#evidence{position:fixed;right:26px;bottom:18px;z-index:40;display:flex;flex-direction:column;
+  align-items:flex-end;gap:4px;max-width:min(440px,64vw);visibility:hidden;
+  font-size:12.5px;line-height:1.5;color:var(--ovl-ink,var(--ink,#E8ECE8));
+  pointer-events:none}
+#evidence[data-on="1"]{visibility:visible;pointer-events:auto;cursor:pointer}
+#evidence .ev-chip{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+  background:var(--ovl-bg,rgba(10,12,11,.94));border:1px solid var(--rule,rgba(128,128,128,.4));
+  border-radius:99px;padding:3px 11px;font-variant-numeric:tabular-nums;
+  box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#evidence .ev-chip.ev-warn{color:var(--warn,#B4541F)}
+#evidence .ev-chip.ev-q{opacity:.85}
+#evidence .ev-none{white-space:nowrap;background:var(--ovl-bg,rgba(10,12,11,.94));
+  border:1px dashed var(--rule,rgba(128,128,128,.4));border-radius:99px;padding:3px 11px;opacity:.75}
+#evidence .ev-list{margin:0;padding:8px 14px;list-style:none;max-height:44vh;overflow:auto;
+  background:var(--ovl-bg,rgba(10,12,11,.96));border:1px solid var(--rule,rgba(128,128,128,.4));
+  border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,.45);cursor:default}
+#evidence .ev-list li{padding:2px 0;border-bottom:1px dashed var(--rule,rgba(128,128,128,.22))}
+#evidence .ev-list li:last-child{border-bottom:0}
+#evidence .ev-foot{font-size:11px;opacity:.6;padding:0 2px}
+#evidence[data-open="0"] .ev-list,#evidence[data-open="0"] .ev-foot{display:none}
+#evidence[data-on="0"]{display:none}
+
 /* ---------- a11y: honour the OS "reduce motion" setting ---------- */
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;
@@ -238,7 +282,7 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
          width:auto !important;height:auto !important;transform:none !important;background:none}
   .slide{position:static;opacity:1 !important;visibility:visible !important;
          break-after:page;page-break-after:always}
-  #overview,#rotate-mask,#deckhelp,#aria{display:none !important}
+  #overview,#rotate-mask,#deckhelp,#aria,#evidence{display:none !important}
   /* a printed page carries the frame, not the transport: the poster still shows,
      the bar and the scrub line are meaningless on paper */
   .mp-bar,.mp-track{display:none !important}

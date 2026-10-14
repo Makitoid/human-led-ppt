@@ -20,6 +20,17 @@ Run this step only when the user asks for web research, or when the topic needs 
 | ⛔ | unreachable, unverified | **must never reach the HTML**; stays in the source file only |
 | (derived) | computed from other recorded data | the slide must say "we derived this from …" |
 
+## Image assets (a separate section when the deck needs imagery)
+
+Text and figures go through the evidence procedure above; **images** are a second track — collecting them and generating them are handled apart:
+
+- **Images found on the web** — download them into the user's target directory and register each one in a dedicated "**Candidate images**" section of the source file, one row per image: `file name | what it is | source URL | licence (CC0 / public domain / attribution required / unclear) | suggested placement`. An unclear licence is marked ⚠️ with a note that the user should decide. **Never embed the image itself in the source notes** (it bloats the Markdown and pre-empts the build) — register the list only.
+- **Never link an image straight from an external URL**: the deck must be offline, so by the time it reaches the HTML the image is either downloaded or generated. Search only exists to **find and verify** that the image exists and is suitable.
+- **Generated images do not go into the source notes** — they go through step 4's `draw` keyword: write the prompt, aspect and placement in the skeleton, and generate only after the user has reviewed the prompt.
+- Every image obeys template discipline 5 (always framed) and step 2's background rule — **photos, screenshots and logos never travel bare**.
+
+> Searching for an image is still "unreadable means unverified": it counts as found only when you can download it and see its content. A search-result thumbnail whose page 403s is a miss — find another, or switch to generating it.
+
 ## Source-file template
 
 ```markdown
@@ -54,6 +65,13 @@ Run this step only when the user asks for web research, or when the topic needs 
 
 ## Source list
 - <institution / paper / report, full name> (<year>): <URL>  <read status: verified first-hand | via <mirror> | ⚠️ origin page 403 | ⛔ unreachable>
+
+## Candidate images (only when imagery is needed — otherwise delete this whole section)
+| File name | What it is | Source URL | Licence | Suggested placement |
+|---|---|---|---|---|
+| <a.jpg> | <what the image shows> | <source page URL> | <CC0 / public domain / attribution required: "…" / ⚠️ unclear> | <`image` or `background`, which page and block> |
+
+> Generated images are not listed here — they go through the skeleton's `draw` keyword, with the prompt shown to the user first.
 ```
 
 ## Writing rules
@@ -70,4 +88,5 @@ Run this step only when the user asks for web research, or when the topic needs 
 - [ ] Load-bearing numbers have a second source, or are marked 🔍
 - [ ] Every ⚠️ explains the disagreement and the safe wording
 - [ ] No ⛔ item leaked into the skeleton or the HTML
+- [ ] (when imagery was needed) every candidate image has a source URL and a licence status, unclear ones are marked ⚠️ and raised with the user, and no generated image leaked into the source notes
 - [ ] Unreachable links were reported to the user

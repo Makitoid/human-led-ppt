@@ -87,6 +87,27 @@ never hand-write `.mp-bar`**; if you do, you are fighting the shell for control.
 </div>
 ```
 
+**Full-bleed backdrop (the `background` keyword)**: not an `<img>` in a `.img-frame`, but a ground laid on the **`<section>` itself**. The shell reads `data-bg` to lay it and `data-bg-scrim` to paint the scrim; you only write the attributes and lift this page's content above the scrim:
+
+```html
+<!-- backdrop: two attributes on the section; the content block must sit at z-index:1 or the scrim covers it -->
+<section class="slide" data-i="1"
+  data-bg="data:image/jpeg;base64,…"
+  data-bg-scrim="linear-gradient(180deg,rgba(8,10,20,.30),rgba(8,10,20,.72))">
+  <header class="slide-head">…</header>
+  <div class="slide-body">…</div>
+</section>
+```
+
+```css
+/* lift the whole page one layer; it rides above the shell's ground + ::after scrim */
+.slide[data-bg] > *{position:relative;z-index:1}
+```
+
+- **Only inline data: images.** Written as `https://…` the shell refuses it and names the slide in the console — the deck must stay offline and single-file, and a backdrop is no exception.
+- **The scrim is the readability guarantee.** A full-bleed image with text over it almost always needs `data-bg-scrim`; start from the dark gradient above and only lighten it when the image is dark. Let the gradient go **heavier at the bottom** (white text usually sits there).
+- **A backdrop counts toward file size as a whole image.** Use a backdrop on **one page** (never copy the same data URL across pages — known trap 17); for a deck-wide texture, draw a CSS gradient with `visual` instead. Image origin + licence come from step 3's "Candidate images"; a generated backdrop starts as `draw`.
+
 Points:
 
 - **Images go into the HTML, audio/video do not.** An image grows by at most about a third once base64'd, and it still travels and still displays; audio/video grow by roughly a third once base64'd, and on `file://` the browser must finish decoding that whole string before the first frame — a 30 MB clip stalls the opening for several seconds. The shell therefore defers attaching the source until **the slide first appears**, so the opening never downloads for a slide that was not played.
@@ -110,6 +131,8 @@ Points:
 | **`Q` shortcut panel** (grouped sections listing every key this deck answers: the shell seeds its own section, the ink/presenter layers push theirs into `window.__deckHelp` at load; the panel renders the registry as it stands when opened) | deck-shell |
 | **mobile portrait mask** (portrait + narrow/coarse pointer; clears on rotate) | deck-shell |
 | counting numerals with a background-tab fallback | deck-shell |
+| **Full-bleed backdrop** (`data-bg` ground + `data-bg-scrim` scrim, inline data: images only) | deck-shell |
+| **Evidence-chain badge** (`E` / Q panel / a click to reveal; `visibility:hidden` until asked for, never printed; recounted per slide from the sources the author wrote, never fabricated) | deck-shell |
 | **media transport** (one strip below the picture: play/pause, a **continuous volume** that pulls up from the loudspeaker, a draggable **thick PowerPoint-style scrub bar**, the time, the rate, **fullscreen** for video; `K` play/pause, `,` `.` nudge ±1s, `[` `]` rate, `M` mute; the source is attached only when that slide first appears) | deck-shell |
 | **media keys do not overreach**: `←` `→` always page (even when focus is on the transport), the other media keys only apply while focus is inside it | deck-shell |
 | `prefers-reduced-motion` kills all motion | deck-shell |
@@ -124,6 +147,8 @@ You supply: per-slide layout, page types, charts, badges, persona capsules, cita
 - **Density**: ≤ 4 numbers per slide; one claim (`key`) per slide; the rest into `.notes`. Every number on screen must trace back to one of that slide's §4 entries that carries it (`table` / `kpi` / `compare` / `formula` / `code`, …) — the library and picking rules live in `04-skeleton.md` §4.
 - **Type**: body ≥ skeleton's `min_body_px` (default 22px); hero numerals 72–120px with `tabular-nums`; citation bar 9–11px yet still legible.
 - **Citation bar**: bottom-right "source · year" on every slide; ⚠️ / 🔍 badges sit tight against the value, two consistent badge styles, meaning explained on the sources slide.
+- **The evidence-chain badge gathers those footnotes into one chip in the bottom-right.** It is hidden by default (the shell holds it at `visibility:hidden`) and appears only when the user presses `E` or opens the Q panel; all you do is write the `.foot` ("source · year") fully and the badge counts them. **Do not style it yourself, and never draw a separate "evidence chain" on the page.**
+- **Full-bleed backdrop**: `data-bg` goes on the `<section>` only, with the content lifted to `z-index:1` (see the media section above); a backdrop does not enter the text flow and is not framed — it is a different thing from an `image` in an `.img-frame`.
 - **Persona capsules**: persistent at the bottom; the speaking persona gets a border plus a `›` before its name; never more than two speak on one slide.
 - **Charts**: inline SVG / pure CSS. Five recurring forms — log bars (cross-magnitude comparison), indexed line (2024 = 100, shared origin, start value folded into the x label to avoid overlap, annotate "middle segment is a linear illustration"), waterfall/steps (self-revision narratives), iceberg (direct vs indirect), lifecycle strip (horizontal segments with a data card each, problem segments in warn).
 - **Chart text**: white halo stroke on every label (`paint-order:stroke; stroke:<bg>; stroke-width:4px`) so lines never cross glyphs; axis titles, units and years complete; derived/estimated values labelled as such inside the chart.
@@ -160,7 +185,9 @@ Citation bars, sources slide and inline `srcline` all use `target="_blank" rel="
 14. **Do not size the media element, but do count the transport bar into the card**: the shell tags the element `.mp-el` (`width/height:100%` + `object-fit:contain`); all you set is the size on `.mp` — and that size **must include the ~30px bar below the picture**. Drop `.mp-el` and a `4:3` clip overflows the card at its intrinsic size; forget the bar and the bar is pushed outside `.slide`'s clip box — visible but unclickable. Step 6's assertions catch both.
 15. **An audio card gets stretched by the author's own flex**: `.mp[data-kind="audio"]` already collapses the media row and centres, but if your layout container still stretches it (`align-items:stretch` + a fixed-height ancestor) the card becomes one big blank panel — either stop the parent stretching, or add `align-self:center` to `.mp`. Step 6 must measure the height of `.mp`; an audio-only page rests as **one small loudspeaker** (~36px) and unfolds into the full strip (~38px) only on hover / Tab focus / a touchscreen tap — neither state may be a panel.
 16. **The overview wall is a deep clone of every slide**: the shell runs `cloneNode(true)` per slide into `#overview`, and in the clone the media card is replaced by one static chip `.mp-ph` (dark box + a play glyph) — the injected bar and the `<video>`/`<audio>` element never reach a thumbnail, and `data-mp` is taken off the clone, so `[data-mp]` in a built deck counts live players only. Do not author a second set of media styles for thumbnails, and never imply in the delivery note that a thumbnail can play anything.
-17. **Using the same inlined image twice puts two copies of the base64 in the HTML**: a 366 KB screenshot is a 488 KB string, and every extra slide that shows it adds another 488 KB (measured: the same image on two slides took the finished deck from ~540 KB to 1,032 KB). A graphic that recurs through the deck belongs in `visual`, not in `image` twice.
+17. **Using the same inlined image twice puts two copies of the base64 in the HTML**: a 366 KB screenshot is a 488 KB string, and every extra slide that shows it adds another 488 KB (measured: the same image on two slides took the finished deck from ~540 KB to 1,032 KB). A graphic that recurs through the deck belongs in `visual`, not in `image` twice. **The same goes for a backdrop** — one image laid on three pages is three copies of its base64.
+18. **The backdrop hides the content, or the content hides the backdrop**: `data-bg` lies on the section and the scrim is the section's `::after`, both below the content; if a page's content block is in normal flow (`static`) it sits *under* the scrim, and the page reads as "a translucent wash with no visible text". Give `.slide[data-bg] > *` `position:relative;z-index:1`. Also: a `data-bg` written as an external `https://…` is refused by the shell (it names the page in the console) — a backdrop must be inlined too, or the deck is no longer offline.
+19. **The evidence-chain badge being invisible by default is the design, not a bug**: it is `visibility:hidden` and appears on `E` / the Q panel / a click; it must not appear in print or a screenshot. Do not mistake it for unfinished work, and do not make it permanent — making it permanent is exactly what this version removed. It recounts per slide from `.foot` and the other sources, so an author who writes sources fully is the one who gives it something to count.
 
 ## Output
 

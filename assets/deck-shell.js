@@ -82,18 +82,21 @@
       panel: '键盘快捷键', sec: '翻页与视图', foot: '按 Q 或 Esc 关闭',
       keysArrows: '← → ↑ ↓ · 空格', page: '翻页', firstLast: '第一页 / 最后一页',
       jump: '直达第 N 页', overview: '总览墙（全部缩略图）', fullscreen: '全屏',
+      evidence: '证据链（默认不显示，按需唤出）',
       thisPanel: '本面板', dismiss: '关闭浮层', ariaSlide: '第 %d 页：'
     },
     ja: {
       panel: 'キーボードショートカット', sec: 'ページ送りとビュー', foot: 'Q または Esc で閉じる',
       keysArrows: '← → ↑ ↓ · スペース', page: 'ページ送り', firstLast: '最初 / 最後のページ',
       jump: 'N ページへジャンプ', overview: '総覧ウォール（全サムネイル）', fullscreen: 'フルスクリーン',
+      evidence: 'エビデンスチェーン（既定は非表示、必要時に表示）',
       thisPanel: 'このパネル', dismiss: 'オーバーレイを閉じる', ariaSlide: 'スライド %d：'
     },
     en: {
       panel: 'Keyboard shortcuts', sec: 'Paging & view', foot: 'press Q or Esc to close',
       keysArrows: '← → ↑ ↓ · Space', page: 'page', firstLast: 'first / last slide',
       jump: 'jump to slide N', overview: 'overview wall', fullscreen: 'fullscreen',
+      evidence: 'evidence chain (hidden by default, reveal on demand)',
       thisPanel: 'this panel', dismiss: 'dismiss overlay', ariaSlide: 'Slide %d: '
     }
   }[LANG];
@@ -106,10 +109,21 @@
       ['1 – 9', CH.jump],
       ['G', CH.overview],
       ['F', CH.fullscreen],
+      ['E', CH.evidence],
       ['Q', CH.thisPanel],
       ['Esc', CH.dismiss]
     ]
   }];
+  /* the evidence-chain badge's runtime copy (built further down); kept key-for-key across the
+     three languages like CH and MC above */
+  var EC = {
+    zh: { title: '证据链', count: '证据链 · %d 条', none: '本页没有可追溯的来源',
+          foot: '本页右下角的引用条（来源 · 年份）· 收起', srcFallback: '未标注来源' },
+    ja: { title: 'エビデンスチェーン', count: 'エビデンス · %d 件', none: 'このページに出典はありません',
+          foot: '右下の出典行（出典 · 年）· たたむ', srcFallback: '出典の記載なし' },
+    en: { title: 'Evidence chain', count: 'Evidence · %d', none: 'No traceable source on this page',
+          foot: 'the page footnote (source · year) · collapse', srcFallback: 'no source given' }
+  }[LANG];
   var helpEl = null;
   /* mirrors the #deckhelp block in assets/deck-shell.css — only used when a deck ships
      an older inlined copy of that file. Fix the CSS, do not extend this string. */
@@ -672,6 +686,144 @@
 
   [].forEach.call(document.querySelectorAll('[data-mp]'), function (f) { buildPlayer(f); });
 
+  /* ---------- full-bleed page backdrop (`background` keyword) ----------
+     <section class="slide" data-bg="data:image/jpeg;base64,…"
+                       data-bg-scrim="linear-gradient(…)">
+     Unlike data-src these attributes are NOT taken away: the author's own CSS needs a stable
+     hook (`.slide[data-bg] > *{position:relative;z-index:1}` lifts the page above the scrim),
+     and the base64 still lives in the file exactly once — style.backgroundImage is runtime
+     only, never serialised. Only an inline data: URL is accepted: an http(s) URL is refused
+     (the deck must stay offline and single-file) and a warning names the slide. There is
+     nothing to defer like audio/video; the cost is file size, which 05-build.md caps. */
+  function applyBackdrop(s) {
+    var v = s.getAttribute('data-bg');
+    if (v === null) return;
+    if (!/^data:image\//i.test(v)) {
+      console.warn('[deck-shell] slide ' + (s.getAttribute('data-i') || '?') +
+        ' 的 data-bg 不是内联 data: 图片（收到 ' + String(v).slice(0, 24) +
+        '…）；背景只接受内联图片，否则 deck 不再离线。已忽略。');
+      return;
+    }
+    s.style.backgroundImage = 'url("' + v.replace(/"/g, '\\"') + '")';
+    var sc = s.getAttribute('data-bg-scrim');
+    if (sc) {
+      if (/url\(|;|\}/i.test(sc)) {
+        console.warn('[deck-shell] slide ' + (s.getAttribute('data-i') || '?') +
+          ' 的 data-bg-scrim 含可疑字符（url( / ; / }），图像背景已铺但遮罩被忽略。');
+      } else {
+        s.style.setProperty('--slide-scrim', sc);
+      }
+    }
+  }
+  /* the backdrop is a read-once inline image, so applying every slide up front is cheap and
+     guarantees the overview wall shows it; nothing here is deferred like the media sources */
+  [].forEach.call(slides, applyBackdrop);
+
+  /* ---------- evidence-chain badge (hidden by default; surfaced on demand) ----------
+     The traceability the skill promises, made inspectable without cluttering the page. Every
+     source the author already wrote — the bottom-right `.foot` ("source · year") plus any
+     inline `.srcline` / `.src` / `[data-src-cite]` / `[data-src]` — is read back into one chip.
+     The chip ships `visibility:hidden` (so it is also invisible in a screenshot or when the
+     deck is printed) and only appears after E / the Q panel / a click on the count. Nothing is
+     invented: the badge reports what the author put on the page, and says so when there is
+     nothing. Its count is refreshed on every page turn from live DOM, so it cannot drift. */
+  var evidence = null, evOpen = false, evOn = false, evInfo = null;
+  function evidenceRoot() {
+    return (document.fullscreenElement || document.webkitFullscreenElement) || document.body;
+  }
+  function srcOf(s) {
+    var out = [], seen = {};
+    function add(t) {
+      t = String(t).replace(/\s+/g, ' ').trim();
+      if (!t) return;
+      var k = t.toLowerCase();
+      if (seen[k]) return;
+      seen[k] = 1; out.push(t);
+    }
+    [].forEach.call(s.querySelectorAll('.foot, .srcline, .src, [data-src-cite], [data-src]'), function (f) {
+      var a = f.querySelector('a[href]');
+      var txt = f.textContent.replace(/↗|→|\s+/g, ' ').trim();
+      var href = a && a.getAttribute('href');
+      if (href && !/^#/.test(href) && !seen[href.toLowerCase()]) {
+        seen[href.toLowerCase()] = 1; out.push(txt || href);
+      } else add(txt);
+    });
+    return out;
+  }
+  function computeEv() {
+    var info = [];
+    slides.forEach(function (s) {
+      var srcs = srcOf(s);
+      info.push({
+        n: srcs.length, srcs: srcs,
+        warn: s.querySelectorAll('[data-cite="warn"], .cite-warn').length,
+        q: s.querySelectorAll('[data-cite="secondary"], .cite-secondary').length
+      });
+    });
+    return info;
+  }
+  function buildBadge() {
+    evidence = document.createElement('div');
+    evidence.id = 'evidence';
+    evidence.setAttribute('role', 'group');
+    evidence.setAttribute('aria-label', EC.title);
+    evidence.addEventListener('click', function (e) { e.stopPropagation(); clickEv(); });
+    ['click', 'dblclick', 'pointerdown', 'pointerup'].forEach(function (t) {
+      evidence.addEventListener(t, function (e) { e.stopPropagation(); }, false);
+    });
+    evidenceRoot().appendChild(evidence);
+    /* leaving fullscreen moves the node back into the body */
+    var back = function () { if (evidence && evidence.parentNode !== evidenceRoot()) evidenceRoot().appendChild(evidence); };
+    document.addEventListener('fullscreenchange', back);
+    document.addEventListener('webkitfullscreenchange', back);
+  }
+  function renderEv(open) {
+    if (!evidence) return;
+    if (cur < 0 || !evInfo || !evInfo[cur]) { evidence.innerHTML = ''; return; }
+    var e = evInfo[cur];
+    if (e.n === 0) { evidence.innerHTML = '<span class="ev-none">' + EC.none + '</span>'; return; }
+    var chips = '<span class="ev-chip">' + EC.count.replace('%d', e.n) + '</span>';
+    if (e.warn) chips += '<span class="ev-chip ev-warn">⚠️ ' + e.warn + '</span>';
+    if (e.q) chips += '<span class="ev-chip ev-q">🔍 ' + e.q + '</span>';
+    if (!open) { evidence.innerHTML = chips; return; }
+    var list = e.srcs.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('');
+    evidence.innerHTML = chips + '<ul class="ev-list">' + list + '</ul>' +
+      '<span class="ev-foot">' + EC.foot + '</span>';
+  }
+  function paintEv() {
+    if (!evidence) return;
+    evidence.setAttribute('data-on', evOn ? '1' : '0');
+    evidence.setAttribute('data-open', evOpen ? '1' : '0');
+    var b = evidence.querySelector('.ev-chip');
+    if (b) b.setAttribute('aria-expanded', evOpen ? 'true' : 'false');
+  }
+  function setEvOn(on) {
+    evOn = !!on;
+    if (!evOn) evOpen = false;
+    paintEv();
+    if (evOn) { evInfo = computeEv(); renderEv(evOpen); }
+    else if (evidence) { evidence.innerHTML = ''; }
+  }
+  /* E cycles the three states, so there is always a way back to a clean page:
+     off → the count chip → the source list → off. */
+  function toggleEv() {
+    if (!evOn) { setEvOn(true); return; }
+    if (!evOpen) { evOpen = true; paintEv(); renderEv(true); return; }
+    setEvOn(false);
+  }
+  /* a click on the badge itself only deals with the list (chip ↔ list); it never turns the
+     badge off, so a stray click on the page cannot make the evidence chain vanish */
+  function clickEv() {
+    if (!evOn) { setEvOn(true); return; }
+    evOpen = !evOpen; paintEv(); renderEv(evOpen);
+  }
+  function evRefresh() {
+    if (!evOn || !evidence) return;
+    evInfo = computeEv();            /* page changed: recount and keep the open/closed state */
+    renderEv(evOpen);
+  }
+  if (!previewMode) { buildBadge(); window.__deckEvidence = { get on() { return evOn; }, get open() { return evOpen; } }; }
+
   /* ---------- the presenter bridge for video fullscreen ------------------------
      A tile in the presenter window cannot take a screen it does not own, so the request
      arrives here as a message and this window — the one the room is looking at — does the
@@ -785,6 +937,7 @@
     s.classList.add('active');
     attachIn(s);
     runCounters(s);
+    evRefresh();                          /* if the evidence badge is showing, recount this page */
     if (aria) {
       var h = s.querySelector('h1, h2');
       aria.textContent = CH.ariaSlide.replace('%d', cur + 1)
@@ -877,6 +1030,7 @@
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'g' || e.key === 'G') { ovOpen ? closeOverview() : openOverview(); return; }
+    if (e.key === 'e' || e.key === 'E') { e.preventDefault(); toggleEv(); return; }
     if (e.key === 'q' || e.key === 'Q') { e.preventDefault(); toggleHelp(); return; }
     if (e.key === 'Escape') {
       if (helpOpen()) { toggleHelp(false); return; }
