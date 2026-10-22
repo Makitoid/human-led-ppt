@@ -6,6 +6,9 @@
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.6](https://img.shields.io/badge/version-1.6-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
+> [!note]
+> 本项目已经迁移到 Codeberg 开发。Github 只作为副本同步
+
 ## 它解决什么
 
 本skill分为五步来进行HTML-PPT的制作。通过一份骨架文档将主题、叙事、风格、证据、每页结构分五步钉死，每步都留下一份能读、能改的文件；只有审核通过的骨架才会变成 HTML。所以成品会严格在使用者的控制与意愿上，同时不会出现编造的数字、自创的版式，也不会漏掉翻页、总览这些该有的功能。

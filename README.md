@@ -6,6 +6,9 @@ A **human-led, agent-assisted** design system for single-file HTML presentations
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.6](https://img.shields.io/badge/version-1.6-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
+> [!note]
+> This project has moved to Codeberg for development. GitHub is kept only as a synchronized mirror.
+
 ## What it solves
 
 This skill builds an HTML deck in five steps. A single skeleton document pins down topic, narrative, style, evidence and per-slide structure across those steps, each leaving a file you can read and correct; only the approved skeleton becomes HTML. So the result stays strictly under the author's control and intent — no invented numbers, no improvised layout, and none of the navigation your audience expects is missing.

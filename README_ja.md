@@ -6,6 +6,9 @@
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.6](https://img.shields.io/badge/version-1.6-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
+> [!note]
+> 開発は Codeberg に移行しました。GitHub は同期用のミラーとしてのみ維持しています。
+
 ## 何を解決するか
 
 本スキルは 5 ステップで HTML-PPT を制作します。1 つの骨子ドキュメントを通じて、テーマ、ナラティブ、スタイル、根拠、ページごとの構造を 5 ステップで確定させ、各ステップが読んで直せる文書を残します。HTML になるのは承認済みの骨子だけです。したがって、完成物は制作者の管理と意図に厳密に従い、でっち上げの数字も、その場しのぎのレイアウトも混ざらず、聴衆が期待するページめくりや総覧といった機能も欠けません。
