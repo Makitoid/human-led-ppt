@@ -135,8 +135,10 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 //   进度条就在条里、常驻，所以对 .mp-track 的中点做同样的 elementFromPoint 也要命中它。
 //   音频页要**先展开再量**：静止时 .mp-fold 是 display:none，条本来就不该命中——
 //   那一步先 fig.setAttribute('data-open','1')，量完再摘掉；静止态另断言喇叭 .mp-mute 自己可点。
-//   音频条展开后是**居中、窄条**：`.mp-bar` 宽度 ≤ 520px（`min(100%,520px)`），别铺满整卡——
-//   量 `fig.querySelector('.mp-bar').getBoundingClientRect().width`，>560 说明窄条规则没生效。
+//   音频条展开后是**左对齐、向右长**的窄条：`.mp-bar` 从喇叭所在位置向右展开，左边缘不跳；
+//   内容宽 416px（`min(100%,416px)`，即原来 520px 的 80%，外框约 438px）。量展开前后的
+//   `getBoundingClientRect()`：left 差值应 ≤1px（向左展开会让它变成负值），宽度应落在 400–460；
+//   居中展开时 left 会变成 (figWidth−barWidth)/2，直接判失败。
 // 8) 音量与全屏：音量不是常驻滑杆——鼠标移到 .mp-mute 上（触屏则点一下）才弹出 .mp-volpop，**弹层必须与按钮零间隙相接**：给 wrap 打上 data-vol="1" 后，从 .mp-volwrap 顶边向上 0–6px 逐点 elementFromPoint，每一枪都要命中 .mp-volpop（命中落回 #stage 就说明中间有死区，鼠标永远抓不到滑杆，只能先点一下喇叭）；滑杆本身要对按钮水平居中（pop 中心与 wrap 中心之差 ≤ 1px），
 //    上拉条 .mp-volr 拖动要连续改 el.volume（0–1 无级），拖到 0 即静音；鼠标单击喇叭是切静音。
 //    稿子已经全屏（按过 F）时再点视频卡的 .mp-fs，应当嵌套进媒体全屏——按 Esc 回到稿子的全屏，
@@ -146,6 +148,11 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 //    media-fs → presenter-media-fs 桥到听众窗，占屏幕的是听众窗，卡里还是全屏前那一页，
 //    磁贴右上角亮「视频全屏中」badge（见 08-presenter-mode.md §3）。听众窗自己按 Esc / 翻离该页，
 //    badge 要跟着灭——状态以听众窗为准，不是以卡为准。
+// 10) 媒体遥控（装 --presenter 且有 [data-mp] 时）：在演讲者窗当前页卡里点 .mp-btn-play，
+//     听众窗的 video/audio 必须真的 paused=false、currentTime 前进，卡里的图标/时间/进度同步跟；
+//     反向点听众窗的条，卡里也要跟；拖卡里的 .mp-track，听众窗落到同一时间（±0.3s）。
+//     卡里的音频元素不许有 src（不二次下载），视频元素必须 muted（演讲者窗不出声）。
+//     换页后两边归零暂停。自动播放被拦时先真实点击听众窗一次再重跑。
 ```
 
 第 7 条是这一版新增的必查项，它对**每一个**媒体页都要跑一遍（`for` 循环遍历 `#stage [data-mp]` 即可）。

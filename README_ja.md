@@ -4,7 +4,7 @@
 
 人主導・エージェント支援の、単一ファイル HTML プレゼン設計システムです。テーマ・スタイル・文言は人が決め、エージェントが根拠・構成・構築の規律を担います。まず 5 ステップでそれらを確定させ、各ステップがレビュー可能なファイルを 1 つ残し、骨子の承認後に初めて構築に入ります。
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.6](https://img.shields.io/badge/version-1.6-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.6.1](https://img.shields.io/badge/version-1.6.1-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 > [!note]
 > 開発は Codeberg に移行しました。GitHub は同期用のミラーとしてのみ維持しています。
@@ -63,6 +63,10 @@ HTML に載る数字と主張はすべて、必ず資料ファイルまでたど
 - スタイルプリセットはブランドの見え方を近似したもので、公式のデザイントークンではありません。変更前にブランドガイドラインと突き合わせ、色を触ったらコントラスト比を測り直してください。
 - 文書に出てくる第三者のスキル名は 2026-10-14 時点のマーケットプレイスのスナップショットで、インストールも本文の確認もしていません。使う前に必ず再確認し、ユーザーの同意を得てください。
 - 文書中の例はすべてプレースホルダー（`<…>` / `……`）です。例の数字を写さないでください。プレースホルダーが完成したデッキに残ることも許されません。
+
+## 1.6.1 修正
+
+- **バーが短くなり、発表者ウィンドウから遠隔操作できる**——音声バーはスピーカーの位置から右へ展開し、幅は旧来の 80%；発表者ウィンドウで再生 / 進捗 / 再生速度 / ミュートを操作すると聴衆ウィンドウを遠隔操作し、双方向に同期します。
 
 ## 1.6 の更新要点
 

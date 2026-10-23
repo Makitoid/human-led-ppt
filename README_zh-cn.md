@@ -4,7 +4,7 @@
 
 以人主导、Agent 辅助的单文件 HTML PPT 设计系统——人定主题、风格与措辞，Agent 管证据、结构与构建纪律。先用五步把这些定下来：每步产出一个可审核的文件，用户点头之后才允许构建。
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.6](https://img.shields.io/badge/version-1.6-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 1.6.1](https://img.shields.io/badge/version-1.6.1-blue.svg) ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)
 
 > [!note]
 > 本项目已经迁移到 Codeberg 开发。Github 只作为副本同步
@@ -66,6 +66,10 @@
 - 风格预设是对品牌观感的合理近似，不是官方设计令牌。改稿前请对照品牌规范；动过颜色就要重测对比度。
 - 文档里提到的第三方 skill 名称是 2026-10-14 的市场快照，未安装也未验证正文，调用前请先复核并让用户确认。
 - 文档里的示例全是占位符（`<…>` / `……`），不要照抄数字，也不许让占位符进成品。
+
+## 1.6.1 修复
+
+- **播放条更短、演讲者窗能遥控**——音频条从喇叭位置向右展开，宽度缩到原来的 80%；演讲者窗里点播放 / 拖进度 / 调倍速 / 静音会遥控听众窗并双向同步。
 
 ## 1.6 更新要点
 

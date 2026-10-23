@@ -64,6 +64,10 @@
       document.documentElement.style.overflow = 'hidden';
     }
   }
+  /* A preview is only a REMOTE tile when it is embedded in the presenter window.
+     Opened directly (deck.html?preview=2), it has no audience to drive and must keep
+     playing its own media — otherwise the standalone preview page loses its sound. */
+  var remoteMode = previewMode && !!window.parent && window.parent !== window;
 
   if (!stage || !N) { console.warn('[deck-shell] #stage or .slide not found'); return; }
 
@@ -406,11 +410,35 @@
         bufEl = track.querySelector('.mp-buf'), fillEl = track.querySelector('.mp-play'),
         knob = track.querySelector('.mp-knob');
     var dur = 0, rate = 1, drag = false, loaded = false;
+    /* ---------- remote transport (preview tiles only) ----------------------------
+       A ?preview=N tile draws its own <video>/<audio>, but on a presenter stage the
+       clip that matters is the one in the AUDIENCE window. Every transport gesture
+       inside a tile is therefore a command for that window: the tile posts it to the
+       presenter layer, the audience shell executes it, and the result comes back as
+       a state mirror. The tile itself stays silent — only the video picture is played
+       locally, muted, so the speaker sees the frame the room is looking at. */
+    var remote = null, seekSent = 0, dragT = 0, lastReport = 0;
+    function toPresenter(m) {
+      try { if (window.parent && window.parent !== window) window.parent.postMessage(m, '*'); } catch (e) {}
+    }
+    function sendCmd(cmd, value) { toPresenter({ type: 'media-cmd', id: pid, cmd: cmd, value: value }); }
+    function remoteDur() { return (remoteMode && remote && remote.duration > 0) ? remote.duration : dur; }
 
     var pct = function (t) { return dur > 0 ? Math.max(0, Math.min(100, (t / dur) * 100)) : 0; };
 
+    function paintBar(t, d) {
+      if (!(d > 0)) d = 0;
+      var p = d > 0 ? Math.max(0, Math.min(100, (t / d) * 100)) : 0;
+      curEl.textContent = fmtTime(t);
+      durEl.textContent = fmtTime(d);
+      fillEl.style.width = p + '%';
+      knob.style.left = p + '%';
+      track.setAttribute('aria-valuenow', Math.round(p));
+      track.setAttribute('aria-valuetext', fmtTime(t) + ' / ' + fmtTime(d));
+    }
+
     function paintVol() {
-      var v = el.muted ? 0 : el.volume;
+      var v = (remoteMode && remote) ? (remote.muted ? 0 : remote.volume) : (el.muted ? 0 : el.volume);
       volr.value = v;
       btnMute.innerHTML = v === 0 ? MP_ICO.vMute : (v < .5 ? MP_ICO.vLow : MP_ICO.vHigh);
       btnMute.setAttribute('aria-label', v === 0 ? MC.unmute : MC.mute);
@@ -514,56 +542,117 @@
       setBig(true);
     }
 
+    function reportState(force) {
+      if (previewMode) return;
+      /* scrubbing in the audience fires this on every pointermove; a drag does not need
+         60 state packets a second on the presenter bridge */
+      var now = Date.now();
+      if (!force && now - lastReport < 60) return;
+      lastReport = now;
+      var d = isFinite(el.duration) && el.duration > 0 ? el.duration : 0;
+      try {
+        window.postMessage({
+          type: 'audience-media-state', id: pid,
+          state: {
+            paused: el.paused, currentTime: el.currentTime || 0, duration: d,
+            rate: 'playbackRate' in el ? el.playbackRate : 1,
+            muted: !!el.muted, volume: el.volume
+          }
+        }, '*');
+      } catch (e) {}
+    }
     function sync() {
       if (isFinite(el.duration) && el.duration > 0) dur = el.duration;
-      var t = el.currentTime || 0;
-      curEl.textContent = fmtTime(t);
-      durEl.textContent = fmtTime(dur);
-      var p = pct(t);
-      fillEl.style.width = p + '%';
-      knob.style.left = p + '%';
-      track.setAttribute('aria-valuenow', Math.round(p));
-      track.setAttribute('aria-valuetext', fmtTime(t) + ' / ' + fmtTime(dur));
+      /* while the pointer owns the track, the pointer is the truth; remote reports
+         would fight the drag */
+      if (remoteMode && drag) return;
+      var t = el.currentTime || 0, d = dur;
+      /* audio never plays in a tile, and a paused mirror holds the audience frame —
+         both read their position from the mirrored state, not from the local element */
+      if (remoteMode && remote && (isAudio || remote.paused)) {
+        t = remote.currentTime || 0;
+        d = remote.duration > 0 ? remote.duration : dur;
+      }
+      paintBar(t, d);
       try {
-        if (el.buffered && el.buffered.length)
+        if (!(remoteMode && remote && (isAudio || remote.paused)) &&
+            el.buffered && el.buffered.length)
           bufEl.style.width = pct(el.buffered.end(el.buffered.length - 1)) + '%';
       } catch (err) {}
+      reportState();
     }
 
     function seekTo(t) {
+      if (remoteMode) {
+        var d = remoteDur();
+        if (d > 0) t = Math.max(0, Math.min(d, t));
+        dragT = t;
+        paintBar(t, d);
+        /* one message per ~70 ms while dragging; the pointerup below sends the final
+           position so a quick flick cannot land on an older frame */
+        var now = Date.now();
+        if (!drag || now - seekSent > 70) { seekSent = now; sendCmd('seek', t); }
+        return;
+      }
       if (dur > 0) t = Math.max(0, Math.min(dur, t));
       el.currentTime = t; sync();
     }
-    function play() { var r = el.play(); if (r && r.catch) r.catch(function () {}); }
-    function toggle() { if (el.paused) { attach(); play(); } else el.pause(); }
+    function play() {
+      if (remoteMode) { sendCmd('play'); return; }
+      var r = el.play(); if (r && r.catch) r.catch(function () {});
+    }
+    function toggle() {
+      if (remoteMode) { sendCmd('toggle'); return; }
+      if (el.paused) { attach(); play(); } else el.pause();
+    }
     function attach() {
       if (loaded || !src0) return;
       loaded = true;
+      /* no local audio in a tile: the room hears the audience window, and a second
+         audio element in the presenter window would only echo it off-centre */
+      if (remoteMode && isAudio) return;
       el.src = src0;                       /* deferred: see the header note */
     }
+    function paintRate() {
+      var r = (remoteMode && remote && remote.rate) ? remote.rate : rate;
+      btnRate.textContent = (r % 1 === 0 ? String(r) : String(r).replace(/^0/, '')) + '×';
+    }
     function cycleRate(d) {
+      if (remoteMode) { sendCmd('rate', d === -1 ? -1 : 1); return; }
       var i = RATES.indexOf(rate); if (i < 0) i = 2;
       i = (i + d + RATES.length) % RATES.length;
       rate = RATES[i];
       if ('playbackRate' in el) el.playbackRate = rate;
-      btnRate.textContent = (rate % 1 === 0 ? String(rate) : String(rate).replace(/^0/, '')) + '×';
+      paintRate();
     }
     function paintPlay() {
-      btnPlay.innerHTML = el.paused ? MP_ICO.play : MP_ICO.pause;
-      btnPlay.setAttribute('aria-label', el.paused ? MC.play : MC.pause);
+      var paused = (remoteMode && remote) ? !!remote.paused : el.paused;
+      btnPlay.innerHTML = paused ? MP_ICO.play : MP_ICO.pause;
+      btnPlay.setAttribute('aria-label', paused ? MC.play : MC.pause);
     }
     function resetToStart() { try { el.currentTime = 0; } catch (e) {} }
+    function toggleMute() {
+      if (el.muted || el.volume === 0) { el.muted = false; if (el.volume === 0) el.volume = .8; }
+      else el.muted = true;
+    }
+    function setVolume(v) {
+      v = Math.max(0, Math.min(1, parseFloat(v) || 0));
+      el.volume = v;
+      el.muted = v === 0;                    /* dragging all the way down is the mute gesture */
+    }
 
     el.addEventListener('loadedmetadata', function () {
       if (isFinite(el.duration) && el.duration > 0) dur = el.duration;
       sync();
     });
     el.addEventListener('durationchange', sync);
-    el.addEventListener('play', paintPlay);
-    el.addEventListener('pause', paintPlay);
-    el.addEventListener('ended', paintPlay);
+    el.addEventListener('play', function () { paintPlay(); reportState(1); });
+    el.addEventListener('pause', function () { paintPlay(); reportState(1); });
+    el.addEventListener('ended', function () { paintPlay(); reportState(1); });
     el.addEventListener('timeupdate', sync);
-    el.addEventListener('volumechange', paintVol);
+    el.addEventListener('ratechange', function () { paintRate(); reportState(1); });
+    el.addEventListener('volumechange', function () { paintVol(); reportState(1); });
+    el.addEventListener('seeked', function () { reportState(1); });
     /* the whole reason audio/video are sibling files: this is the state a user hits when
        they copy the .html somewhere and forget the folder. Say so **inside the player box**
        ("Video not found" / "Audio not found"), not in a note under the card — the picture
@@ -594,20 +683,31 @@
     track.addEventListener('pointermove', function (e) {
       if (drag) seekTo(tAt(e));
     });
-    track.addEventListener('pointerup', function () { drag = false; });
-    track.addEventListener('pointercancel', function () { drag = false; });
+    track.addEventListener('pointerup', function () {
+      if (remoteMode && drag) sendCmd('seek', dragT);
+      drag = false;
+    });
+    track.addEventListener('pointercancel', function () {
+      if (remoteMode && drag) sendCmd('seek', dragT);
+      drag = false;
+    });
     track.addEventListener('keydown', function (e) { e.stopPropagation(); });
 
     btnPlay.addEventListener('click', function () { toggle(); });
     btnRate.addEventListener('click', function () { cycleRate(1); });
     btnMute.addEventListener('click', function () {
-      if (el.muted || el.volume === 0) { el.muted = false; if (el.volume === 0) el.volume = .8; }
-      else el.muted = true;
+      if (remoteMode) { sendCmd('mute'); return; }
+      toggleMute();
     });
     volr.addEventListener('input', function () {
       var v = Math.max(0, Math.min(1, parseFloat(volr.value) || 0));
-      el.volume = v;
-      el.muted = v === 0;                    /* dragging all the way down is the mute gesture */
+      if (remoteMode) {
+        if (remote) { remote.volume = v; remote.muted = v === 0; }
+        paintVol();
+        sendCmd('volume', v);
+        return;
+      }
+      setVolume(v);
     });
     if (btnFs) btnFs.addEventListener('click', function () { toggleFs(); });
     document.addEventListener('fullscreenchange', onFsChange);
@@ -671,6 +771,53 @@
       },
       /* from the tile side: mirror the audience state onto this button, nothing else */
       mirror: function (on) { if (previewMode) setBig(!!on); },
+      /* preview tile: take the audience's playback as the truth. The local element is
+         only a silent picture mirror for video — it is never allowed to make sound. */
+      applyState: function (st) {
+        if (!remoteMode || !st) return;
+        remote = st;
+        if (st.duration > 0) dur = st.duration;
+        if (st.rate > 0) rate = st.rate;
+        if (st.paused) {
+          if (!el.paused) el.pause();
+          if (!isAudio && !drag && Math.abs((el.currentTime || 0) - st.currentTime) > .12) {
+            try { el.currentTime = st.currentTime; } catch (e) {}
+          }
+        } else if (!isAudio) {
+          el.muted = true;                 /* the tile mirrors the picture, the room hears the sound */
+          if ('playbackRate' in el && Math.abs(el.playbackRate - rate) > .001) el.playbackRate = rate;
+          /* 0.35s, not 0.8: a seek made in the audience window must land here too,
+             and a lag that large is always a seek rather than message jitter */
+          if (!drag && Math.abs((el.currentTime || 0) - st.currentTime) > .35) {
+            try { el.currentTime = st.currentTime; } catch (e) {}
+          }
+          if (el.paused) {
+            /* starting the mirror at 0 while the stage is already 0.3 s in would leave a
+               constant lag; land on the audience frame before pressing play */
+            if (!drag && Math.abs((el.currentTime || 0) - st.currentTime) > .05) {
+              try { el.currentTime = st.currentTime; } catch (e) {}
+            }
+            var r = el.play(); if (r && r.catch) r.catch(function () {});
+          }
+        }
+        paintPlay(); paintVol(); paintRate();
+        if (!drag && (st.paused || isAudio)) paintBar(st.currentTime || 0, dur);
+      },
+      /* audience side: execute a command that arrived from a presenter tile */
+      command: function (cmd, value) {
+        if (previewMode) return;
+        if (fig.closest && fig.closest('.slide') !== slides[cur]) return;
+        switch (cmd) {
+          case 'toggle': toggle(); break;
+          case 'play': attach(); play(); break;
+          case 'pause': el.pause(); break;
+          case 'seek': attach(); seekTo(+value || 0); break;
+          case 'rate': cycleRate(value === -1 ? -1 : 1); break;
+          case 'mute': toggleMute(); break;
+          case 'volume': setVolume(value); break;
+        }
+      },
+      report: function () { reportState(1); },
       get big() { return big; },
       /* leaving the slide stops playback and rewinds, so coming back shows a fresh
          frame instead of a frozen one that looks like a broken deck */
@@ -679,6 +826,7 @@
         resetToStart();
         volwrap.removeAttribute('data-vol');
         fig.removeAttribute('data-open');
+        if (remoteMode) { remote = null; sync(); }
         if (big) setBig(false);            /* nested: this lands back on the deck's fullscreen */
       }
     };
@@ -837,11 +985,21 @@
      types documented in §3 of references/(en|zh|ja)/08-presenter-mode.md. */
   window.addEventListener('message', function (e) {
     var d = e.data;
-    if (!d || typeof d.id !== 'number') return;
+    if (!d) return;
+    /* a tile that has just opened (or reloaded) asks for the audience's current state */
+    if (d.type === 'presenter-media-req') {
+      if (!previewMode) players.forEach(function (p) { p.report(); });
+      return;
+    }
+    if (typeof d.id !== 'number') return;
     var p = players[d.id];
     if (!p) return;
-    if (previewMode) { if (d.type === 'preview-media-fs') p.mirror(d.on); }
+    if (previewMode) {
+      if (d.type === 'preview-media-fs') p.mirror(d.on);
+      else if (d.type === 'preview-media-state') p.applyState(d.state);
+    }
     else if (d.type === 'presenter-media-fs') p.screen(d.on);
+    else if (d.type === 'presenter-media-cmd') p.command(d.cmd, d.value);
   });
 
   function bigPlayerId() {

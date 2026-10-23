@@ -25,6 +25,8 @@
   由听众窗去占住那一整块屏幕；当前页磁贴右上角亮一枚「视频全屏中」badge，点 badge 或再按一次
   全屏键就把屏幕还给听众窗（`media-fs` / `presenter-media-fs` / `preview-media-fs` /
   `audience-media-fs`，见 references/*/08-presenter-mode.md §3）。
+  播放也是同一条镜像路：卡里的播放 / 进度 / 倍速 / 静音只发命令（`media-cmd`），由听众窗执行；
+  听众窗把真值广播回来，演讲者窗再转给卡内 iframe 更新进度条与图标（见 §3.7）。
   壳的 Q 快捷键面板打开时，本层把自己的键位注册进 window.__deckHelp。
 
   交付前只需要重写下面两个配置块：
@@ -586,14 +588,20 @@
     '      end.textContent=C.copy.endOfDeck;nb.appendChild(end)}}',
     '  send(ifCur.contentWindow,{type:"preview-goto",idx:idx});scaleOne(ifCur);ovwSync()}',
     'function nav(n,fromHost){n=Math.max(0,Math.min(total-1,n));if(n===idx&&fromHost!=="boot")return;idx=n;fill();',
-    '  if(!fromHost)tellHost({type:"presenter-goto",idx:n});}',
+    '  if(!fromHost){tellHost({type:"presenter-goto",idx:n});tellHost({type:"presenter-media-req"})}}',
     'addEventListener("message",function(e){var d=e.data;if(!d)return;',
     '  if(d.type==="preview-ready"){',
     '    var f=e.source===ifCur.contentWindow?ifCur:(e.source===ifNxt.contentWindow?ifNxt:null);',
     '    if(f){ready[f===ifCur?"cur":"nxt"]=true;scaleOne(f);send(f.contentWindow,{type:"preview-goto",idx:f===ifCur?idx:idx+1});',
     '      if(f===ifCur){if(mfs.on)send(f.contentWindow,{type:"preview-media-fs",id:mfs.id,on:true});',
-    '        if(C.hasInk)send(f.contentWindow,{type:"ink-cmd",cmd:"ask"})}return}',
+    '        if(C.hasInk)send(f.contentWindow,{type:"ink-cmd",cmd:"ask"});',
+    '        /* the tile keeps its own silent media element; it needs the truth from the stage */',
+    '        tellHost({type:"presenter-media-req"})}return}',
     '    for(var mk in mounted){if(mounted[mk].contentWindow===e.source){scaleOne(mounted[mk]);return}}return}',
+    '  if(d.type==="media-cmd"){                       /* play / seek / rate / volume from the tile */',
+    '    if(e.source===ifCur.contentWindow)tellHost({type:"presenter-media-cmd",id:d.id,cmd:d.cmd,value:d.value});return}',
+    '  if(d.type==="audience-media-state"){            /* the audience player, relayed by the host */',
+    '    send(ifCur.contentWindow,{type:"preview-media-state",id:d.id,state:d.state});return}',
     '  if(d.type==="media-fs"){                        /* from the tile, or relayed from the audience */',
     '    var tile=(e.source===ifCur.contentWindow);',
     '    if(!tile&&e.source!==peer())return;           /* the overview thumbnails carry the same ids */',
@@ -650,7 +658,7 @@
     'apply(read());ovwBuild();fill();',
     'try{ifCur.src=C.deckUrl+"?preview="+(idx+1);',
     '  if(idx+1<total)ifNxt.src=C.deckUrl+"?preview="+(idx+2)}catch(e){console.error("[presenter] iframe:",e)}',
-    'tellHost({type:"presenter-open"})',
+    'tellHost({type:"presenter-open"});tellHost({type:"presenter-media-req"})',
     '})()'
   ].join('\n');
 
@@ -722,6 +730,10 @@
       pw = null;
     } else if (d.type === 'audience-media-fs') {
       if (pw && !pw.closed) { try { pw.postMessage({ type: 'media-fs', id: d.id, on: d.on }, '*'); } catch (e) {} }
+    } else if (d.type === 'audience-media-state') {
+      /* deck-shell posts the true transport state to its own window; only the presenter
+         popup needs a copy, and only this layer holds the handle to it */
+      if (pw && !pw.closed) { try { pw.postMessage({ type: 'audience-media-state', id: d.id, state: d.state }, '*'); } catch (e) {} }
     } else if (d.type === 'ink-store') {
       if (window.InkOverlay && window.InkOverlay.applyRemote) window.InkOverlay.applyRemote(d.store, d.rev);
     }

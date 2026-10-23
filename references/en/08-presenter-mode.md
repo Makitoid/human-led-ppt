@@ -81,7 +81,10 @@ and:
 - builds the video fullscreen button (`.mp-fs`) **and** honours double-click-to-fullscreen, but the
   tile is not the screen it wants: inside a `?preview=N` iframe the deck is still a mirror, not the
   stage, so pressing it posts `media-fs` and the audience window is what fills itself with the clip
-  (see §3.6); play, seek and volume still work in the tile;
+  (see §3.6);
+- play / pause, seeking, rate, mute and volume in the tile **drive the audience window's copy of that
+  media**; the tile only mirrors the state — a video follows muted, audio makes no sound in the
+  presenter window (see §3.7);
 - dispatches a `deck:go` CustomEvent on every `go()`, which the presenter overlay listens to in
   order to broadcast the page index.
 
@@ -100,6 +103,11 @@ preview from flashing white):
 | `presenter-media-fs {id,on}` | presenter → audience | tells the audience window to enter / leave video fullscreen |
 | `preview-media-fs {id,on}` | presenter → iframe inside a card | mirrors the state back into that button's icon; the picture in the card does not move |
 | `audience-media-fs {id,on}` | shell inside the audience window → presenter overlay | the audience window's fullscreen truth (its own button, a double click, Esc and paging all report here); the badge trusts nothing else |
+| `media-cmd {id,cmd,value}` | iframe inside a card → presenter | a media gesture made in the tile: `cmd` = `toggle` / `play` / `pause` / `seek` / `rate` / `mute` / `volume` |
+| `presenter-media-cmd {id,cmd,value}` | presenter → audience | forwarded as-is, so the audience window performs that same playback action (see §3.7) |
+| `presenter-media-req` | presenter → audience | asks for a playback state snapshot: once when the window opens, once per page change, once after a tile iframe reloads |
+| `audience-media-state {id,state}` | shell inside the audience window → presenter overlay | the playback truth `{paused,currentTime,duration,rate,muted,volume}`; sent on every change, about 4Hz while playing |
+| `preview-media-state {id,state}` | presenter → iframe inside a card | mirrors the audience state onto the tile's scrub bar, time, rate and loudspeaker icon |
 | `ink-cmd {cmd, arg/store…}` | presenter ↔ iframe | annotation remote control and ink payload (§3.5) |
 | `ink-state {on}` | iframe → presenter | the preview's ink layer toggled; the chip follows (accepted from the current-slide iframe only) |
 | `ink-store {store,rev}` | presenter ↔ host | whole-store ink relay, revision-guarded (§3.5) |
@@ -157,6 +165,30 @@ fullscreen the shell keeps a **CSS take-over** path (`[data-takeover]`, see `dec
 is computed in canvas units (`#stage` is transformed, so it is the containing block of a fixed
 descendant) and fills the window. The attribute is dropped as soon as real fullscreen is granted. Both
 paths show the same picture, and Esc returns from either.
+
+## 3.7 Playback relay: the gesture is in the tile, the audience window performs it
+
+The media strip inside a presenter card and the one in the audience window are **two players**.
+Without a bridge, pressing play in the tile only made the tile's copy sound and the progress bar on
+the audience screen never moved. Every gesture now travels one way:
+
+- play / pause, seeking, `K`, `,` `.`, `[` `]`, mute and volume in the tile only post `media-cmd`;
+  nothing really plays inside the tile. The presenter window turns that into `presenter-media-cmd`
+  and **the audience window performs it**;
+- the audience window sends an `audience-media-state` back roughly every 250ms, and the presenter
+  window forwards it to the current-slide iframe as `preview-media-state`: progress, time, rate chip
+  and loudspeaker icon all follow the audience window;
+- a video **plays locally, muted**, on the same frame inside the tile, so the speaker sees the picture
+  move; an audio card **makes no sound in the presenter window** — only progress and icons are
+  mirrored, sound always comes out of the audience window alone;
+- the audience window's own moves (pressing its strip, `K`, the page-change reset, fullscreen) travel
+  over the same state broadcast and the tile follows, so "each side playing its own copy" cannot
+  happen.
+
+**Known limits (state them in the delivery note)**: cross-window `play()` is still bound by the
+browser's autoplay policy. If the audience window has never been clicked, playback with sound may be
+refused; the tile then keeps its pause icon truthfully — that is not a sync failure. One click in the
+audience window before the talk (or paging once) unlocks the session.
 
 ## 4. Config block 1 · COPY — rewrite the wording for this deck
 
@@ -279,7 +311,7 @@ async () => {
 }
 ```
 
-Five more, checked individually:
+Six more, checked individually:
 
 - **The preview page stands alone**: load `deck.html?preview=2` directly — it must land on slide 2,
   set `data-preview="1"`, ignore all keyboard and mouse paging, keep `#overview` empty, and write no
@@ -302,6 +334,14 @@ Five more, checked individually:
   current-slide card (first in the DOM) must lift it above its neighbours, never sink it behind them.
   Reload once and the order survives, because `z` is stored in the layout record next to x/y/w/h;
   "Reset layout" runs `base()` and hands out z 1–4 in DOM order.
+- **Media relay** (when the deck carries `[data-mp]`): press play in the presenter's current-slide
+  card — the audience window's `video/audio.paused` must flip to false and `currentTime` must start
+  moving; the tile's `.mp-btn-play` icon, `.mp-cur` and progress must follow. Then the reverse:
+  operate the audience window's own strip (pause / seek / rate / mute) and the tile must follow each
+  one. Dragging the tile's progress must land the audience window on the same time (±0.3s). After a
+  page change both reset to zero and pause; the tile's `audio` **must not** carry a `src` (no second
+  download) and its `video` must be `muted === true`. When the browser blocks autoplay, give the
+  audience window one real click and run it again — that is not a sync failure.
 
 ## 8. Known traps
 
@@ -361,8 +401,13 @@ On top of the step-6 report:
 - video fullscreen inside a preview tile is **mirrored onto the audience window**: click `.mp-fs` in
   the tile or double-click the picture, and it is the audience window that fills its screen while the
   current-slide tile lights a "Video fullscreen" badge in its top-right corner (click the badge, press
-  the fullscreen button again, press Esc, or page away to get back); the tile's picture does not move,
-  and play, seek and volume still work in the tile;
+  the fullscreen button again, press Esc, or page away to get back); the tile's picture does not move;
+- play / progress / rate / mute inside a preview tile also **remote-control the audience window**:
+  the tile carries the gesture and the audience window really plays, and the state is mirrored back
+  into the tile (a video follows muted, audio makes no sound in the presenter window); when the
+  audience window is operated itself the tile follows too. Cross-window playback is bound by the
+  autoplay policy, so if the audience window was never clicked during the whole session it may need
+  one click first;
 - the `S` conflict with the ink layer is resolved: with annotation on, `S` only exports a PNG — to
   open the presenter window, press `A` or use the top-right bubble first;
 - that prompts do not print and do not reach PDF, and `notes` are never visible in the audience window.

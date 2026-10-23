@@ -135,8 +135,11 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 //   an audio page must be **unfolded before it is measured**: at rest .mp-fold is display:none, so the bar is not meant to be hit —
 //   set fig.setAttribute('data-open','1') for that step and remove it once measured; in the resting state assert instead that the
 //   loudspeaker .mp-mute is itself clickable.
-//   Unfolded, the audio strip is a **centred, narrow bar**: `.mp-bar` width ≤ 520px (`min(100%,520px)`),
-//   never the full card — measure `fig.querySelector('.mp-bar').getBoundingClientRect().width`; >560 means the narrow rule did not take effect.
+//   Unfolded, the audio strip is a **left-aligned, right-growing** narrow bar: `.mp-bar` starts at the loudspeaker's position and
+//   grows to the right, its left edge does not jump; the content is 416px wide (`min(100%,416px)`, i.e. 80% of the former width,
+//   about 438px outer). Measure `getBoundingClientRect()` before and after unfolding: the left edge may shift by ≤1px (leftward
+//   unfolding would make it negative) and the width must land in 400–460; a centred bar puts left at (figWidth−barWidth)/2, which
+//   fails outright.
 // 8) volume and fullscreen: volume is not a permanent slider — hovering .mp-mute (or tapping it on a touchscreen) pulls up .mp-volpop.
 //    The popover must meet the button with ZERO gap: set data-vol="1" on the wrap, then elementFromPoint every 2px upward from the
 //    wrap top edge for 0–6px — every probe has to land on .mp-volpop. A probe that falls back to #stage means there is a dead band,
@@ -150,6 +153,12 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 //    that request crosses the media-fs → presenter-media-fs bridge to the audience window, the audience window takes the screen, the tile still
 //    shows the page as it was before fullscreen, and a "Video fullscreen" badge lights up at the top-right of the tile (see 08-presenter-mode.md §3).
 //    When the audience window itself presses Esc or pages away, the badge must go out with it — the state belongs to the audience window, not to the tile.
+// 10) media remote control (with --presenter and [data-mp] present): click .mp-btn-play in the presenter's current-slide card and the
+//     audience window's video/audio must really read paused=false with currentTime advancing, while the tile's icon / time / progress
+//     follow; operating the audience window's own strip must move the tile too; dragging the tile's .mp-track must land the audience
+//     window on the same time (±0.3s). The tile's audio element must carry no src (no second download) and its video element must be
+//     muted (no sound from the presenter window). After a page change both sides reset to zero and pause. If autoplay is blocked,
+//     give the audience window one real click and run it again.
 ```
 
 Check 7 is the new mandatory item in this version, and it must run for **every** media slide (a `for` loop over `#stage [data-mp]` is enough). In a narrow window `#rotate-mask` covers the whole screen and `elementFromPoint` always returns it — that is the test environment, not a bug: widen the window first (or temporarily `mask.classList.remove('show')`) before judging `barReachable`.

@@ -135,13 +135,14 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
         background:var(--panel,#fff);border:1px solid var(--rule,rgba(128,128,128,.3));
         border-top:0;border-radius:0 0 9px 9px}
 .mp[data-kind="audio"] .mp-bar{border-top:1px solid var(--rule,rgba(128,128,128,.3));border-radius:9px;
-        width:auto;max-width:100%;gap:0;padding:4px;justify-self:center}
-/* the unfolded strip stays a compact centred bar, not the full card width: a shorter scrub
-   line is quicker to aim at with a mouse and keeps the transport from stretching edge to edge
-   on a wide slide. It is capped rather than fixed, so a narrow card still fills normally. */
+        width:auto;max-width:100%;gap:0;padding:4px;justify-self:start}
+/* The unfolded strip grows to the RIGHT from the loudspeaker that was already there: a
+   centred bar opened in both directions and moved the button under the pointer. It is
+   also capped at 80% of the old 520px line, so the scrub target stays compact on a wide
+   slide; a narrow card still fills normally. */
 .mp[data-kind="audio"]:hover .mp-bar,
 .mp[data-kind="audio"]:focus-within .mp-bar,
-.mp[data-kind="audio"][data-open="1"] .mp-bar{width:min(100%,520px);gap:9px;padding:5px 10px}
+.mp[data-kind="audio"][data-open="1"] .mp-bar{width:min(100%,416px);gap:9px;padding:5px 10px}
 .mp-bar button{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:6px;
   background:transparent;border:1px solid transparent;color:inherit;font:inherit;cursor:pointer;
   opacity:.88;padding:0;transition:background .14s,opacity .14s,color .14s}

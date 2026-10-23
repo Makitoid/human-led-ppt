@@ -2,6 +2,14 @@
 
 [English](CHANGELOG.md) · **中文** · [日本語](CHANGELOG_ja.md)
 
+## v1.6.1 (2026-10-23)
+
+演讲者模式与音频播放条的两处修复。
+
+- **音频播放条改为向右展开，并再短 20%**：展开条从喇叭所在位置向右长，左边缘不跳，内容宽 416px（原 520px 的 80%，外框约 438px）。居中展开会把按钮推到指针外面，这次一并修掉。
+- **演讲者窗可以遥控媒体了**：在演讲者窗当前页卡里点播放 / 拖进度 / 调倍速 / 静音 / 音量，实际执行的是听众窗那一份；听众窗每约 250ms 把 `paused/currentTime/duration/rate/muted/volume` 广播回来，卡里的进度条与图标随之更新。视频在卡里静音跟帧，音频不在演讲者窗出声；听众窗自己操作时卡里也跟随。新增 `media-cmd` / `presenter-media-cmd` / `presenter-media-req` / `audience-media-state` / `preview-media-state` 五个消息，相关断言写进 05 / 06 / 08 三份说明。
+- **三语同步**：`references/zh|en|ja` 的 05 / 06 / 08、`SKILL.md`、三份 README 与本变更记录同批更新。
+
 ## v1.6 (2026-10-14)
 
 - **风格库从 17 套扩到 22 套。**
