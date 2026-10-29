@@ -183,7 +183,7 @@ Three probe traps, hit in a live session — read them before writing the script
   the built-in browser (keep the test deck in an ASCII directory) — but CJK and spaces inside a
   `data-src` **file name** are fine and were verified working, with no manual URL-encoding.
 
-### 2.3 Full-bleed backdrop and evidence chain (when a `background` keyword is used, or the evidence chain is wanted)
+### 2.2 Full-bleed backdrop and evidence chain (when a `background` keyword is used, or the evidence chain is wanted)
 
 ```js
 // backdrop: the shell inlines data-bg into style.backgroundImage; the attribute is kept (the author's CSS needs it to lift the content), and the value still lives in the file only once
@@ -211,7 +211,7 @@ out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySele
 
 > Skip this whole subsection when there is no `background` keyword and the deck did not opt into the chain. The chain is **not a hotkey and not always-on** — it is decided while writing: a serious deck (defence / research / data report / review) writes `evidence_chain: on` (`out.ev.exists` is true and visible); a casual deck writes nothing (`out.ev.exists` MUST be false, the corner clean). A chain appearing on a plain deck, or any toggle hotkey, means this version's design was reverted.
 
-### 2.2 Annotation / blackboard (when step 7 is installed)
+### 2.3 Annotation / blackboard (when step 7 is installed)
 
 - With annotation opened by `A`, the arrow keys / space / digits still page as usual;
 - `B` enters the blackboard: `body` carries `board`, the page becomes the dark board, the status pill appears, the palette switches to the chalk set (every pen ≥4.5:1 against `#1D2A26`; per-colour values are documented in `07-annotation.md` §6.1), and the board's highlighter band is drawn at `.55` alpha so it clears 3:1 on the dark ground;
@@ -221,6 +221,74 @@ out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySele
 - presenter window (if installed alongside): exactly four `.pcard` tiles (`c-cur` `c-nxt` `c-pmt` `c-ovw`), none of them a board and no iframe carrying `board=1`; resize or drag a card, and after **mouseup** it must stay raised above the neighbours it crossed (`parseInt(card.style.zIndex,10)` grew, no fallback to `z-index:auto`), and that front-to-back order must survive a reload, because `z` is stored in the layout record `pv.v2|` together with x/y/w/h.
 
 Optional review pass with marketplace skills (user installs first): `vercel-labs-web-design-guidelines` for a UI/UX/a11y audit, `entur-accessibility` for WCAG 2.1 checks.
+
+### 2.4 Visual hierarchy and contrast (every slide)
+
+This section checks four things: whether each slide has exactly one primary, whether the type ladder is spread, whether the accent stayed inside budget, and whether all text clears contrast against its **actual background**. It replaces the "looks fine to me" eyeball pass.
+
+```js
+async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const slides = [...document.querySelectorAll('#stage > .slide')];
+  const vis = el => { const s = getComputedStyle(el); return s.display !== 'none' && s.visibility !== 'hidden' && el.getClientRects().length > 0; };
+  const rgb = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(',').map(Number); return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1}; };
+  const lum = c => { const f = v => { v/=255; return v<=.03928 ? v/12.92 : Math.pow((v+.055)/1.055,2.4); }; return .2126*f(c.r)+.7152*f(c.g)+.0722*f(c.b); };
+  const ratio = (a,b) => { const x=lum(a), y=lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); };
+  const bgOf = el => { let n = el; while (n) { const cs = getComputedStyle(n); const c = rgb(cs.backgroundColor); if (c && c.a > .99) return c; if (cs.backgroundImage !== 'none') return null; n = n.parentElement; } const c = rgb(getComputedStyle(document.documentElement).backgroundColor); return c && c.a > .99 ? c : {r:255,g:255,b:255,a:1}; };
+  const probe = document.createElement('i');
+  probe.style.cssText = 'position:fixed;left:-9999px;width:1px;height:1px';
+  probe.style.background = 'var(--accent)';
+  document.body.appendChild(probe);
+  const accentRaw = getComputedStyle(probe).backgroundColor;
+  const accentParsed = rgb(accentRaw);
+  const accent = accentParsed && accentParsed.a > 0 ? accentRaw : null;
+  probe.remove();
+  const report = [];
+  for (let i = 0; i < slides.length; i++) {
+    window.__deck.go(i); await sleep(450);
+    const s = slides[i];
+    // leaf elements that actually carry visible text; .notes never counts
+    const leaves = [...s.querySelectorAll('*')].filter(el => vis(el) && !el.closest('.notes') && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()));
+    const items = leaves.map(el => ({ el, fs: parseFloat(getComputedStyle(el).fontSize), text: el.textContent.trim().slice(0, 18) }));
+    const sorted = [...items].sort((a,b) => b.fs - a.fs);
+    const topFs = sorted[0] ? sorted[0].fs : 0;
+    const top = sorted.filter(x => Math.abs(x.fs - topFs) <= 1);
+    // group the largest-size elements by the primary containers they sit in: a KPI group counts as one primary
+    const topGroups = [...new Set(top.map(x => x.el.closest('h1,h2,h3,.key,.pull,.kpi,[data-kpi]') || x.el))];
+    const kpiTop = topGroups.length > 1 && topGroups.every(el => el.matches('.kpi,[data-kpi]') || el.closest('.kpi,[data-kpi]'));
+    const second = sorted.find(x => x.fs < topFs - 1);
+    const body = sorted.find(x => x.fs <= 28 && x.fs >= 20);
+    const accentBlocks = accent ? [...s.querySelectorAll('*')].filter(el => vis(el) && getComputedStyle(el).backgroundColor === accent && el.getBoundingClientRect().width * el.getBoundingClientRect().height > 3000).length : null;
+    const lowContrast = [], unknownBg = [];
+    for (const it of items) {
+      const cs = getComputedStyle(it.el);
+      if (parseFloat(cs.opacity) < .85) { lowContrast.push({ text: it.text, why: 'opacity ' + cs.opacity }); continue; }
+      const fg = rgb(cs.color), bg = bgOf(it.el);
+      if (!fg) continue;
+      if (!bg) { unknownBg.push(it.text); continue; }
+      const need = (it.fs >= 24 || (it.fs >= 18.66 && parseInt(cs.fontWeight) >= 700)) ? 3 : 4.5;
+      const r = ratio(fg, bg);
+      if (r < need) lowContrast.push({ text: it.text, fs: it.fs, ratio: +r.toFixed(2), need });
+    }
+    report.push({ page: i + 1, topFs, primaryCandidates: topGroups.length, kpiTop,
+      primaryText: topGroups.map(el => el.textContent.trim().slice(0, 18)),
+      topSecond: second ? +(topFs / second.fs).toFixed(2) : null,
+      topBody: body ? +(topFs / body.fs).toFixed(2) : null,
+      accentBlocks, lowContrast, unknownBg });
+  }
+  window.__deck.go(0);
+  return JSON.stringify(report);
+}
+```
+
+Reading the report (any miss goes back for a fix; "looks fine to me" is not a pass):
+
+- **Primary**: `primaryCandidates` must be `1`; when it lands in `2–4`, it only passes if `kpiTop === true` and `accentBlocks === 1` (one number in the group is clearly the lead). Anything else is "two largest sizes side by side" and needs a re-layout.
+- **Ladder**: `topSecond ≥ 1.4` and `topBody ≥ 1.5` (`topBody ≥ 1.4` on pages with no `key` — cover / divider / references / thanks — where `h2` is the primary). Below that, titles and body are crowding up and the hierarchy never opened.
+- **Accent budget**: `accentBlocks ≤ 1`. Above 1, accent has stopped locating and become a page ground; `null` means `:root` never declared `--accent` — add the token and rerun.
+- **Contrast**: `lowContrast` must be empty; a non-empty `unknownBg` means text sits on an image or gradient the script cannot measure — measure it by hand at the "brightest point after the scrim" and write the result into the delivery note.
+- **Token checks**: `--muted` against `--bg` and against `--panel` once each, ≥ 4.5:1; `--accent-ink` against `--accent` ≥ 4.5:1. Any `opacity` / `rgba()` text colour on the page is recomputed on the composite colour, not on the token value.
+- **Grayscale pass**: temporarily add `filter:grayscale(1)` to `#stage` and go page by page — the primary must still be the first thing found. A page that loses its hierarchy without colour goes back for a size / weight / position change. If it cannot be screenshotted, write "not tested"; never default to pass.
 
 ## 3. Number audit (never skip)
 
@@ -240,7 +308,7 @@ The reply to the user contains:
 
 - clickable links to all three files (HTML first), plus skeleton and source file
 - slide count, summed duration, style name
-- **what was actually tested**: navigation, G overview, click-half paging, hash, portrait mask, zero external requests, per-slide overflow, font floor, number audit
+- **what was actually tested**: navigation, G overview, click-half paging, hash, portrait mask, zero external requests, per-slide overflow, font floor, **per-slide single primary / type ladder / accent budget / full-text contrast**, number audit
 - **when there is media**: the list of audio/video file names plus the reminder that they must be copied along with the folder; images are inlined, so they are unaffected
 - **what was not tested and what was assumed**: e.g. print pagination not exercised, some source unreachable due to network, deep link verified on desktop only
 - open decisions for the user (credits, whether to keep a given slide)

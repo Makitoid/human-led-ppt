@@ -167,7 +167,7 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 ソースファイルはテスト前に**本当に HTML の隣に置く**こと——`file://` ではパスが違うということは 6 番目の容錯分岐にほかならないので、2 つのことを 1 回の実行で確認できる。
 インライン化した画像は独立した確認が 1 つ要る：`img.complete === true && img.naturalWidth > 0`、および `img.src` が `data:image/` で始まること。
 
-### 2.3 全面の背景とエビデンスチェーン（`background` キーワードを使ったとき、またはエビデンスチェーンを見たいとき）
+### 2.2 全面の背景とエビデンスチェーン（`background` キーワードを使ったとき、またはエビデンスチェーンを見たいとき）
 
 ```js
 // 背景：シェルは data-bg を style.backgroundImage にインライン化する。属性は保持する（著者の CSS が持ち上げに使う）。値はファイル内で依然 1 つだけ
@@ -213,7 +213,7 @@ out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySele
   ただし `data-src` の**ファイル名**の中の日本語とスペースは問題なく、動作を実測済みで、手動の
   URL エンコードは要らない。
 
-### 2.2 注記 / 黒板（ステップ 7 を導入しているとき）
+### 2.3 注記 / 黒板（ステップ 7 を導入しているとき）
 
 - `A` で注記を開いた後も、矢印キー / スペース / 数字キーは通常どおりページ送りする；
 - `B` で黒板に入る：`body` に `board` が付き、ページ全体があの暗い黒板に変わり、ステータスピルが現れ、
@@ -226,6 +226,72 @@ out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySele
 - 発表者ウィンドウ（併せて導入している場合）：カードは**ちょうど 4 枚**（`c-cur` `c-nxt` `c-pmt` `c-ovw`）で、そのどれも黒板ではなく、`board=1` を運ぶ iframe も無い；カードをリサイズするかドラッグして**マウスを離した（mouseup）あと**、通り過ぎた隣りのカードの上に載ったままでなければならない（`parseInt(card.style.zIndex,10)` が増え、`z-index:auto` に戻らない）；そしてリロード後もその前後関係が残る——`z` は x/y/w/h と共にレイアウト記録 `pv.v2|` に保存される。
 
 任意のレビューパス（マーケットプレイスの skill、ユーザーが先にインストールする）：UI/UX/a11y 監査には `vercel-labs-web-design-guidelines`、WCAG 2.1 チェックには `entur-accessibility`。
+
+### 2.4 視覚的階層とコントラスト（全ページ必実行）
+
+この節は 4 つを調べる：各ページの主役が 1 つだけか、文字サイズの階段が開いているか、accent が予算を超えていないか、すべての文字が**実際の背景**の上で基準を満たしているか。これは「見た目は悪くない」という目視の代わりである。
+
+```js
+async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const slides = [...document.querySelectorAll('#stage > .slide')];
+  const vis = el => { const s = getComputedStyle(el); return s.display !== 'none' && s.visibility !== 'hidden' && el.getClientRects().length > 0; };
+  const rgb = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(',').map(Number); return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1}; };
+  const lum = c => { const f = v => { v/=255; return v<=.03928 ? v/12.92 : Math.pow((v+.055)/1.055,2.4); }; return .2126*f(c.r)+.7152*f(c.g)+.0722*f(c.b); };
+  const ratio = (a,b) => { const x=lum(a), y=lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); };
+  const bgOf = el => { let n = el; while (n) { const cs = getComputedStyle(n); const c = rgb(cs.backgroundColor); if (c && c.a > .99) return c; if (cs.backgroundImage !== 'none') return null; n = n.parentElement; } const c = rgb(getComputedStyle(document.documentElement).backgroundColor); return c && c.a > .99 ? c : {r:255,g:255,b:255,a:1}; };
+  const probe = document.createElement('i');
+  probe.style.cssText = 'position:fixed;left:-9999px;width:1px;height:1px';
+  probe.style.background = 'var(--accent)';
+  document.body.appendChild(probe);
+  const accentRaw = getComputedStyle(probe).backgroundColor;
+  const accentParsed = rgb(accentRaw);
+  const accent = accentParsed && accentParsed.a > 0 ? accentRaw : null;
+  probe.remove();
+  const report = [];
+  for (let i = 0; i < slides.length; i++) {
+    window.__deck.go(i); await sleep(450);
+    const s = slides[i];
+    const leaves = [...s.querySelectorAll('*')].filter(el => vis(el) && !el.closest('.notes') && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()));
+    const items = leaves.map(el => ({ el, fs: parseFloat(getComputedStyle(el).fontSize), text: el.textContent.trim().slice(0, 18) }));
+    const sorted = [...items].sort((a,b) => b.fs - a.fs);
+    const topFs = sorted[0] ? sorted[0].fs : 0;
+    const top = sorted.filter(x => Math.abs(x.fs - topFs) <= 1);
+    const topGroups = [...new Set(top.map(x => x.el.closest('h1,h2,h3,.key,.pull,.kpi,[data-kpi]') || x.el))];
+    const kpiTop = topGroups.length > 1 && topGroups.every(el => el.matches('.kpi,[data-kpi]') || el.closest('.kpi,[data-kpi]'));
+    const second = sorted.find(x => x.fs < topFs - 1);
+    const body = sorted.find(x => x.fs <= 28 && x.fs >= 20);
+    const accentBlocks = accent ? [...s.querySelectorAll('*')].filter(el => vis(el) && getComputedStyle(el).backgroundColor === accent && el.getBoundingClientRect().width * el.getBoundingClientRect().height > 3000).length : null;
+    const lowContrast = [], unknownBg = [];
+    for (const it of items) {
+      const cs = getComputedStyle(it.el);
+      if (parseFloat(cs.opacity) < .85) { lowContrast.push({ text: it.text, why: 'opacity ' + cs.opacity }); continue; }
+      const fg = rgb(cs.color), bg = bgOf(it.el);
+      if (!fg) continue;
+      if (!bg) { unknownBg.push(it.text); continue; }
+      const need = (it.fs >= 24 || (it.fs >= 18.66 && parseInt(cs.fontWeight) >= 700)) ? 3 : 4.5;
+      const r = ratio(fg, bg);
+      if (r < need) lowContrast.push({ text: it.text, fs: it.fs, ratio: +r.toFixed(2), need });
+    }
+    report.push({ page: i + 1, topFs, primaryCandidates: topGroups.length, kpiTop,
+      primaryText: topGroups.map(el => el.textContent.trim().slice(0, 18)),
+      topSecond: second ? +(topFs / second.fs).toFixed(2) : null,
+      topBody: body ? +(topFs / body.fs).toFixed(2) : null,
+      accentBlocks, lowContrast, unknownBg });
+  }
+  window.__deck.go(0);
+  return JSON.stringify(report);
+}
+```
+
+判定（どれか 1 つでも満たさないなら戻って直す。「見た目は悪くない」で済ませない）：
+
+- **主役**：`primaryCandidates` は `1` であること；`2–4` のときは `kpiTop === true` かつ `accentBlocks === 1` のときだけ通過（KPI の組の中で 1 枚が明らかに主役）。それ以外はすべて「最大の文字サイズが 2 つ並んでいる」として組み直す。
+- **階段**：`topSecond ≥ 1.4`、`topBody ≥ 1.5`（表紙 / 幕間 / 出典 / 謝辞のように `key` を持たないページで `h2` が主役のときは `topBody ≥ 1.4`）。下回るならタイトル / 本文が上へ詰め寄っていて、階層が開いていない。
+- **強調の予算**：`accentBlocks ≤ 1`。1 を超えるなら accent が「位置づけ」から「下地」に変わっている；`null` なら `:root` に `--accent` が宣言されていない——トークンを足して再実行する。
+- **コントラスト**：`lowContrast` は空でなければならない；`unknownBg` が空でないなら文字が画像やグラデーションの上にあり、スクリプトでは測れない——「スクリム後の最も明るい点」で 1 回手で測り、納品メモに書く。
+- **トークンの自己チェック**：`--muted` を `--bg` と `--panel` に対してそれぞれ ≥4.5:1、`--accent-ink` を `--accent` に対して ≥4.5:1。ページに `opacity` / `rgba()` の文字色があれば、トークンの値ではなく合成色で計算し直す。
+- **グレースケールの目視**：`#stage` に一時的に `filter:grayscale(1)` を足し、各ページで主役が最初の一目で見分けられるかを見る；色を外すと主従が分からないページは、文字サイズ / 字重 / 位置を直す。スクリーンショットが撮れないなら「未実測」と書き、既定で通過にしない。
 
 ## 3. 数字監査（絶対に省略しない）
 
@@ -245,7 +311,7 @@ out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySele
 
 - 3 つのファイルへのクリック可能なリンク（HTML を先頭に）、加えて骨子と資料ファイル
 - スライド数、所要時間の合計、スタイル名
-- **実際にテストした項目**：ナビゲーション、G 総覧、左右半分のクリックによるページ送り、ハッシュ、縦向きマスク、外部リクエストゼロ、スライドごとのオーバーフロー、フォントの下限、数字監査
+- **実際にテストした項目**：ナビゲーション、G 総覧、左右半分のクリックによるページ送り、ハッシュ、縦向きマスク、外部リクエストゼロ、スライドごとのオーバーフロー、フォントの下限、**ページごとの主役 1 つ / 文字サイズの階段 / accent の予算 / 全文のコントラスト**、数字監査
 - **メディアがあるとき**：音声 / 動画のファイル名一覧 + 「フォルダごと一緒にコピーすること」という注意；画像はインライン化されているので影響を受けない
 - **テストしなかった項目と仮定**：例——印刷のページ割りは未実施、一部の出典はネットワーク到達不可のため未確認、深いリンクはデスクトップでのみ検証
 - ユーザーの判断を仰ぐ未決の点（クレジット表記、あるスライドを残すか）

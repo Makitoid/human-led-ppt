@@ -38,6 +38,11 @@ deck:
     cn: <font stack>                # from Step 2
     numbers: tabular-nums, hero numerals 72–120px
     min_body_px: 22
+  hierarchy:                        # per-slide visual rank; the build implements this
+    primary: per-slide (key | kpi | pull)   # exactly one primary per slide; keep one style per deck, never two in parallel on a slide
+    scale: {claim: 48, title: 34, body: 24, meta: 14}   # adjacent ratio ≥ 1.4; KPI may run 72–120
+    accent_blocks_per_slide: 1      # accent fill cap
+    warn_marks_per_slide: 1         # warn mark cap
   theme:
     light: {bg:"", panel:"", ink:"", muted:"", accent:"", warn:"", rule:""}
     dark: {…}                       # pick exactly one for the deck
@@ -50,19 +55,25 @@ deck:
   motion: <transition type, duration, easing; in-page animation type>; off under prefers-reduced-motion
 ```
 
-`typography` / `theme` / `constraints` / `motion` are copied verbatim from Step 2's style decision block — do not reinvent them here. State the transition, duration, easing and in-page animation explicitly; the build follows them. For a dark deck also confirm `deck-shell.css`'s `--ovl-bg / --ovl-ink / --ovl-card` (overview wall) were overridden to the same family.
+`typography` / `hierarchy` / `theme` / `constraints` / `motion` are copied verbatim from Step 2's style decision block — do not reinvent them here. `hierarchy` is the build's first priority per page: settle the primary, then lay out the rest; a `scale` whose adjacent ratio falls below 1.4 fails outright. State the transition, duration, easing and in-page animation explicitly; the build follows them. For a dark deck also confirm `deck-shell.css`'s `--ovl-bg / --ovl-ink / --ovl-card` (overview wall) were overridden to the same family.
 
 ## §2 Narrative device
 
 Three things: the main method (e.g. problem intro → question → analysis → conclusion), the driving engine (the question chain; every slide advances at least one link), and the personas plus house rules (codename, role, one-line stance, and rules like "every number must say who measured it, which year, and how far the boundary runs").
 
+Then one line of **tension curve**: `hook sX → build sX–sY → peak sZ → release sX–sY`. Exactly one peak per deck, in the second half; the hook no later than page 3; the release in the last 2–3 pages. A deck with no peak goes back to step 1 — do not improvise one inside the skeleton.
+
 ## §3 Act structure
 
-| Act | Slides | Function | Time |
-|---|---|---|---|
+| Act | Slides | Function | Tension | Time |
+|---|---|---|---|---|
+
+**Tension** may only read `low / mid / high`, and must satisfy: at least one `high` and at least one `low`; exactly one page is the peak and it is marked `high`; no two consecutive `high` pages, no three consecutive pages at the same level. Add one line under the table: `Peak: <one sentence>`.
 
 Below the table, one line giving **the rendered page order**, e.g.
 `1 cover / 2 act-divider / 3 kpi-hero / … / N references` — a plain-language name after the type is fine (`3 kpi-hero cold open`), but **whatever precedes it must be a `type` that exists in §4's page-type library**; "hook" and "cold open" as bare labels are not. Add the note "footer `NN / N` and `data-i` are renumbered in build order — never hand-write them". Then a standalone line with the **central question** (one for the whole deck).
+
+Then one line of **answer change**: what the central question's answer becomes by the end of each act (`act 1: X → Y; act 2: Y → Z`). Merge acts whose answer does not change into their neighbour; the peak act must carry the biggest change of the deck.
 
 ## §4 Per-slide spec · pick the keywords, then fill the slide
 
@@ -119,7 +130,7 @@ Four rules:
 |---|---|---|
 | `topic` ★ | Section / theme name this slide belongs to, ≤ 12 chars | The `.act` text inside `.kicker` |
 | `act` | Act marker ("Act III") | Same line, before `topic` |
-| `role` | Function in the narrative: hook / advance / bridge / close | Cross-checked against §3, never on screen |
+| `role` | Function in the narrative: hook / advance / bridge / close | Cross-checked against §3, never on screen; **mandatory on hook / peak / release pages** |
 | `toc` | Table-of-contents or agenda entry | Agenda slides only |
 
 **B Text — what the audience reads** (together these *are* the on-screen text; there is no separate on-screen field)
@@ -305,12 +316,17 @@ Every `<…>` above is a placeholder: fill it from the source file, and never le
 - **The evidence rule follows the numbers, not the field name.** Anywhere a number appears in any keyword — `table` `kpi` `compare` `rank` `timeline` `formula`, benchmark output inside `code`, and figures quoted in passing by `example` `quote` `counter` `analogy` — it needs all four of value / unit / year / source, matchable to a line in the source file; derived values say "derived from …"; disputed gets ⚠️; second-hand says "via …" and gets 🔍. When numbers span two or more keywords, add a `data` line indexing them for the audit — "which keyword's which row → source", never a re-typing of the values; when they live in one place, don't.
 - At most 4 numbers per slide; the rest go into `hint`. Genuinely need more → split the slide, or fold same-basis figures into one `table` row.
 - Prefer comparison over prose; `visual` / `layout` / `diagram` must name the chart, the axis labels, the column widths and which block takes warn — "add a chart" or "make it clean" is not an instruction.
-- One strong colour per slide, and `emphasis` says which one.
+- **Exactly one primary per slide.** `key` / one `kpi` group / `pull` — only one may be the primary; two of the largest type sizes, two accent fills or two equally loud cards on one page = primaries fighting, rewrite the slide.
+- **The title is the second tier.** `title` must not share size and weight with the primary, and must not outgrow it; only pages with no `key` (cover / divider / references / thanks) may let the title be the primary.
+- **`emphasis` lands only on the primary**, and names which element plus accent or warn. One strong colour per page; a second colour of equal strength is no focus, and an emphasis on a 12px caption is no emphasis.
+- **Equal peers, ≤ 4 cards.** Same-tier cards share one size, padding, radius and colour; to single one out, step it up one notch or give it the accent and recede the rest. Three or more equal peers → `table` / `compare` or split the slide.
+- **Four-tier scale**: primary 48–60 (KPI 72–120) / title 34 / body 22–24 / note 12–15, adjacent ratio ≥ 1.4; a large-type preset scales the whole ladder by the same factor; a `24 / 22 / 20` ladder has no hierarchy and is rejected.
+- **Rhythm must not flatten**: three consecutive pages with the same `role` (all building or all concluding) means the arc has collapsed — go back to §3. `role` is mandatory on hook / peak / release pages.
 - Sum of `sec` must sit near the Step 1 time budget; overshoot by dropping keywords first, then slides.
 
 ## §5 Implementation notes
 
-A numbered list the build step executes: DOM skeleton and class names, **the keyword → DOM slot map** (which element each declared keyword renders into — copy it from the "Where it lands" column of the §4 library so the build never has to guess; any coined keyword gets its own slot written here), data-presentation priority, persona-capsule visibility rules (only if `lines` / `handoff` made the set), how ⚠️/🔍 badges are used and where they are explained (the sources page), prohibitions (unsourced numbers, adjectives instead of evidence, estimates stated as findings, repeating a corrected misreading), scaling and print, and **output plus self-check** (per slide: every number findable in the source file; navigation and keyboard work; no external requests; the known-tricky slide is worded correctly).
+A numbered list the build step executes: DOM skeleton and class names, **the keyword → DOM slot map** (which element each declared keyword renders into — copy it from the "Where it lands" column of the §4 library so the build never has to guess; any coined keyword gets its own slot written here), **where §1 `hierarchy` lands** (primary → `.key` / the `.kpi` main number / `.pull`; title → `h2`; support → `.slide-body`; detail → `.kicker` / captions / `.foot`; exactly one primary per slide), data-presentation priority, persona-capsule visibility rules (only if `lines` / `handoff` made the set), how ⚠️/🔍 badges are used and where they are explained (the sources page), prohibitions (unsourced numbers, adjectives instead of evidence, estimates stated as findings, repeating a corrected misreading, two largest type sizes side by side), scaling and print, and **output plus self-check** (per slide: every number findable in the source file; navigation and keyboard work; no external requests; the known-tricky slide is worded correctly).
 
 ## §6 Changelog
 

@@ -85,7 +85,41 @@ J–Q are **layout templates** (a slide's information structure, emphasis device
 
 (S–V are the four chosen from `frontend-slides`'s twelve; its Swiss Modern and Paper & Ink are left out — the first overlaps A/H's grid character and the second overlaps C's paper character, so one look does not get two treatments.)
 
-## Five template disciplines (distilled from a mature template system; they hold for every preset)
+## Visual hierarchy: decide rank before style
+
+Style decides what a page looks like; hierarchy decides what the eye hits first. A page that reads as messy is usually not short of colour — four or five elements are competing for the same glance. The rules below hold for any preset and any custom style; presets that ship larger type (O's 160px-class headings, R's magazine display) scale the whole ladder up and keep the tier count and the ratios unchanged.
+
+### 1. Four tiers per slide
+
+| Tier | Count | What it is | Size (1280×720, scaled with the preset) | Colour |
+|---|---|---|---|---|
+| primary | **exactly 1** | `key` / one `kpi` group / `pull` — pick one | 48–60px; KPI 72–120px | ink, or the single accent fill |
+| title | 1 | `h2`, what this page is called | 34px | ink |
+| support | 2–4 | arguments, charts, steps, cards | 22–24px | ink / panel |
+| detail | unlimited | kicker, caption, unit, source | 12–15px | muted (still ≥ 4.5:1) |
+
+- **Only one primary.** Two large paragraphs, two cards carrying an accent, a title as heavy as the conclusion — all of that is primaries fighting, and it is a re-layout, not "a bit more colour tuning". Pages with no `key` (cover / divider / references / thanks) are the exception: the page's single title or content block is the primary.
+- **Same tier, same weight.** Elements in one tier share size, weight, padding and colour; no card gets to be "slightly different". To distinguish one, promote **one** of them to primary and drop the rest to support.
+- **Hierarchy by size and space; colour only locates.** Turn the deck grayscale for a moment: the primary must still be the first thing found. If removing colour removes the hierarchy, the hierarchy hangs on colour alone — go back to size, weight and position.
+- **Adjacent tiers keep a size ratio ≥ 1.4.** Default ladder `48 : 34 : 24 : 14` (primary : title : body : note); a `24 : 22 : 20` ladder is no hierarchy at all. Presets with larger type scale the whole ladder and keep these ratios.
+- **Whitespace is hierarchy too.** Page margin ≥ 56px, header → body ≥ 28px, group gap ≥ 24px, inner gap ≥ 12px; never fill the gaps with rules, tints or ornaments.
+
+### 2. Accent budget
+
+- **At most one accent-filled block per slide** (a colour block, a badge, a pill, a whole card's ground — each counts as one); accent is the finger that says "look here", not a page ground.
+- **At most one warn mark per slide** (a risk paragraph, a badge or a hazard stripe counts as one); warn means risk / absence, never "important".
+- **No second accent colour on the page.** To separate two groups, use grouping, whitespace and size first; colour is the last step.
+- **`emphasis` must land on the primary.** An accent on a 12px caption is no emphasis; two colours of equal strength on one page is no focus.
+
+### 3. Contrast is the floor of hierarchy
+
+- **All information-bearing text ≥ 4.5:1**, including body, quotes, captions and the source bar; large text (≥ 24px, or ≥ 18.66px bold) ≥ 3:1.
+- **`--muted` is measured against both `--bg` and `--panel` ≥ 4.5:1.** If it misses, darken muted or recede with size / weight; **never fade text with `opacity`** — transparency discounts contrast you already measured.
+- **Translucent text is measured as the composite colour** (`rgba(…,.6)` and `opacity:.6` both count); unmeasured means unshipped.
+- **Accent as text ≥ 4.5:1; accent as a fill takes `--accent-ink` ≥ 4.5:1.** Brand primaries (OpenAI green, Fluent blue, Notion grey) usually sit at 2–3:1 — large type or graphics only.
+- **Text on a full-bleed background is measured at the brightest point after the scrim.** If it fails, strengthen the scrim; never lighten body text to accommodate the backdrop.
+
+## Six template disciplines (distilled from a mature template system; they hold for every preset)
 
 0. **One backdrop per page, and it never ships without a scrim.** A full-bleed backdrop (third-party photo or generated image) goes through the `background` keyword and `data-bg` layer, with a readable gradient scrim on top; a backdrop is **never** dropped into the text flow as an `<img>` (that is what `image` is for). If contrast will not hold, dim the backdrop — do not lighten body text. See the background-layer rules in `05-build.md`.
 
@@ -94,16 +128,19 @@ J–Q are **layout templates** (a slide's information structure, emphasis device
 3. **One theme = one look; one deck = one mode.** A deck must not put a purple-gradient cover next to cream-blueprint body pages. The temperament preset supplies tokens, the layout template supplies the skeleton, ≤ 2 signature devices per page.
 4. **Compose existing page types; do not invent new ones.** Keep the reusable `type` vocabulary at 6–8 and repeat them. Before designing a 9th layout, ask whether the page simply has too much content. Redrawing the layout every page makes the overview wall unreadable and the build error-prone.
 5. **Every image gets a frame.** The frame owns `aspect-ratio` and the crop (`object-fit:cover`); the `<img>` only fills it — that is what lets any photo swap in without breaking the page. Screenshots, charts and logos always use `object-fit:contain` (cropping them deletes information); a full-bleed photo gets a bottom scrim (`linear-gradient(180deg,transparent 42%,rgba(8,10,20,.72))`) so white text stays readable; a 12–14px caption goes under the frame. **A bare `<img>` never reaches a slide.**
+6. **One primary per slide.** At most four peer cards, and only one of them may carry accent or step up; the rest share one style. Three or more equal peers → use `table` / `compare` or split the page. Decoration ≤ 15% of the page and never inside the primary's 1/3 hot zone.
 
 ## Custom route
 
-When the user designs their own, walk the same field list as the presets (look / light palette / dark palette / type / shape / rules / motion / risks) and drive the decisions with `frontend-design` (palette relationships, type pairing, avoiding the templated look). Pull `material-3` as needed for component specs. Given a reference screenshot, measure its hex values and type scale before deciding — never work from impression. **The "five template disciplines" (including the background rule 0) hold for custom too**: every colour in `:root`, a measured `--accent-ink`, one mode only, ≤ 8 reused page types, images always framed, backdrops always scrimmed.
+When the user designs their own, walk the same field list as the presets (look / light palette / dark palette / type / shape / rules / motion / risks) and drive the decisions with `frontend-design` (palette relationships, type pairing, avoiding the templated look). Pull `material-3` as needed for component specs. Given a reference screenshot, measure its hex values and type scale before deciding — never work from impression. **The "six template disciplines" (including the background rule 0 and one primary per slide) hold for custom too**: every colour in `:root`, a measured `--accent-ink`, one mode only, ≤ 8 reused page types, images always framed, backdrops always scrimmed, one primary per slide.
 
 ## Deck-level hard requirements, whatever is chosen
 
 - Readable from the back row: body ≥ 22px (24px preferred), hero numerals 72–120px, `font-variant-numeric: tabular-nums`
-- Body contrast ≥ 4.5:1; footnote-grade text may be 9–11px but must still be legible
-- One visual focus per slide; at most 4 numbers per slide
+- **Four-tier type ladder**: primary 48–60 (KPI 72–120) / title 34 / body 22–24 / note 12–15, adjacent ratio ≥ 1.4; a page uses only these four tiers and never adds a fifth ad hoc
+- **All information-bearing text ≥ 4.5:1** (quotes, captions and sources included), large text ≥ 3:1; `--muted` measured against both `--bg` and `--panel`; no `opacity` to recede text
+- **Exactly one visual primary per slide** (`key` / one `kpi` group / `pull`); at most 4 numbers and 4 peer cards per slide, and only one card may carry accent or step up
+- **Accent fill ≤ 1 per slide and warn mark ≤ 1 per slide**; the accent lands on the primary, never on a caption or ornament
 - Charts as inline SVG / pure CSS; no charting library
 - **One light-or-dark theme only**: when overridden, also set `--ovl-bg / --ovl-ink / --ovl-card` (overview wall) and `--bg/--ink/--accent` in `deck-shell.css`; a dark deck must purge every hard-coded colour (chart fills, badges, borders, overview wall) or pale patches will survive
 - **Declare `--accent-ink` in `:root`** (the text colour used on accent fills, badges and pills) and measure it ≥ 4.5:1 with the script in `06-verify.md`; slide CSS may only use `var(...)` — no literal hex outside gradient endpoints
@@ -119,6 +156,8 @@ Style: <temperament preset A–I or custom name> + <layout template J–Q, or "n
 Mode: light | dark
 theme: {bg, panel, ink, muted, accent, accent-ink, warn, rule}   ← copied verbatim into skeleton §1
 Type: headings <stack>; body <stack>; numerals <stack>
+Hierarchy: primary <key | kpi group | pull>; scale <primary/title/body/meta px> (ratio ≥ 1.4);
+           accent block ≤ 1, warn ≤ 1 per slide; still readable in grayscale
 Shape: radius <n>px; shadow <none | spec>; separation <1px rule | whitespace>
 Signature devices: <the ≤ 2 named by the template, e.g. "top colour bar + focus pill">
 Ornament: <what is allowed>  constraints: <list>

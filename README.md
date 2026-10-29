@@ -22,7 +22,7 @@ Every number and claim that reaches the HTML has to trace back to the source fil
 | 1 Topic & narrative | settle the central question, audience, duration, slide count and act structure | requirement block |
 | 2 Style direction | 9 temperament presets (Fluent / Material 3 / paper-neutral / editorial / Liquid Glass / doc-list / manga / academic / playful) and 13 templates (J–Q layouts + R–V complete systems: electronic magazine and four from frontend-slides) | style decision block |
 | 3 Evidence base *(optional)* | evidence-gated research of the sources: disputed, second-hand and unreachable items are all clearly flagged | `<topic>-sources.md` |
-| 4 Skeleton spec | the build specification: act structure, per-slide **keywords** (three core — `type` / `key` / `sec` — are mandatory, the rest 5–11 chosen from a 51-word library; each deck declares the 12–24 it uses), implementation notes, and speaker prompts for every slide | `<topic>-HTML-PPT-skeleton.md` — **awaits your review, §7 included** |
+| 4 Skeleton spec | the build specification: act structure, per-slide **keywords** (three core — `type` / `key` / `sec` — are mandatory, the rest 5–11 chosen from a 56-word library; each deck declares the 12–24 it uses), implementation notes, and speaker prompts for every slide | `<topic>-HTML-PPT-skeleton.md` — **awaits your review, §7 included** |
 | 5 Build | produce the single-file HTML strictly from the skeleton | `<topic>.html` |
 | 6 Verify & deliver | static checks, browser assertions, number audit, delivery note | tested items + untested items |
 | 7 Screen annotation *(optional)* | for presenting, teaching or reviewing live: pen, highlighter, two eraser modes, annotations kept per slide | the same `<topic>.html` plus one layer |
@@ -67,13 +67,7 @@ The five step documents exist as [English](references/en), [中文](references/z
 ## What's new in 1.6.1
 
 - **A shorter strip and remote control from the presenter window** — the audio bar grows rightwards from the loudspeaker and is 80% of its former width; play / seek / rate / mute in the presenter window remote-control the audience window and stay synced both ways.
-
-## What's new in 1.6
-
-- **The style library grows to 22 presets** — an electronic-magazine preset (five e-ink palettes) plus Bold Signal / Creative Voltage / Terminal Green / Notebook Tabs; presets C/D/F/G drop their brand names for Paper-neutral / Editorial / Doc-list / Manga.
-- **Full-bleed backdrops and generated images** — a new `background` keyword (a page-filling image) and a `draw` keyword (an AI image, prompt reviewed first); step 3 gains a "Candidate images" section.
-- **The evidence chain is per-deck** — only a serious deck (defence / research / data report) shows it in the bottom-right; it is decided while writing, not by a hotkey; a video/audio file that is missing says "not found" inside the player box.
-- **A shorter audio strip, and the check asks first** — the audio bar unfolds into a compact centred strip; step 6 asks whether the agent or the user runs the final check.
+- **Hierarchy, contrast and narrative arc are enforced** — one primary per slide, a four-tier type scale, one accent block and one warn mark; every text token is contrast-checked against its real background; step 1 requires hook → build → peak → release, and skeleton §3 carries a tension column.
 
 Full notes: [CHANGELOG.md](CHANGELOG.md).
 

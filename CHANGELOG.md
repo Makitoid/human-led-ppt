@@ -4,11 +4,14 @@
 
 ## v1.6.1 (2026-10-23)
 
-Two fixes around presenter mode and the audio strip.
+Fixes around presenter mode, the audio strip, and visual hierarchy.
 
 - **The audio strip unfolds to the right and is a further 20% shorter**: the unfolded bar grows to the right from the loudspeaker's position, its left edge does not jump, and the content is 416px wide (80% of the former 520px, about 438px outer). A centred unfold pushed the buttons out from under the pointer; that is fixed in the same pass.
 - **The presenter window can remote-control media**: play / seek / rate / mute / volume in the presenter window's current-slide card act on the audience window's copy instead; the audience window broadcasts `paused/currentTime/duration/rate/muted/volume` back roughly every 250ms and the card's progress bar and icons follow. A video follows frame by frame, muted, inside the card, audio makes no sound in the presenter window, and operating the audience window itself moves the card too. Five new messages: `media-cmd` / `presenter-media-cmd` / `presenter-media-req` / `audience-media-state` / `preview-media-state`; the assertions live in the 05 / 06 / 08 docs.
-- **Three-language sync**: `references/zh|en|ja/05, 06, 08`, `SKILL.md`, all three READMEs and this changelog were updated in the same pass.
+- **Visual hierarchy is now a constraint, not a taste call**: each slide has exactly one primary (`key`, a KPI group, or `pull`), the `h2` is fixed at 34px on those pages, a four-tier ladder (48–60 / 34 / 22–24 / 12–15) replaces ad-hoc sizing, at most one accent-filled block and one warn mark are allowed, and peer card grids cap at four with only one card permitted to step forward. The rules live in 02-style, 04-skeleton and 05-build; a grayscale check catches a hierarchy that hangs on colour alone.
+- **Contrast is measured for every text token**: `--muted` must clear 4.5:1 against both `--bg` and `--panel`, accent-as-text and accent-fill text are both measured, scrimmed backdrops are measured at their brightest point, and `opacity` is banned as a way to recede text. `06-verify` gains a per-page sweep that reports every failing text leaf and every surface it cannot measure.
+- **The narrative must carry an arc**: step 1 now requires hook → build → peak → release; skeleton §3 gains a tension column (low / mid / high) with no two consecutive highs and no three pages at one level; every act must change the answer to the central question; hook / peak / release pages declare `role`; a deck with no peak goes back to step 1.
+- **Three-language sync**: `references/zh|en|ja/01, 02, 04, 05, 06, 08`, `SKILL.md`, all three READMEs and this changelog were updated in the same pass.
 
 ## v1.6 (2026-10-14)
 

@@ -63,6 +63,36 @@ Class names the shell depends on: `.slide` must be a direct child of `#stage`; `
 
 `.notes` holds that page's prompt from skeleton §7 — **move it verbatim** (keep `<strong>` / `<em>` / `<code>`; the presenter window's prompt card reads nothing else). Even with presenter mode off it stays a note: never visible to the audience, never printed.
 
+## Visual hierarchy: fix the primary first
+
+Before building any page, answer one sentence: **what must the eye hit first?** The answer can only be one element — the `key` line, the main number of a `kpi` group, or one `pull` line. Everything else slots into the ladder below:
+
+| Tier | DOM | Size (1280×720) | Weight | Colour | Count |
+|---|---|---|---|---|---|
+| primary | `.key` / the `.kpi` main number / `.pull` | 48–60; KPI 72–120 | 700–900 | ink, or the single accent fill | **1** |
+| title | `h2` | 34 | 600–700 | ink | 1 |
+| support | arguments, charts, cards in `.slide-body` | 22–24 | 400–600 | ink / panel | 2–4 |
+| detail | `.kicker`, captions, units, `.foot` | 12–15 | 400–500 | muted, ≥ 4.5:1 | unlimited |
+
+Fix the four sizes in `:root` and use only those four on the page (when a preset scales type up, all four scale by the same factor and keep their ratios):
+
+```css
+:root{
+  --fs-claim:48px; --fs-title:34px; --fs-body:24px; --fs-meta:14px;
+}
+/* ratios 1.41 / 1.42 / 1.71; large-type presets scale the whole ladder by the same ratios */
+```
+
+Hard rules:
+
+- **When `.key` is the primary, `h2` stays on this deck's title step (34px by default)** — never the same size and weight as `.key`; only pages with no `key` (cover / divider / references / thanks) may let `h2` be the primary.
+- **A KPI group holds at most 4 numbers and only one may carry accent or run a size larger**; the rest stay peers. Three or more equal hero numbers means no focus — keep one and move the rest into a `table`.
+- **Same-tier cards share padding, radius and type size**; emphasis lands on **one** card only and the rest must not change colour. At most 4 cards per row.
+- **Three or more columns must break equal width**: the main column ≥ 1.4× a side column, or only the main column gets an accent fill; three equal columns in three colours is noise.
+- **Whitespace is hierarchy**: page margin ≥ 56px, header → body ≥ 28px, group gap ≥ 24px, inner gap ≥ 12px; never fill the gaps with rules, tints or ornaments.
+- **Decoration ≤ 15% of the page** and never inside the primary's 1/3 hot zone.
+- **One accent block and one warn mark per slide**; `emphasis` must land on the primary, and no second accent colour goes on the page.
+
 ## Media (image / audio / video)
 
 The three skeleton §4 keywords `image` / `audio` / `video` decide **where the file goes**; in the HTML there are exactly three ways to write them.
@@ -143,9 +173,12 @@ You supply: per-slide layout, page types, charts, badges, persona capsules, cita
 ## Slide-level visual rules
 
 - **Text on an accent fill**: any block that uses `--accent` as its background (badge, capsule, band, cover headline) takes its text colour from `var(--accent-ink)` — never a literal `#fff` / `#000`. Hard-coding it is exactly how you get 1.01:1 invisible text (see the step-2 template disciplines).
+- **Text colour uses four tokens only**: `--ink` / `--muted` / `--accent-ink` / `--warn`; no `rgba()` text colours and no `opacity` fading. To recede, use `--muted` or a smaller size, never transparency.
+- **`--muted` is measured on both `--bg` and `--panel` ≥ 4.5:1**; citation bars, captions, units and axis labels all count as information-bearing text — small does not exempt them. Large text (≥ 24px, or ≥ 18.66px bold) ≥ 3:1.
+- **Text on a full-bleed backdrop is measured at the brightest point after the scrim**: below 4.5:1, strengthen the scrim; never change body text to accommodate the backdrop.
 - **Images**: every `<img>` sits inside a container carrying `aspect-ratio` + `object-fit` (`.img-frame` or your equivalent); a bare `<img>` is not allowed. Put a scrim over dark backgrounds, and use `contain` plus a filled container when the whole image must stay legible.
-- **Density**: ≤ 4 numbers per slide; one claim (`key`) per slide; the rest into `.notes`. Every number on screen must trace back to one of that slide's §4 entries that carries it (`table` / `kpi` / `compare` / `formula` / `code`, …) — the library and picking rules live in `04-skeleton.md` §4.
-- **Type**: body ≥ skeleton's `min_body_px` (default 22px); hero numerals 72–120px with `tabular-nums`; citation bar 9–11px yet still legible.
+- **Density**: ≤ 4 numbers and ≤ 4 peer cards per slide, one primary and one claim (`key`) per slide; the rest into `.notes`. Every number on screen must trace back to one of that slide's §4 entries that carries it (`table` / `kpi` / `compare` / `formula` / `code`, …) — the library and picking rules live in `04-skeleton.md` §4.
+- **Type**: only the four tiers of the skeleton's `hierarchy.scale` (primary / title / body / note), adjacent ratio ≥ 1.4; body ≥ `min_body_px` (default 22px); hero numerals 72–120px with `tabular-nums`; citation bar 9–11px yet still legible.
 - **Citation bar**: bottom-right "source · year" on every slide; ⚠️ / 🔍 badges sit tight against the value, two consistent badge styles, meaning explained on the sources slide.
 - **The evidence-chain badge gathers those footnotes into one chip in the bottom-right — but only a serious deck shows it.** When the skeleton sets `evidence_chain: on` (a defence, research, data report or review where every claim must be traceable), the build adds `data-evidence="1"` to `<html>` or `<body>` and the shell builds the badge; a casual deck leaves it off and the corner stays clean. All you do is write the `.foot` ("source · year") fully — the badge counts them and a click lists them. **Do not style it yourself, and never draw a separate "evidence chain" on the page.**
 - **Full-bleed backdrop**: `data-bg` goes on the `<section>` only, with the content lifted to `z-index:1` (see the media section above); a backdrop does not enter the text flow and is not framed — it is a different thing from an `image` in an `.img-frame`.
@@ -189,6 +222,9 @@ Citation bars, sources slide and inline `srcline` all use `target="_blank" rel="
 18. **The backdrop hides the content, or the content hides the backdrop**: `data-bg` lies on the section and the scrim is the section's `::after`, both below the content; if a page's content block is in normal flow (`static`) it sits *under* the scrim, and the page reads as "a translucent wash with no visible text". Give `.slide[data-bg] > *` `position:relative;z-index:1`. Also: a `data-bg` written as an external `https://…` is refused by the shell (it names the page in the console) — a backdrop must be inlined too, or the deck is no longer offline.
 19. **The evidence chain is a per-deck choice, not a hotkey and not a default.** Skeleton §1's `evidence_chain` decides it: `on` makes the build set `data-evidence="1"` on `<html>`/`<body>` and the shell builds a visible badge; write nothing and the corner stays empty. Decide it while writing, not on stage. It recounts per slide from `.foot` and the other sources, so an author who writes sources fully is the one who gives it something to count; a click lists the sources, and it never prints or lands in a screenshot.
 20. **A missing-media message lives inside the player box, not under the card.** `.mp[data-state="error"]` hides the picture and the bar and shows `.mp-missing` ("Video not found" / "Audio not found"). Do not go looking for the old `.mp-note`'s bottom margin — that treatment is retired, and the assertion now checks `.mp-missing` is present and **inside** the card.
+21. **Two largest font sizes = no primary**: putting both `h2` and `.key` at 48px is the most common way to look tiered while being flat. Only one element may stand on the first tier; the other drops to the second, or step 6's hierarchy assertion will flag it.
+22. **Using `opacity` to recede text silently kills contrast**: `--muted` picked at 4.5:1 and then wrapped in `.6` alpha lands near 2:1. Recede with tokens and size, not transparency; step 6 recomputes on the composite colour.
+23. **Three equal-width columns with three colours is noise, not hierarchy**: equal cards each with their own colour leave the eye no landing point. Either make the main column ≥ 1.4× a side column, or accent one card and set the rest to panel.
 
 ## Output
 

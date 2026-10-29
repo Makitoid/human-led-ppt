@@ -162,7 +162,7 @@ out.overflow = {cardBottom: fig.offsetTop + fig.offsetHeight, limit,
 源文件要**真的和 HTML 放在一起**再测——`file://` 下路径不对就是第 6 条那个容错分支，两件事一起验完。
 内联图片另测一条：`img.complete === true && img.naturalWidth > 0`，并确认 `img.src` 以 `data:image/` 开头。
 
-### 2.3 满版背景 与 证据链（有 `background` 关键字、或要看证据链时跑）
+### 2.2 满版背景 与 证据链（有 `background` 关键字、或要看证据链时跑）
 
 ```js
 // 背景：壳把 data-bg 内联进 style.backgroundImage；属性保留（作者 CSS 靠它抬层），值在文件里仍只有一份
@@ -206,7 +206,7 @@ out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySele
   预览模式要走 `http://localhost` 测，或者把演讲者窗打开一次。**目录名**含中文时内置浏览器可能加载失败
   （测试稿放 ASCII 目录），但 `data-src` **文件名**里的中文和空格是好的，已实测通过，不需要手工 URL 编码。
 
-### 2.2 批注 / 黑板（装了第 7 步时）
+### 2.3 批注 / 黑板（装了第 7 步时）
 
 - `A` 开批注后，方向键 / 空格 / 数字键仍照常翻页；
 - `B` 进黑板：`body` 带 `board`、整页换成那块深底黑板、状态条出现、调色板换成那套粉笔色（每支笔对
@@ -219,6 +219,72 @@ out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySele
   也没有任何 iframe 带着 `board=1`；把某张卡改大或拖开、松手（mouseup）后它必须仍盖在邻居上面
   （`parseInt(card.style.zIndex,10)` 变大、不掉回 `z-index:auto`），刷新后这个前后次序还在——
   `z` 和 x/y/w/h 一起存在布局记录 `pv.v2|` 里。
+
+### 2.4 视觉层级与对比度（逐页必跑）
+
+这一节查四件事：每页是不是只有一个主语、字号阶梯有没有拉开、accent 有没有超预算、所有文字在**实际背景**上是否达标。它替代"看起来还行"的目检。
+
+```js
+async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const slides = [...document.querySelectorAll('#stage > .slide')];
+  const vis = el => { const s = getComputedStyle(el); return s.display !== 'none' && s.visibility !== 'hidden' && el.getClientRects().length > 0; };
+  const rgb = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(',').map(Number); return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1}; };
+  const lum = c => { const f = v => { v/=255; return v<=.03928 ? v/12.92 : Math.pow((v+.055)/1.055,2.4); }; return .2126*f(c.r)+.7152*f(c.g)+.0722*f(c.b); };
+  const ratio = (a,b) => { const x=lum(a), y=lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); };
+  const bgOf = el => { let n = el; while (n) { const cs = getComputedStyle(n); const c = rgb(cs.backgroundColor); if (c && c.a > .99) return c; if (cs.backgroundImage !== 'none') return null; n = n.parentElement; } const c = rgb(getComputedStyle(document.documentElement).backgroundColor); return c && c.a > .99 ? c : {r:255,g:255,b:255,a:1}; };
+  const probe = document.createElement('i');
+  probe.style.cssText = 'position:fixed;left:-9999px;width:1px;height:1px';
+  probe.style.background = 'var(--accent)';
+  document.body.appendChild(probe);
+  const accentRaw = getComputedStyle(probe).backgroundColor;
+  const accentParsed = rgb(accentRaw);
+  const accent = accentParsed && accentParsed.a > 0 ? accentRaw : null;
+  probe.remove();
+  const report = [];
+  for (let i = 0; i < slides.length; i++) {
+    window.__deck.go(i); await sleep(450);
+    const s = slides[i];
+    const leaves = [...s.querySelectorAll('*')].filter(el => vis(el) && !el.closest('.notes') && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()));
+    const items = leaves.map(el => ({ el, fs: parseFloat(getComputedStyle(el).fontSize), text: el.textContent.trim().slice(0, 18) }));
+    const sorted = [...items].sort((a,b) => b.fs - a.fs);
+    const topFs = sorted[0] ? sorted[0].fs : 0;
+    const top = sorted.filter(x => Math.abs(x.fs - topFs) <= 1);
+    const topGroups = [...new Set(top.map(x => x.el.closest('h1,h2,h3,.key,.pull,.kpi,[data-kpi]') || x.el))];
+    const kpiTop = topGroups.length > 1 && topGroups.every(el => el.matches('.kpi,[data-kpi]') || el.closest('.kpi,[data-kpi]'));
+    const second = sorted.find(x => x.fs < topFs - 1);
+    const body = sorted.find(x => x.fs <= 28 && x.fs >= 20);
+    const accentBlocks = accent ? [...s.querySelectorAll('*')].filter(el => vis(el) && getComputedStyle(el).backgroundColor === accent && el.getBoundingClientRect().width * el.getBoundingClientRect().height > 3000).length : null;
+    const lowContrast = [], unknownBg = [];
+    for (const it of items) {
+      const cs = getComputedStyle(it.el);
+      if (parseFloat(cs.opacity) < .85) { lowContrast.push({ text: it.text, why: 'opacity ' + cs.opacity }); continue; }
+      const fg = rgb(cs.color), bg = bgOf(it.el);
+      if (!fg) continue;
+      if (!bg) { unknownBg.push(it.text); continue; }
+      const need = (it.fs >= 24 || (it.fs >= 18.66 && parseInt(cs.fontWeight) >= 700)) ? 3 : 4.5;
+      const r = ratio(fg, bg);
+      if (r < need) lowContrast.push({ text: it.text, fs: it.fs, ratio: +r.toFixed(2), need });
+    }
+    report.push({ page: i + 1, topFs, primaryCandidates: topGroups.length, kpiTop,
+      primaryText: topGroups.map(el => el.textContent.trim().slice(0, 18)),
+      topSecond: second ? +(topFs / second.fs).toFixed(2) : null,
+      topBody: body ? +(topFs / body.fs).toFixed(2) : null,
+      accentBlocks, lowContrast, unknownBg });
+  }
+  window.__deck.go(0);
+  return JSON.stringify(report);
+}
+```
+
+判读（任一不满足就回去改，不要"看起来还行"）：
+
+- **主语**：`primaryCandidates` 应为 `1`；`primaryCandidates` 在 `2–4` 之间时，只有 `kpiTop === true` 且 `accentBlocks === 1` 才算过（一组 KPI 里有一张明显是主角）。其他情况一律按"两个最大字号并列"重排。
+- **阶梯**：`topSecond ≥ 1.4`、`topBody ≥ 1.5`（封面 / 幕间 / 来源 / 致谢这类无 `key` 的页以 `h2` 为主语时 `topBody ≥ 1.4`）。低于说明标题 / 正文在往上挤，层级没拉开。
+- **强调预算**：`accentBlocks ≤ 1`。大于 1 说明 accent 从"定位"变成了"底色"；为 `null` 说明 `:root` 没声明 `--accent`，先补令牌再重跑。
+- **对比度**：`lowContrast` 必须为空；`unknownBg` 不为空说明文字压在图片或渐变上，脚本量不了，按"遮罩后最亮处"人工测一次并写进交付说明。
+- **令牌自检**：`--muted` 对 `--bg` 与 `--panel` 各测一次 ≥4.5:1，`--accent-ink` 对 `--accent` ≥4.5:1。页面里出现 `opacity`/`rgba()` 文字色，按合成色重算，不按令牌值算。
+- **灰度目检**：给 `#stage` 临时加 `filter:grayscale(1)`，逐页看主语是否仍是第一眼可辨；去掉颜色就分不出主次的页，回去改字号 / 字重 / 位置。这一项截图不了就写"未实测"，不要默认通过。
 
 ## 3. 数字审计（不可跳过）
 
@@ -238,7 +304,7 @@ out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySele
 
 - 三个文件的可点击链接（HTML / 骨架 / 资料总结），HTML 放最前
 - 页数、时长合计、风格名
-- **实测通过项**：导航、G 总览、点击半屏、hash、竖屏遮罩、零外部请求、逐页无溢出、字号下限、数字审计
+- **实测通过项**：导航、G 总览、点击半屏、hash、竖屏遮罩、零外部请求、逐页无溢出、字号下限、**逐页单一主语 / 字号阶梯 / accent 预算 / 全文字对比度**、数字审计
 - **有媒体时**：音视频文件名清单 + "要连同文件夹一起拷走"这句提醒；图片是内联的所以不受影响
 - **未验证项与假设**：例如打印分页未实测、某来源因网络不可达未核实、深链只在桌面验证
 - 需要用户拍板的点（如署名、是否保留某页）
