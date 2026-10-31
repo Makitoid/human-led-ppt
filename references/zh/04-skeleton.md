@@ -1,13 +1,13 @@
 # 第 4 步 · Agent-native 骨架说明书
 
-产出 `<主题>-HTML-PPT骨架.md`。它是**给 agent 的构建说明书，不是讲稿**：第 5 步逐条照它执行，用户逐条审它改稿。写完必须停下等用户审核。
+产出：HTML 轨道 `<主题>-HTML-PPT骨架.md`，PPTX 轨道 `<主题>-PPTX骨架.md`，两份都要时各写一份（页数、页型、数字保持一致）。它是**给 agent 的构建说明书，不是讲稿**：第 5 步逐条照它执行，用户逐条审它改稿。写完必须停下等用户审核。
 
 ## 文件骨架
 
 ```markdown
-# HTML PPT 骨架 · <主题>（<叙事方式>）
+# PPT 骨架 · <主题>（<叙事方式>）
 
-> 本文件是给 agent 的**构建说明书**，不是讲稿。请严格按 §1 的构建约束和 §4 的分页规格生成单文件 HTML 演示。
+> 本文件是给 agent 的**构建说明书**，不是讲稿。请严格按 §1 的构建约束和 §4 的分页规格生成成品（§1 target 决定 HTML 或原生 PPTX）。
 > 数据只允许从 `<主题>-资料总结.md` 取用。**任何未在该文件中出现的数字一律不得编造**；如某页需要新数据，先检索并补来源，再填。
 
 ## §1 构建约束（Build Spec）   ← YAML
@@ -23,36 +23,44 @@
 
 ```yaml
 deck:
-  format: single-file HTML          # 一个 .html，内含 <style> 与 <script>，不拆分文件
-  filename: <主题>.html
-  canvas: 16:9                      # 1280×720 逻辑尺寸，CSS transform 缩放适配窗口
+  target: html-deck | native-pptx | both   # 第 1 步选定；决定第 5/6 步读哪份文档
+  format: single-file HTML | native PPTX   # 与 target 对应；两份都写
+  filename: <主题>.html | <主题>.pptx      # 按 target 写；两份都写
+  canvas: 16:9                      # HTML 1280×720；PPTX 960×540pt（13.333×7.5in）
   slides: <N>                       # 与 §3 渲染页码序列条数一致
   language: zh-CN
   team_on_cover: <署名>              # 可选；有分工页时一并写
-  navigation:                       # 硬性要求，见 05-build.md
+  navigation:                       # HTML 轨道硬性要求，见 05-build.md；PPTX 用 PowerPoint 自带
     - Space / → / ↓ / PageDown → 下一页；← / ↑ / PageUp → 上一页；Home / End → 首末页
     - G → 网格总览（缩略图墙）；F → 全屏；数字键 1-9 → 跳转；Esc → 关闭总览
     - 点击屏幕左/右半区翻页；触屏左右滑动；URL hash 记录页码（#s5）
     - 移动端竖屏 → 显示"请横屏观看"遮罩
   typography:
-    cn: <字体栈>                     # 来自第 2 步
+    cn: <字体栈>                     # 来自第 2 步；PPTX 写 latin + ea 两个已装字体
     numbers: tabular-nums 大字号（关键数字 72–120px）
     min_body_px: 22
   hierarchy:                        # 每页的视觉主次，构建时照此实现
     primary: per-slide (key | kpi | pull)   # 每页恰好一个主语；同一稿尽量固定一种主语法，同页不许并列
-    scale: {claim: 48, title: 34, body: 24, meta: 14}   # 相邻级比 ≥1.4；KPI 可用 72–120
+    scale: {claim: 48, title: 34, body: 24, meta: 14}   # 相邻级比 ≥1.4；KPI 可用 72–120；PPTX 1px=0.75pt
     accent_blocks_per_slide: 1      # accent 填充块上限
     warn_marks_per_slide: 1         # warn 标记上限
   theme:
     light: {bg:"", ink:"", accent:"", warn:"", panel:"", rule:""}
     dark_alternative: <允许/不允许，同一 deck 内不得混用>
     禁止: <渐变填充、玻璃拟态、阴影堆叠…按第 2 步结论填>
-  charts: 内联 SVG 或纯 CSS；不引入外部依赖；无网络请求、无 localStorage
-  presenter: off | on（on = 走第 8 步，提示词见 §7；启用后 localStorage 只用于演讲者窗布局）
-  footnotes: 每页右下角引用条，格式「来源 · 年份」，9–11px
-  evidence_chain: off | on          # on = 严肃稿（答辩/研究/数据报告/评审）在右下角显示证据链；构建时给 <html> 或 <body> 加 data-evidence="1"
+  charts: HTML 内联 SVG / 纯 CSS；PPTX 原生图表（2–12 类别、1–3 序列、线性轴），见 05b-pptx.md
+  presenter: off | on（on = HTML 走第 8 步；PPTX 固定 off，§7 仍写进原生备注）
+  footnotes: 每页右下角引用条，格式「来源 · 年份」，HTML 9–11px；PPTX ≥10.5pt
+  evidence_chain: off | on          # HTML 严肃稿加 data-evidence="1"；PPTX 用来源页脚 + 来源页
+  pptx:                             # 仅 target 含 native-pptx 时写
+    engine: officecli | host-plugin # 第 5 步 detect-engine.cjs 的结论；host-plugin 要注明插件名
+    canvas: 16:9（960×540pt）        # 固定；不支持 4:3 / 竖版
+    fonts: {latin: <已装>, ea: <已装>} # 交付机必须已安装
+    motion: {transition: fade, duration_ms: 400, element: none}  # 只允许这一组
+    notes: from §7（纯文本，<strong>/<em> 会被剥掉）
+    evidence: <来源页脚覆盖哪些页 + 来源页页码>
   accessibility: 每页 h1/h2 有序；翻页 aria-live 播报；正文对比度 ≥ 4.5:1
-  motion: 进场动画随切页自动播放；prefers-reduced-motion 时整体关闭
+  motion: HTML 进场动画随切页自动播放、prefers-reduced-motion 时关闭；PPTX 只允许切页 fade 400ms，页内动画 none
 ```
 
 `typography` / `hierarchy` / `theme` / `禁止` / `motion` 五块直接抄第 2 步的"风格决定块"，不要在这里重新发明。`motion` 要写清**切页方式 + 时长 + easing + 页内动画类型**，构建时照做；深色主题额外确认 `deck-shell.css` 的 `--ovl-bg / --ovl-ink / --ovl-card`（总览墙）已一并覆盖。`hierarchy` 是第 5 步排版时的第一顺位：先定每页主语，再排其余内容；`scale` 的相邻级比低于 1.4 就直接判不合格。
@@ -324,9 +332,13 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 - **节奏不能平**：连续三页同一 `role`（都在铺陈或都在下结论）说明叙事弧度塌了，回 §3 重排；钩子 / 峰值 / 释放页的 `role` 必写。
 - `sec` 加总要接近第 1 步的时长预算，超了先删词，再砍页。
 
+> **PPTX 轨道**：关键字 → block kind 的唯一映射在 `05b-pptx.md` §4；本节"落到哪里"列是 HTML DOM 槽位，PPTX 构建不读这一列。映射只留一份，不要抄进骨架。
+
 ## §5 实现细则
 
 编号清单，写给构建步执行：页面 DOM 骨架与类名、**§4 词集到 DOM 槽位的对照**（每个关键字落到哪个元素——照 §4 词库的"落到哪里"列抄一遍，构建时不必再猜；词库没有覆盖的新造词，在这里补它自己的槽位）、**§1 `hierarchy` 的落点**（主语落在 `.key` / `.kpi` 主数字 / `.pull`，标题落在 `h2`，支撑落在 `.slide-body`，细节落在 `.kicker` / 图注 / `.foot`；每页只允许一个主语）、数据呈现优先级、角色胶囊的可见性规则（只有选了 `lines` / `handoff` 才写这条）、⚠️/🔍 徽标的用法与"在来源页解释徽标含义"、禁止事项（无来源的数字、形容词代替证据、把估算写成定论、复述被纠正过的误读、两个最大字号并列）、缩放与打印、**产出与自检**（逐页核对每个数字都能在资料文件里找到；导航与键盘可用；无外部请求；易错页表述正确）。
+
+**target 含 native-pptx 时**：上面这套 DOM 槽位清单改用 `05b-pptx.md` §4/§5 的 **block kind + recipe** 写法——每页写 `type`、`key`、`blocks`、`source`、`notes`，不再写 HTML 类名；页数、页型、数字仍以本骨架为准。
 
 ## §6 变更记录
 
@@ -355,6 +367,8 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 字段就是上面这四项：**开口 / 转折 / 抛问 / 收尾**，各 1–2 段，合计 150–300 字。构建时按顺序拼成 `<p>` 段落塞进该页 `.notes`，卡片里 `<strong>` 走 warn 色、`<em>` 走 accent 色（见 `08-presenter-mode.md`）。
 
 §7 之后不留别的章节；没有第 8 步就整节省略，并在 §6 变更记录写一行"未启用演讲者模式"。
+
+**PPTX 轨道**同样从 §7 取每页提示词，写进原生备注；但备注是**纯文本**，`<strong>` / `<em>` 会被剥掉，只保留文字。第 8 步的演讲者双窗只服务 HTML；PPTX 用 PowerPoint 自带演讲者视图。
 
 ## 交付审核（本步的终点）
 

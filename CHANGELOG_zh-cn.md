@@ -2,6 +2,16 @@
 
 [English](CHANGELOG.md) · **中文** · [日本語](CHANGELOG_ja.md)
 
+## v2.0 (2026-10-31)
+
+- **新增原生 PPTX 兼容轨道**：`officecli` + JSON 页规格 + 版式编译器，产出可编辑的原生形状/表格/图表/图片/媒体/备注；切页统一 `fade` 0.4s，不加页内动画；构建前后双检（规格 + 成品回读）、`validate` / `issues` / 逐页截图复核。
+- **banner 重绘**：左侧放大品牌与人主导理念，右侧叠放 HTML 幻灯片与可编辑的原生 PPTX 卡片，底部串联五步流程与人工审核闸门；沿用纸面/墨绿/琥珀三色，零渐变、零外部字体。
+- **HTML 仍是主轨**：第 1 步用固定文案让用户选 HTML / PPTX / 两份，不替用户默认；README 先讲 HTML 的轻量、Agent 友好与审美上限。
+- **引擎规则**：officecli 强制；Claude Code / Codex / ZCode 优先用宿主 PPTX 插件、缺则回退 officecli；DeepSeek Harness 先查插件；只装 officecli 二进制，不跑 `officecli install`。
+- **新增文件**：`assets/pptx/{detect-engine,lib,recipes,build,lint}.cjs`、`assets/pptx/fixtures/`、`references/zh|en|ja/05b-pptx.md` 与 `06b-pptx.md`；骨架 §1 增加 `target` 与 `pptx:` 块。
+- **README 三语整篇重写**：结构改为“为什么 HTML 为主 → 两种形态 → 五步 → PPTX 兼容轨道 → 安装 → 对照表 → 限制”。
+- **三语同步**：`references/zh|en|ja` 的 01 / 02 / 03 / 04 / 05 / 06 / 07 / 08、新增 05b / 06b、`SKILL.md`、三份 README 与本变更记录同批更新。
+
 ## v1.6.1 (2026-10-23)
 
 演讲者模式、音频播放条与视觉层级的多处修复。

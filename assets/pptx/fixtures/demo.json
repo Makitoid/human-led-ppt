@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "title": "远程办公的真实成本",
+    "author": "Makitoid Wang",
+    "lang": "zh-CN",
+    "locale": "zh-CN",
+    "skeleton": "demo-skeleton.md",
+    "slides": 6,
+    "numberWhitelist": ["2026"]
+  },
+  "theme": {
+    "bg": "#FFFFFF",
+    "panel": "#F2F4F7",
+    "ink": "#1F2328",
+    "muted": "#5A6472",
+    "accent": "#0063B1",
+    "accentInk": "#FFFFFF",
+    "warn": "#B42318",
+    "rule": "#D0D7DE",
+    "font": { "latin": "Arial", "ea": "Microsoft YaHei" },
+    "scale": { "claim": 48, "title": 34, "body": 24, "meta": 14 },
+    "radius": 16
+  },
+  "motion": { "transition": "fade", "duration": 400 },
+  "slides": [
+    {
+      "id": "s1",
+      "type": "cover",
+      "topic": "内部汇报 · 2026",
+      "title": "远程办公的真实成本",
+      "key": "省下的租金，变成了什么",
+      "author": "Makitoid Wang",
+      "blocks": [
+        { "kind": "prose", "text": "一份基于三年财务口径的成本复盘" }
+      ],
+      "notes": "开口：今天不谈远程办公的好坏，只算账。"
+    },
+    {
+      "id": "s2",
+      "type": "points",
+      "topic": "第一幕 · 口径",
+      "title": "三种成本此消彼长",
+      "key": "显性成本下降，隐性成本上升",
+      "blocks": [
+        {
+          "kind": "points",
+          "items": [
+            "租金与工位：最容易看见，也最容易被砍掉",
+            "协作与会议：躲在日历里，按小时计费",
+            "流失与培训：最迟到账，却最难逆转"
+          ]
+        }
+      ],
+      "notes": "先把成本分成三类，后面的数字都按这个口径。"
+    },
+    {
+      "id": "s3",
+      "type": "kpi-hero",
+      "topic": "第二幕 · 账面",
+      "title": "一年账面变化",
+      "key": "总成本只降了 4%",
+      "blocks": [
+        {
+          "kind": "kpi",
+          "items": [
+            { "value": "-32", "unit": "%", "label": "租金与工位，最显眼的一项" },
+            { "value": "+18", "unit": "%", "label": "协作与会议，按人力工时折算" },
+            { "value": "-4", "unit": "%", "label": "全口径总成本，远低于预期" }
+          ]
+        }
+      ],
+      "emphasis": { "role": "kpi", "index": 0, "tone": "accent" },
+      "source": "示例研究院 · 2026",
+      "notes": "强调 4%：不是 32%，因为另外两项把收益吃掉了。"
+    },
+    {
+      "id": "s4",
+      "type": "table-showdown",
+      "topic": "第二幕 · 口径",
+      "title": "成本口径对照",
+      "key": "只看租金会高估收益",
+      "blocks": [
+        {
+          "kind": "table",
+          "cols": ["口径", "含什么", "年成本变化"],
+          "rows": [
+            ["只看租金", "工位与水电", "-32%"],
+            ["加上协作", "会议与沟通工时", "-14%"],
+            ["全生命周期", "再计流失与培训", "-4%"]
+          ]
+        }
+      ],
+      "source": "示例研究院 · 2026",
+      "notes": "每一行都比上一行多算一段，结论因此收敛。"
+    },
+    {
+      "id": "s5",
+      "type": "chart",
+      "topic": "第二幕 · 协作",
+      "title": "协作成本逐季上升",
+      "key": "Q4 协作成本是 Q1 的 2.4 倍",
+      "blocks": [
+        {
+          "kind": "chart",
+          "chartType": "column",
+          "categories": ["Q1", "Q2", "Q3", "Q4"],
+          "series": [{ "name": "协作成本（万元）", "values": [5, 7, 9, 12] }],
+          "xTitle": "季度",
+          "yTitle": "万元"
+        }
+      ],
+      "source": "示例研究院 · 2026",
+      "notes": "这根曲线是峰值证据：协作成本没有被远程省掉。"
+    },
+    {
+      "id": "s6",
+      "type": "split-compare",
+      "topic": "第三幕 · 结论",
+      "title": "两种工作方式",
+      "key": "远程不是免费午餐",
+      "blocks": [
+        {
+          "kind": "compare",
+          "left": { "title": "集中办公", "items": ["租金高但稳定", "协作靠现场", "新人上手快"] },
+          "right": { "title": "远程办公", "items": ["租金立省", "协作按小时涨价", "培训成本后置"] }
+        }
+      ],
+      "source": "示例研究院 · 2026",
+      "notes": "收尾：选择哪种方式，取决于把哪一段成本算进来。"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 # Step 6 · Verify and deliver
 
+> When `target` includes `native-pptx`, this step reads `06b-pptx.md` instead; everything below serves the HTML primary track only.
+
 Order: **ask first** → static checks → live browser test → number audit → delivery. If anything fails, go back and fix it; never present unverified work as done.
 
 ## 0. Ask the user who runs the check (do not skip this)

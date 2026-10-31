@@ -11,13 +11,13 @@ Run this step only when the user asks for web research, or when the topic needs 
 5. **Say so when the network blocks you**: record `⛔ unreachable: <URL> (<symptom>)` in the source file and tell the user explicitly, "this could not be reached, so it is unverified". Never substitute a remembered figure, never drop it silently.
 6. **Forbidden**: inventing numbers, DOIs, page numbers or URLs; presenting an estimate as a finding; adjectives ("staggering", "shocking") in place of evidence; repeating a debunked misreading in its debunked form (if you cite it, cite the correction too).
 
-## Marker system (deck-wide, and visible in the HTML)
+## Marker system (deck-wide, and present in the finished deck)
 
 | Marker | Meaning | Slide handling |
 |---|---|---|
 | ⚠️ | disputed / unclear boundary / famously misread | must also state why it diverges, or carry the correction |
 | 🔍 | second-hand, not verified at source | keep in the citation bar; wording "as cited in …" |
-| ⛔ | unreachable, unverified | **must never reach the HTML**; stays in the source file only |
+| ⛔ | unreachable, unverified | **must never reach the finished deck (HTML/PPTX)**; stays in the source file only |
 | (derived) | computed from other recorded data | the slide must say "we derived this from …" |
 
 ## Image assets (a separate section when the deck needs imagery)
@@ -25,9 +25,9 @@ Run this step only when the user asks for web research, or when the topic needs 
 Text and figures go through the evidence procedure above; **images** are a second track — collecting them and generating them are handled apart:
 
 - **Images found on the web** — download them into the user's target directory and register each one in a dedicated "**Candidate images**" section of the source file, one row per image: `file name | what it is | source URL | licence (CC0 / public domain / attribution required / unclear) | suggested placement`. An unclear licence is marked ⚠️ with a note that the user should decide. **Never embed the image itself in the source notes** (it bloats the Markdown and pre-empts the build) — register the list only.
-- **Never link an image straight from an external URL**: the deck must be offline, so by the time it reaches the HTML the image is either downloaded or generated. Search only exists to **find and verify** that the image exists and is suitable.
+- **Never link an image straight from an external URL**: the deck must be offline, so by the time it reaches the finished deck the image is either downloaded or generated. Search only exists to **find and verify** that the image exists and is suitable.
 - **Generated images do not go into the source notes** — they go through step 4's `draw` keyword: write the prompt, aspect and placement in the skeleton, and generate only after the user has reviewed the prompt.
-- Every image obeys template discipline 5 (always framed) and step 2's background rule — **photos, screenshots and logos never travel bare**.
+- Every image obeys template discipline 5 (always framed) and step 2's background rule — **photos, screenshots and logos never travel bare**. The PPTX track is cropped/centred by the builder from the intrinsic size; ≤ 2MB per image recommended (images are embedded in the `.pptx`, so their size lands straight in the deliverable), in PNG/JPEG.
 
 > Searching for an image is still "unreadable means unverified": it counts as found only when you can download it and see its content. A search-result thumbnail whose page 403s is a miss — find another, or switch to generating it.
 
@@ -80,13 +80,13 @@ Text and figures go through the evidence procedure above; **images** are a secon
 - Standardise units and show the conversion (MWh/GWh/TWh, gallons/litres, t/kt); keep the original unit on the slide with the conversion noted.
 - Actively collect **misreadings and self-revisions** — they beat correct numbers for persuasion and make natural dispute slides.
 - The "conclusion ammunition" section is for the speaker: at most four items, each a judgement rather than a figure.
-- The source file, the skeleton and the HTML are three views of one fact set. If a figure changes at any later step, **update all three**.
+- The source file, the skeleton and the finished deck (HTML/PPTX) are three views of one fact set. If a figure changes at any later step, **update all three**.
 
 ## Before finishing
 
 - [ ] Every number has source + year and points at a concrete URL or filename
 - [ ] Load-bearing numbers have a second source, or are marked 🔍
 - [ ] Every ⚠️ explains the disagreement and the safe wording
-- [ ] No ⛔ item leaked into the skeleton or the HTML
+- [ ] No ⛔ item leaked into the skeleton or the finished deck
 - [ ] (when imagery was needed) every candidate image has a source URL and a licence status, unclear ones are marked ⚠️ and raised with the user, and no generated image leaked into the source notes
 - [ ] Unreachable links were reported to the user

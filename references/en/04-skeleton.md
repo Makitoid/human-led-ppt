@@ -1,13 +1,13 @@
 # Step 4 · Agent-native skeleton (build spec)
 
-Output: `<topic>-HTML-PPT-skeleton.md` (Chinese convention: `<主题>-HTML-PPT骨架.md`). It is a **build specification for an agent, not a script**: Step 5 executes it line by line, the user reviews and edits it. When it is written, stop and wait for review.
+Output: HTML track `<topic>-HTML-PPT-skeleton.md` (Chinese convention: `<主题>-HTML-PPT骨架.md`); PPTX track `<topic>-PPTX-skeleton.md` (Chinese convention: `<主题>-PPTX骨架.md`); when both are wanted, write one of each (same slide count, page types and numbers). It is a **build specification for an agent, not a script**: Step 5 executes it line by line, the user reviews and edits it. When it is written, stop and wait for review.
 
 ## File shape
 
 ```markdown
-# HTML PPT skeleton · <topic> (<narrative device>)
+# PPT skeleton · <topic> (<narrative device>)
 
-> This is a build spec for the agent, not speaker notes. Generate one single-file HTML deck strictly per §1 and §4.
+> This is a build spec for the agent, not speaker notes. Generate the finished deck strictly per §1 and §4 (the `target` in §1 decides HTML or native PPTX).
 > Data may only be taken from `<topic>-sources.md`. **No number absent from that file may be invented**; if a slide needs new data, research and cite it first, then fill it in.
 
 ## §1 Build spec (YAML)
@@ -23,36 +23,44 @@ Output: `<topic>-HTML-PPT-skeleton.md` (Chinese convention: `<主题>-HTML-PPT�
 
 ```yaml
 deck:
-  format: single-file HTML          # one .html, <style> and <script> inlined, nothing split out
-  filename: <topic>.html
-  canvas: 16:9                      # 1280×720 logical size, CSS transform scaling to the window
+  target: html-deck | native-pptx | both   # chosen in Step 1; decides which document steps 5/6 read
+  format: single-file HTML | native PPTX   # matches target; write both when both
+  filename: <topic>.html | <topic>.pptx    # per target; write both when both
+  canvas: 16:9                      # HTML 1280×720; PPTX 960×540pt (13.333×7.5in)
   slides: <N>                       # must equal the number of entries in §3's rendered order
   language: <zh-CN | en>
   team_on_cover: <names>            # optional; include division of labour if that page exists
-  navigation:                       # hard requirements, see 05-build.md
+  navigation:                       # HTML-track hard requirement, see 05-build.md; PPTX uses PowerPoint's own
     - Space / → / ↓ / PageDown → next; ← / ↑ / PageUp → previous; Home / End → first/last
     - G → grid overview (thumbnail wall); F → fullscreen; digits 1-9 → jump; Esc → close overview
     - click left/right half of the screen to page; touch swipe
     - mobile portrait → show a "rotate to landscape" mask
   typography:
-    cn: <font stack>                # from Step 2
+    cn: <font stack>                # from Step 2; PPTX names two installed fonts, latin + ea
     numbers: tabular-nums, hero numerals 72–120px
     min_body_px: 22
   hierarchy:                        # per-slide visual rank; the build implements this
     primary: per-slide (key | kpi | pull)   # exactly one primary per slide; keep one style per deck, never two in parallel on a slide
-    scale: {claim: 48, title: 34, body: 24, meta: 14}   # adjacent ratio ≥ 1.4; KPI may run 72–120
+    scale: {claim: 48, title: 34, body: 24, meta: 14}   # adjacent ratio ≥ 1.4; KPI may run 72–120; PPTX 1px = 0.75pt
     accent_blocks_per_slide: 1      # accent fill cap
     warn_marks_per_slide: 1         # warn mark cap
   theme:
     light: {bg:"", panel:"", ink:"", muted:"", accent:"", warn:"", rule:""}
     dark: {…}                       # pick exactly one for the deck
     constraints: [<gradient fills, glassmorphism, stacked shadows, …>]
-  charts: inline SVG or pure CSS; no external dependency; no network requests, no localStorage
-  presenter: off | on (on = run step 8; prompts live in §7; when on, localStorage is used only by the presenter window)
-  footnotes: citation bar bottom-right of every slide, "source · year", 9–11px
-  evidence_chain: off | on          # on = a serious deck (defence / research / data report / review) shows the bottom-right evidence chain; the build adds data-evidence="1" to <html> or <body>
+  charts: HTML inline SVG / pure CSS; PPTX native charts (2–12 categories, 1–3 series, linear axis), see 05b-pptx.md
+  presenter: off | on (on = HTML runs step 8; PPTX is always off, §7 still goes into the native notes)
+  footnotes: citation bar bottom-right of every slide, "source · year", HTML 9–11px; PPTX ≥ 10.5pt
+  evidence_chain: off | on          # HTML serious decks add data-evidence="1"; PPTX uses a source footer + a sources page
+  pptx:                             # only when target includes native-pptx
+    engine: officecli | host-plugin # the conclusion of step 5's detect-engine.cjs; host-plugin names the plugin
+    canvas: 16:9 (960×540pt)        # fixed; 4:3 and portrait are not supported
+    fonts: {latin: <installed>, ea: <installed>}   # must be installed on the delivery machine
+    motion: {transition: fade, duration_ms: 400, element: none}  # the only allowed set
+    notes: from §7 (plain text, <strong>/<em> are stripped)
+    evidence: <which slides the source footer covers + the sources page number>
   accessibility: ordered h1/h2 per slide; aria-live announcement on page change; body contrast ≥ 4.5:1
-  motion: <transition type, duration, easing; in-page animation type>; off under prefers-reduced-motion
+  motion: HTML in-page animation plays on slide change, off under prefers-reduced-motion; PPTX allows only a fade 400ms page turn, in-page animation none
 ```
 
 `typography` / `hierarchy` / `theme` / `constraints` / `motion` are copied verbatim from Step 2's style decision block — do not reinvent them here. `hierarchy` is the build's first priority per page: settle the primary, then lay out the rest; a `scale` whose adjacent ratio falls below 1.4 fails outright. State the transition, duration, easing and in-page animation explicitly; the build follows them. For a dark deck also confirm `deck-shell.css`'s `--ovl-bg / --ovl-ink / --ovl-card` (overview wall) were overridden to the same family.
@@ -324,9 +332,13 @@ Every `<…>` above is a placeholder: fill it from the source file, and never le
 - **Rhythm must not flatten**: three consecutive pages with the same `role` (all building or all concluding) means the arc has collapsed — go back to §3. `role` is mandatory on hook / peak / release pages.
 - Sum of `sec` must sit near the Step 1 time budget; overshoot by dropping keywords first, then slides.
 
+> **PPTX track**: the single keyword → block kind mapping lives in `05b-pptx.md` §4; this section's "Where it lands" column is the HTML DOM slots and the PPTX build never reads it. There is one copy of the mapping — do not paste it into the skeleton.
+
 ## §5 Implementation notes
 
 A numbered list the build step executes: DOM skeleton and class names, **the keyword → DOM slot map** (which element each declared keyword renders into — copy it from the "Where it lands" column of the §4 library so the build never has to guess; any coined keyword gets its own slot written here), **where §1 `hierarchy` lands** (primary → `.key` / the `.kpi` main number / `.pull`; title → `h2`; support → `.slide-body`; detail → `.kicker` / captions / `.foot`; exactly one primary per slide), data-presentation priority, persona-capsule visibility rules (only if `lines` / `handoff` made the set), how ⚠️/🔍 badges are used and where they are explained (the sources page), prohibitions (unsourced numbers, adjectives instead of evidence, estimates stated as findings, repeating a corrected misreading, two largest type sizes side by side), scaling and print, and **output plus self-check** (per slide: every number findable in the source file; navigation and keyboard work; no external requests; the known-tricky slide is worded correctly).
+
+**When `target` includes `native-pptx`**: that DOM-slot list is replaced by `05b-pptx.md` §4/§5's **block kind + recipe** form — each slide states `type`, `key`, `blocks`, `source` and `notes`, and no HTML class names; slide count, page types and numbers still follow this skeleton.
 
 ## §6 Changelog
 
@@ -355,6 +367,8 @@ Numbers stay under the source-file contract: every figure appearing in a prompt 
 Those four fields are the format: **open / turn / ask / handoff**, 1–2 short paragraphs each, 150–300 characters total. At build time they become `<p>` paragraphs inside that slide's `.notes`; in the card `<strong>` renders in the warn colour and `<em>` in the accent colour (see `08-presenter-mode.md`).
 
 Nothing follows §7. If step 8 is not used, omit the section entirely and note "presenter mode not enabled" once in §6.
+
+**The PPTX track** takes each slide's prompt from §7 too and writes it into the native notes; but the notes are **plain text** — `<strong>` / `<em>` are stripped and only the words remain. Step 8's two-window presenter layer serves HTML only; PPTX uses PowerPoint's built-in presenter view.
 
 ## Review gate (end of this step)
 

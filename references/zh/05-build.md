@@ -1,5 +1,7 @@
 # 第 5 步 · 构建 HTML PPT
 
+> `target` 含 `native-pptx` 时，本步改读 `05b-pptx.md`；下面只服务 HTML 主轨。
+
 ## 进入前
 
 1. 骨架文件已获用户确认（第 4 步的卡点）。

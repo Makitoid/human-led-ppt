@@ -1,5 +1,7 @@
 # Step 5 · Build the HTML deck
 
+> When `target` includes `native-pptx`, this step reads `05b-pptx.md` instead; everything below serves the HTML primary track only.
+
 ## Before starting
 
 1. The skeleton was approved by the user (Step 4's gate).

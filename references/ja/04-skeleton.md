@@ -1,13 +1,13 @@
 # ステップ 4 · Agent-native 骨子（構築仕様書）
 
-出力：`<トピック>-HTML-PPT骨子.md`（中国語版の慣例：`<主题>-HTML-PPT骨架.md`）。これは**agent 向けの構築仕様書であり、台本ではない**：ステップ 5 がこれを 1 行ずつ実行し、ユーザーが 1 行ずつ審査して直す。書き終えたら必ず止まり、レビューを待つ。
+出力：HTML 軌道は `<トピック>-HTML-PPT骨子.md`、PPTX 軌道は `<トピック>-PPTX骨子.md`（中国語版の慣例：`<主题>-PPTX骨架.md`）、両方ならそれぞれ 1 部ずつ書く（ページ数・ページ型・数字は揃える）。これは**agent 向けの構築仕様書であり、台本ではない**：ステップ 5 がこれを 1 行ずつ実行し、ユーザーが 1 行ずつ審査して直す。書き終えたら必ず止まり、レビューを待つ。
 
 ## ファイルの形
 
 ```markdown
-# HTML PPT 骨子 · <トピック>（<語りの仕掛け>）
+# PPT 骨子 · <トピック>（<語りの仕掛け>）
 
-> 本ファイルは agent 向けの**構築仕様書**であり、スピーカーノートではない。§1 と §4 に厳密に従って単一ファイルの HTML デッキを生成すること。
+> 本ファイルは agent 向けの**構築仕様書**であり、スピーカーノートではない。§1 の構築制約と §4 のページ別仕様に厳密に従って完成品を生成すること（HTML かネイティブ PPTX かは §1 の target が決める）。
 > データは `<トピック>-資料まとめ.md` からのみ取ってよい。**そのファイルに無い数字は決して捏造してはならない**；あるスライドに新しいデータが要るなら、先に調べて出典を付け、それから埋める。
 
 ## §1 構築仕様（YAML）
@@ -23,36 +23,44 @@
 
 ```yaml
 deck:
-  format: single-file HTML          # 1 つの .html、<style> と <script> はインライン、何も外に出さない
-  filename: <トピック>.html
-  canvas: 16:9                      # 1280×720 の論理サイズ、CSS transform でウィンドウに合わせて拡大縮小
+  target: html-deck | native-pptx | both   # ステップ 1 で選択；ステップ 5/6 がどちらの文書を読むかを決める
+  format: single-file HTML | native PPTX   # target に対応；両方なら両方書く
+  filename: <トピック>.html | <トピック>.pptx      # target に従って書く；両方なら両方書く
+  canvas: 16:9                      # HTML は 1280×720；PPTX は 960×540pt（13.333×7.5in）
   slides: <N>                       # §3 のレンダリング順のエントリ数と一致しなければならない
   language: <zh-CN | en>
   team_on_cover: <名前>             # 任意；そのページがあるなら分担も書く
-  navigation:                       # ハード要件、05-build.md を参照
+  navigation:                       # HTML 軌道のハード要件、05-build.md を参照；PPTX は PowerPoint 標準
     - Space / → / ↓ / PageDown → 次へ；← / ↑ / PageUp → 前へ；Home / End → 最初/最後
     - G → グリッド総覧（サムネイルの壁）；F → 全画面；数字キー 1-9 → ジャンプ；Esc → 総覧を閉じる
     - 画面の左半分 / 右半分をクリックしてページ送り；タッチでスワイプ
     - モバイル縦向き → 「横向きにしてください」のマスクを表示
   typography:
-    cn: <フォントスタック>          # ステップ 2 より
+    cn: <フォントスタック>          # ステップ 2 より；PPTX は latin + ea の 2 つのインストール済み書体を書く
     numbers: tabular-nums、主役の数字 72–120px
     min_body_px: 22
   hierarchy:                        # 1 ページごとの視覚的な主従。構築時はこれに従って実装する
     primary: per-slide (key | kpi | pull)   # 1 ページに主役はちょうど 1 つ；同じ稿では主役の作り方を 1 通りに寄せ、同じページに並べない
-    scale: {claim: 48, title: 34, body: 24, meta: 14}   # 隣接比 ≥1.4；KPI は 72–120 を使ってよい
+    scale: {claim: 48, title: 34, body: 24, meta: 14}   # 隣接比 ≥1.4；KPI は 72–120 を使ってよい；PPTX は 1px=0.75pt
     accent_blocks_per_slide: 1      # accent 塗りブロックの上限
     warn_marks_per_slide: 1         # warn 印の上限
   theme:
     light: {bg:"", panel:"", ink:"", muted:"", accent:"", warn:"", rule:""}
     dark: {…}                       # デッキにはどちらか一方だけを選ぶ
     constraints: [<グラデーションの塗り、グラスモーフィズム、影の重ね、…>]
-  charts: インライン SVG または純粋な CSS；外部依存なし；ネットワークリクエストなし、localStorage なし
-  presenter: off | on（on = ステップ 8 を実行；プロンプトは §7 にある；on のとき、localStorage は発表者ウィンドウだけが使う）
-  footnotes: すべてのスライドの右下に出典バー、「出典 · 年」、9–11px
-  evidence_chain: off | on          # on = 真剣な稿（答弁・研究・データ報告・レビュー）は右下にエビデンスチェーンを表示。ビルド時に <html> / <body> に data-evidence="1" を付ける
+  charts: HTML はインライン SVG / 純粋な CSS；PPTX はネイティブグラフ（2–12 カテゴリ、1–3 系列、線形軸）、05b-pptx.md を参照
+  presenter: off | on（on = HTML はステップ 8 を実行；PPTX は常に off で、§7 はネイティブノートに書く）
+  footnotes: すべてのスライドの右下に出典バー、「出典 · 年」、HTML は 9–11px；PPTX は ≥10.5pt
+  evidence_chain: off | on          # HTML の真剣な稿は data-evidence="1" を付ける；PPTX は出典バー + 出典ページ
+  pptx:                             # target に native-pptx を含むときだけ書く
+    engine: officecli | host-plugin # ステップ 5 の detect-engine.cjs の結論；host-plugin はプラグイン名を明記
+    canvas: 16:9（960×540pt）        # 固定；4:3 / 縦版は非対応
+    fonts: {latin: <インストール済み>, ea: <インストール済み>} # 納品先のマシンに必ずインストールされていること
+    motion: {transition: fade, duration_ms: 400, element: none}  # この 1 組だけを許す
+    notes: §7 より（プレーンテキスト、<strong>/<em> は剥がされる）
+    evidence: <出典バーがどのページを覆うか + 出典ページの番号>
   accessibility: スライドごとに h1/h2 の順序を守る；ページ変更時に aria-live で読み上げ；本文のコントラスト ≥ 4.5:1
-  motion: <切り替えの種類、時間、イージング；ページ内アニメーションの種類>；prefers-reduced-motion では無効
+  motion: HTML の入場アニメーションはスライド切り替えで自動再生、prefers-reduced-motion で無効；PPTX はページ送りの fade 400ms だけを許し、ページ内アニメーションは none
 ```
 
 `typography` / `hierarchy` / `theme` / `constraints` / `motion` の 5 ブロックはステップ 2 のスタイル決定ブロックからそのまま写す——ここで作り直してはならない。切り替えの種類・時間・イージング・ページ内アニメーションの種類は明示的に書き、構築はそれに従う。暗色のデッキでは、`deck-shell.css` の `--ovl-bg / --ovl-ink / --ovl-card`（総覧の壁）も同じ系統に上書きされていることを確認する。`hierarchy` はステップ 5 の組版で第一順位である：先に各ページの主役を決め、それから残りを並べる；`scale` の隣り合う段の比が 1.4 を下回るなら、その時点で不合格である。
@@ -324,9 +332,13 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 - **リズムを平らにしない**：同じ `role` が 3 ページ続く（ずっと前提を並べ、ずっと結論を出す）なら語りの弧が崩れている——§3 に戻って組み直す；フック / ピーク / リリースのページは `role` が必須。
 - `sec` の合計はステップ 1 の時間予算に近づけなければならない；超過したらまずキーワードを削り、次にスライドを削る。
 
+> **PPTX 軌道**：キーワード → block kind の唯一の対応表は `05b-pptx.md` §4 にある；本節の「どこに落ちるか」列は HTML の DOM スロットであり、PPTX の構築はこの列を読まない。対応表は 1 か所だけに置き、骨子に写さない。
+
 ## §5 実装メモ
 
 構築ステップが実行する番号付きの一覧：DOM の骨格とクラス名、**キーワード → DOM スロットの対応表**（宣言した各キーワードがどの要素に描画されるか——構築が推測しなくて済むよう §4 ライブラリの「どこに落ちるか」列から写す；新造したキーワードにはここで独自のスロットを書く）、**§1 `hierarchy` の落とし先**（主役は `.key` / `.kpi` の主数字 / `.pull`、タイトルは `h2`、支えは `.slide-body`、細部は `.kicker` / 図注 / `.foot`；主役は 1 ページに 1 つだけ）、データ提示の優先順位、語り手カプセルの可視性ルール（`lines` / `handoff` が語集合に入ったときだけ）、⚠️/🔍 バッジの使い方とその説明をどこでするか（出典ページ）、禁止事項（出典の無い数字、エビデンスの代わりの形容詞、発見として述べられた推定、訂正済みの誤読の繰り返し）、拡大縮小と印刷、そして**出力とセルフチェック**（スライドごとに：すべての数字が資料ファイルに見つかる；ナビゲーションとキーボードが動く；外部リクエストが無い；既知の難所のスライドが正しく書かれている）。
+
+**`target` に native-pptx を含むとき**：上の DOM スロット一覧の代わりに `05b-pptx.md` §4/§5 の **block kind + recipe** の書き方を使う——各ページに `type`、`key`、`blocks`、`source`、`notes` を書き、HTML のクラス名は書かない；ページ数、ページ型、数字はなお本骨子を正とする。
 
 ## §6 変更履歴
 
@@ -355,6 +367,8 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 この 4 つのフィールドが形式である：**開口 / 転換 / 投げかけ / 引き継ぎ**、それぞれ 1–2 の短い段落、合計 150–300 字。構築時にそのスライドの `.notes` の中の `<p>` 段落になり、カード内では `<strong>` が warn 色、`<em>` が accent 色で描画される（`08-presenter-mode.md` 参照）。
 
 §7 の後ろには何も続かない。ステップ 8 を使わないなら、このセクションごと省略し、§6 に「発表者モードは有効化していない」と 1 行書く。
+
+**PPTX 軌道**も §7 からページごとのプロンプトを取り、ネイティブノートに書く；ただしノートは**プレーンテキスト**で、`<strong>` / `<em>` は剥がされ、文字だけが残る。ステップ 8 の発表者 2 ウィンドウは HTML 専用；PPTX は PowerPoint 標準の発表者ビューを使う。
 
 ## レビューゲート（このステップの終わり）
 

@@ -2,6 +2,16 @@
 
 [English](CHANGELOG.md) · [中文](CHANGELOG_zh-cn.md) · **日本語**
 
+## v2.0 (2026-10-31)
+
+- **ネイティブ PPTX 互換トラックを追加**：`officecli` + JSON ページ仕様 + レイアウトコンパイラで、編集可能なネイティブ図形 / 表 / グラフ / 画像 / メディア / ノートを生成；ページ切り替えは `fade` 0.4 秒のみ、ページ内アニメーションなし；仕様検査と成品の読み戻し、`validate` / `issues`、全ページのスクリーンショット確認を納品前に実行。
+- **banner を再設計**：左に大きなブランド名と人主導の理念、右に重ねた HTML スライドと編集可能なネイティブ PPTX カード、下部に 5 ステップの流れと承認の関門を配置；紙面 / 墨緑 / 琥珀の 3 色、グラデーションも外部フォントもなし。
+- **HTML は引き続き主軸**：第 1 歩で固定の比較文をそのまま提示し、ユーザーに HTML / PPTX / 両方 を選んでもらう（既定値は置かない）；README は HTML の軽量さ、Agent フレンドリー、審美上限の高さを先に説明する。
+- **エンジン規則**：officecli は必須；Claude Code / Codex / ZCode はホストの PPTX プラグインを優先し、なければ officecli にフォールバック；DeepSeek Harness は先にプラグインを確認；officecli はバイナリのみを入れ、`officecli install` は実行しない。
+- **新規ファイル**：`assets/pptx/{detect-engine,lib,recipes,build,lint}.cjs`、`assets/pptx/fixtures/`、`references/zh|en|ja/05b-pptx.md` と `06b-pptx.md`；骨子 §1 に `target` と `pptx:` ブロックを追加。
+- **README 三言語の全面書き直し**：構成を「なぜ HTML 主軸か → 2 つの形態 → 5 ステップ → PPTX 互換トラック → 導入 → 能力対照表 → 制限」に変更。
+- **三言語同期**：`references/zh|en|ja` の 01 / 02 / 03 / 04 / 05 / 06 / 07 / 08、新規 05b / 06b、`SKILL.md`、3 つの README、本変更履歴を同時に更新。
+
 ## v1.6.1 (2026-10-23)
 
 発表者モード、音声バー、視覚的階層に関する複数の修正。

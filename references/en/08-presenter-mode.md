@@ -1,5 +1,7 @@
 # Step 8 · Presenter mode (optional feature)
 
+> HTML track only. When `target` includes `native-pptx`, skip this step; PPTX uses PowerPoint's built-in presenter view, and §7's prompts go into the native notes.
+
 Opens a second window for the speaker: a fixed top banner carries the **timer** and the paging
 buttons; on the left, scaled pixel-perfect previews of **the page being shown** and **the next
 one**; on the right, **the spoken prompt for this page** and an

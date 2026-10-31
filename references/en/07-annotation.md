@@ -1,5 +1,7 @@
 # Step 7 · Screen annotation (optional feature)
 
+> HTML track only. When `target` includes `native-pptx`, skip this step; PPTX uses PowerPoint's own ink/drawing tools, which this skill does not take over.
+
 Adds a live ink layer on top of a finished deck: presenters draw on the slide while talking,
 flip pages normally, and the ink follows the slide. It is **opt-in** — offer it when the deck
 will be presented live, taught, reviewed in front of an audience, or when the user says

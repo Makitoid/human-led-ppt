@@ -2,6 +2,16 @@
 
 **English** · [中文](CHANGELOG_zh-cn.md) · [日本語](CHANGELOG_ja.md)
 
+## v2.0 (2026-10-31)
+
+- **Native PPTX compat track**: `officecli` + a JSON page spec + a layout compiler producing editable native shapes / tables / charts / pictures / media / notes; slide transitions are `fade` 0.4s only, with no per-element animation; spec and file linting, `validate` / `issues`, and per-page screenshot review run before delivery.
+- **Redrawn banner**: a larger wordmark and human-led promise on the left, layered HTML slides and an editable native PPTX card on the right, with the five-step workflow and approval gate along the bottom; same paper/ink-teal/amber palette, no gradients or web fonts.
+- **HTML remains the primary track**: step 1 shows a fixed comparison block and lets the user choose HTML / PPTX / both — no silent default; the README leads with HTML's lightness, agent-friendliness and higher aesthetic ceiling.
+- **Engine routing**: officecli is mandatory; Claude Code / Codex / ZCode prefer an installed host PPTX plugin and fall back to officecli; DeepSeek Harness checks for a plugin first; install the officecli binary only, never `officecli install`.
+- **New files**: `assets/pptx/{detect-engine,lib,recipes,build,lint}.cjs`, `assets/pptx/fixtures/`, `references/zh|en|ja/05b-pptx.md` and `06b-pptx.md`; skeleton §1 gains `target` and a `pptx:` block.
+- **Three-language README rewrite**: the structure is now "why HTML first → two delivery forms → five steps → PPTX compat track → install → capability table → limits".
+- **Trilingual sync**: `references/zh|en|ja` 01 / 02 / 03 / 04 / 05 / 06 / 07 / 08, the new 05b / 06b, `SKILL.md`, all three READMEs and this changelog.
+
 ## v1.6.1 (2026-10-23)
 
 Fixes around presenter mode, the audio strip, and visual hierarchy.

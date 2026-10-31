@@ -1,6 +1,6 @@
 # Step 2 · Visual direction
 
-Goal: lock a set of executable design decisions and write them into skeleton §1 fields `typography` / `theme` / `motion` / `constraints`. **Discuss first, write second — this step produces no HTML.**
+Goal: lock a set of executable design decisions and write them into skeleton §1 fields `typography` / `theme` / `motion` / `constraints`. **Discuss first, write second — this step produces no finished artifact (HTML or PPTX).**
 
 ## Ask three things
 
@@ -148,6 +148,18 @@ When the user designs their own, walk the same field list as the presets (look /
 - Do not use pure `#000` + pure white (halation on projectors); use a hue-tinted near-black and drop body text one step in lightness
 - All motion plays automatically on slide change, never on click; `prefers-reduced-motion: reduce` disables everything (already in the shell)
 - Write an explicit `constraints` list (e.g. no gradient fills, no glassmorphism, no stacked shadows, no emoji ornament, no image carousels) unless the user asks for them
+
+### PPTX supplement (when `target` includes `native-pptx`)
+
+HTML's CSS tricks do not port straight to PPTX; the style decision block has to be executable by **native objects**:
+
+- **Fonts**: only fonts already installed on the delivery machine; name both `latin` + `ea` for headings and body (e.g. `Arial` + `Microsoft YaHei`); no web fonts, no embedded fonts. A missing font gets substituted by PowerPoint and the layout may shift.
+- **Footer**: 10.5pt minimum (the HTML 9px citation bar does not migrate); all information-bearing text still ≥ 4.5:1.
+- **Motion**: only a page-turn `fade` of 400ms; **no in-page animation at all**. If the skeleton's `motion` names any other transition or an in-page animation, fix it to fade/400 in step 4 — do not leave it for the compiler to reject at build time.
+- **Shapes and effects**: radii, outlines, shadows and glows use native PowerPoint parameters; where a preset asks for a CSS texture ("glass / refraction / scanlines / halftone"), PPTX approximates it with the closest native fill / outline / transparency and the style decision block says "PPTX approximation" — never promise pixel parity.
+- **Charts**: native charts, 2–12 categories, 1–3 series, linear axis; for log axes, waterfalls and dual units, mark "PPTX degrades this to a table / bar chart" in the style block first.
+- **Images**: PNG/JPEG, ≤ 2MB per image recommended; a full-bleed backdrop must carry a readable scrim (the builder defaults to 55% black, adjustable in the block).
+- **Forbidden**: web fonts, CSS filters, scrolling/parallax, autoplaying audio or video (unless the user explicitly asks for it), in-page animation.
 
 ## Output: style decision block
 
