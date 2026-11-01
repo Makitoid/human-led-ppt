@@ -4,7 +4,7 @@
 
 **A human-led, agent-assisted presentation design system. HTML is the primary track; native PPTX is compatibility delivery.** You own the topic, style and wording; the agent owns evidence, structure and build discipline. Five steps each leave a reviewable file, and the build starts only after you approve.
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0](https://img.shields.io/badge/version-2.0-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0.0b2](https://img.shields.io/badge/version-2.0.0b2-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
 
 > [!note]
 > This project has moved to Codeberg for development. GitHub is kept only as a synchronized mirror.
@@ -36,7 +36,7 @@ Step 1 pastes the fixed comparison copy to the user verbatim and **never default
 | 1 Topic & narrative | **choose the delivery form first**; settle the central question, audience, duration, slide count, act structure and tension arc | requirement block |
 | 2 Style direction | 9 temperament presets (Fluent / Material 3 / paper-neutral / editorial / Liquid Glass / doc-list / manga / academic / playful) and 13 templates (J–Q layouts + the five R–V complete systems) | style decision block |
 | 3 Evidence base *(optional)* | evidence-gated research: disputed, second-hand and unreachable items are all clearly flagged | `<topic>-sources.md` |
-| 4 Skeleton spec | act structure, per-slide **keywords** (three core — `type` / `key` / `sec` — plus 5–11 chosen from a 56-word library), implementation notes, speaker prompts | `<topic>-HTML-PPT-skeleton.md` or `<topic>-PPTX-skeleton.md` — **awaits your review** |
+| 4 Skeleton spec | act structure, per-slide **keywords** (three core — `type` / `key` / `sec` — plus 5–11 chosen from a 58-word library), implementation notes, speaker prompts | `<topic>-HTML-PPT-skeleton.md` or `<topic>-PPTX-skeleton.md` — **awaits your review** |
 | 5 Build | HTML: one file strictly per the skeleton; PPTX: write `PPTX-src.json` from the skeleton, then compile native objects with the layout compiler | `<topic>.html` / `<topic>.pptx` |
 | 6 Verify & deliver | HTML: static checks + browser test + number audit; PPTX: spec and artifact checks + validate + issues + per-slide screenshots | tested items + untested items |
 | 7 Screen annotation *(optional, HTML)* | pen, highlighter, two eraser modes, annotations kept per slide | the same `<topic>.html` plus one layer |
@@ -85,7 +85,8 @@ officecli view <topic>.pptx screenshot --page 1 --out shots/s1.png
 
 - 12 layout recipes cover cover, section, statement, points, KPI, table, chart, compare, diagram, image, code and closing; one primary per slide, four type tiers, accent ≤ 1, warn ≤ 1, cards ≤ 4.
 - Text capacity is a hard gate: if it does not fit, the build errors out and **never shrinks the type**.
-- Page turns are a uniform `fade` 400ms; **no in-page animation**. If 400ms cannot be read back, every transition is removed and the delivery note asks you to add them yourself.
+- Page turns default to a uniform `fade` 400ms, and can be overridden per slide to one of 58 effects (`push-right-600`, `split-vertical-in`, `morph`…); in-page animation is declared per slide (entrance / exit / emphasis / motion path, released one item per click). Pictures and tables cannot carry animation; if the type cannot be read back every transition is removed, and only when the duration or direction cannot be read back does it report a WARN.
+- Re-editing after review means changing only `<topic>-PPTX-src.json` and recompiling: the finished file is a compiled artifact, and recompiling deletes the old and creates a new one, so **anything you changed by hand in PowerPoint (including manually added animations) is overwritten**.
 - Images / audio / video are embedded in the `.pptx`; ≤ 2MB per image recommended.
 - Without PowerPoint on this machine, screenshots go through officecli's HTML rendering path: they prove layout structure, not pixel parity with PowerPoint; the delivery will ask you to open it once.
 
@@ -132,13 +133,13 @@ The step documents exist as [English](references/en), [中文](references/zh) an
 - Third-party skill names mentioned in the references are a 2026-10-14 marketplace snapshot that was neither installed nor read — re-verify and get user confirmation before use.
 - Every example in the docs is a placeholder (`<…>` / `……`). Never copy an example figure, and never let a placeholder reach a finished artifact.
 - The PPTX track's template / master route is not part of v1; do not promise "apply our corporate template".
-- PPTX supports no in-page animation, Morph or auto-narration, and cannot edit an arbitrary existing `.pptx`; it only builds new from the skeleton.
+- PPTX motion follows PowerPoint's presets: 58 page-turn types with direction and duration, in-page animation that attaches only to `shape` / `chart` (not pictures, tables or media), and none of CSS's easing curves; auto-narration / auto-recording are still unsupported. Editing any existing `.pptx` is still unsupported — this track only builds new from the skeleton.
 - PPTX log axes, waterfalls and dual-unit charts degrade to a table or a simple bar chart.
 - Without PowerPoint there is no pixel-level acceptance; screenshots only prove layout structure.
 
 ## What's new in 2.0
 
-- **A native PPTX compatibility track**: `officecli` + a JSON per-slide spec + a layout compiler produce editable native shapes / tables / charts / images / media / notes; page turns are a uniform fade 0.4s with no in-page animation; checks before and after the build plus a per-slide screenshot review.
+- **A native PPTX compatibility track**: `officecli` + a JSON per-slide spec + a layout compiler produce editable native shapes / tables / charts / images / media / notes; page turns default to a uniform fade 0.4s and can be switched per slide to one of 58 effects, with in-page animation declared per slide (pictures and tables excepted); checks before and after the build plus a per-slide screenshot review.
 - **Redrawn banner**: a larger wordmark and human-led promise on the left, layered HTML slides and an editable native PPTX card on the right, with the five-step workflow and approval gate along the bottom.
 - **HTML is still the primary track**: the README and step 1 both lead with HTML's advantages; the compatibility track is taken only when a `.pptx` is mandatory.
 - **The README is rewritten in all three languages**: the structure is now "why HTML is primary → two delivery forms → five steps → PPTX compatibility track → install → comparison → limitations".

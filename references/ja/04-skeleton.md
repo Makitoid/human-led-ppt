@@ -56,14 +56,15 @@ deck:
     engine: officecli | host-plugin # ステップ 5 の detect-engine.cjs の結論；host-plugin はプラグイン名を明記
     canvas: 16:9（960×540pt）        # 固定；4:3 / 縦版は非対応
     fonts: {latin: <インストール済み>, ea: <インストール済み>} # 納品先のマシンに必ずインストールされていること
-    motion: {transition: fade, duration_ms: 400, element: none}  # この 1 組だけを許す
+    motion: {transition: <トークン、例 fade-400 / push-right-600 / morph>, discipline: calm | story, why: <fade/cut 以外のとき、一言の理由>}
+    animation: none | <ページ番号>:<要素グループ>/<効果>/<クラス>[/why]   # ページごとの opt-in、既定は none
     notes: §7 より（プレーンテキスト、<strong>/<em> は剥がされる）
     evidence: <出典バーがどのページを覆うか + 出典ページの番号>
   accessibility: スライドごとに h1/h2 の順序を守る；ページ変更時に aria-live で読み上げ；本文のコントラスト ≥ 4.5:1
-  motion: HTML の入場アニメーションはスライド切り替えで自動再生、prefers-reduced-motion で無効；PPTX はページ送りの fade 400ms だけを許し、ページ内アニメーションは none
+  motion: HTML の入場アニメーションはスライド切り替えで自動再生、prefers-reduced-motion で無効；PPTX のページ切り替えはトークン文字列（既定は `fade-400`、隣り合うページの関係によってだけ変える）、ページ内アニメーションはページごとに宣言し、既定では付けない
 ```
 
-`typography` / `hierarchy` / `theme` / `constraints` / `motion` の 5 ブロックはステップ 2 のスタイル決定ブロックからそのまま写す——ここで作り直してはならない。切り替えの種類・時間・イージング・ページ内アニメーションの種類は明示的に書き、構築はそれに従う。暗色のデッキでは、`deck-shell.css` の `--ovl-bg / --ovl-ink / --ovl-card`（総覧の壁）も同じ系統に上書きされていることを確認する。`hierarchy` はステップ 5 の組版で第一順位である：先に各ページの主役を決め、それから残りを並べる；`scale` の隣り合う段の比が 1.4 を下回るなら、その時点で不合格である。
+`typography` / `hierarchy` / `theme` / `constraints` / `motion` の 5 ブロックはステップ 2 のスタイル決定ブロックからそのまま写す——ここで作り直してはならない。切り替えの種類・時間・イージング・ページ内アニメーションの種類は明示的に書き、構築はそれに従う（PPTX 軌道には選べる easing が無い——fast/med/slow とプリセット効果だけ；既定は `fade-400` + ページ内 `none` で、切り替えを変えるのは隣り合うページの関係によってだけ、理由を 1 行 `why` に書く。ページごとの切り替えとアニメーションは §4 の `transition` / `animation` の 2 語に書き、版面と一緒に自分で審査する；`calm` では expressive の切り替えと `exit` / `motion` アニメーションを禁じ、予算は `05b-pptx.md` §4 を見る）。暗色のデッキでは、`deck-shell.css` の `--ovl-bg / --ovl-ink / --ovl-card`（総覧の壁）も同じ系統に上書きされていることを確認する。`hierarchy` はステップ 5 の組版で第一順位である：先に各ページの主役を決め、それから残りを並べる；`scale` の隣り合う段の比が 1.4 を下回るなら、その時点で不合格である。
 
 ## §2 語りの仕掛け
 
@@ -185,6 +186,10 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | `emphasis` ★ | そのスライド唯一の視覚的な焦点：accent か warn か、どの要素に置くか | 1 スライドに強い色は 1 つ |
 | `before-after` | 昔と今 / パッチと修正 / 誤読と訂正 | 2 段組 |
 | `diagram` | 構造図：原理、アーキテクチャ、流れ、**帰属ツリー / 5-Why / フィッシュボーン**——どのブロックがあり、どうつながり、矢印がどちらを向くか。因果連鎖のノードは名詞でよい（動詞を要求する `steps` とは違う） | インライン SVG |
+| `transition` | **このページの切り替え**：まず「前のページとどんな関係か」を書き、それからトークンを与える——default `fade-400`；意味の推進には `push-right-600` / `wipe-*`；同じ対象がページをまたいで変形するなら `morph`；幕の開きや重要な提示にだけ華やかなライブラリを使い、しかも理由を 1 行書く。target に native-pptx を含むときだけ書く | `PPTX-src.json` の `slides[].transition` + `transition_why`；HTML 軌道は読まない |
+| `animation` | **このページのページ内アニメーション**：どの組を動かすか（主役 / タイトル / 本文 / カード / すべて）+ 分類（`entrance` / `emphasis` / `exit` / `motion`）+ 一言の役割。既定では書かない；`exit` / `motion` は story のときだけ、しかも理由を `why` に書く | `PPTX-src.json` の `slides[].animation`；HTML 軌道の入場アニメーションはシェルが担うので、この語は読まない |
+
+> 動効系の語（`transition` / `animation`）はネイティブ PPTX 軌道だけで使う；HTML 軌道は `05-build.md` の「モーション」の規律に従い、この 2 語を書かない。既定はデッキ全体が `fade-400` + ページ内アニメーションなしで、効果を変えるなら「この 2 ページの間で何が起きたか」を言えなければならない。
 
 > メディア系のキーワードは**ファイルの置き場所**で分かれる——**画像と背景はインライン**（`image` → `.img-frame` + `<img>`；`background` → `data-bg` がページを敷き詰める）、**音声と動画は sibling ファイル**（`audio` / `video` → `.mp`、`.html` と同じフォルダーに置く）。単一ファイルの HTML は数十 MB の音声・動画を載せられない——base64 はさらに 3 分の 1 膨らみ、`file://` では最初の描画が data URL 全体を読み終えるまで待つので、デッキは開かなくなる。だから音声・動画の実体は `.html` と同じフォルダーに入れて一緒に渡す。html だけコピーしないこと。画面での位置は `layout` と語順が決める——これらの語は「どのメディアを、どこに、自動再生するか」を宣言するだけ。
 >
@@ -202,7 +207,7 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | `example` ★ | 具体的な事例または例題：対象 + 状況 + 結果 | 事例カード |
 | `takeaway` ★ | 聴衆が持ち帰る 1 行 | 収束ブロック |
 | `action` ★ | アクション項目 / 次の一手 / 改善項：誰が + 何を + いつまでに、任意で「何ができていれば完了か / 現在の状態」、2–4 行。**4 行を超える場合、または状態の列が要る場合は、そのページを `table` に譲る——`action` と `table` は同じスライドを共有しない**（同じ内容を 2 回書くことになり、選定ルール 3 に反する） | アクション一覧 |
-| `transition` | 次のスライドをどう引き出すか（問いか、半端な文か） | フッターの近く |
+| `bridge` | 次のスライドをどう引き出すか（問いか、半端な文か）；旧名は `transition` で、その名は PPTX のページ切り替え語に譲った | フッターの近く |
 
 **F 伝達 —— 誰が何を話すか**
 

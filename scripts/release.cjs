@@ -8,7 +8,7 @@ const zlib = require('node:zlib');
 const ROOT = path.resolve(__dirname, '..');
 const OUT_DIR = path.resolve(ROOT, '..');
 const PACKAGE_DIR = 'human-led-ppt';
-const SKIP_AT_ROOT = new Set(['.git', '.gitignore', 'promo', 'scripts']);
+const SKIP_AT_ROOT = new Set(['.git', '.gitignore', '.probe', 'pic', 'promo', 'scripts']);
 
 const SKILL_LANGUAGE_LINE =
   'Language: `references/zh/` is the Chinese original (中文母本), `references/en/` and `references/ja/` are its English and Japanese mirrors — same content, so a revision touches all three. Work entirely inside the folder matching the user\'s language.';
@@ -19,31 +19,25 @@ const LANGS = [
   {
     id: 'zh-cn',
     refs: 'zh',
-    readme: 'README_zh-cn.md',
     changelog: 'CHANGELOG_zh-cn.md',
     skillLanguage:
       'this package ships the Chinese original only — read every step document from `references/zh/`.',
-    readmeNav: ['[English](README.md) · **中文** · [日本語](README_ja.md)', '**中文**'],
     changelogNav: ['[English](CHANGELOG.md) · **中文** · [日本語](CHANGELOG_ja.md)', '**中文**'],
   },
   {
     id: 'en',
     refs: 'en',
-    readme: 'README.md',
     changelog: 'CHANGELOG.md',
     skillLanguage:
       'this package ships the English version only — read every step document from `references/en/`.',
-    readmeNav: ['**English** · [中文](README_zh-cn.md) · [日本語](README_ja.md)', '**English**'],
     changelogNav: ['**English** · [中文](CHANGELOG_zh-cn.md) · [日本語](CHANGELOG_ja.md)', '**English**'],
   },
   {
     id: 'ja',
     refs: 'ja',
-    readme: 'README_ja.md',
     changelog: 'CHANGELOG_ja.md',
     skillLanguage:
       'this package ships the Japanese version only — read every step document from `references/ja/`.',
-    readmeNav: ['[English](README.md) · [中文](README_zh-cn.md) · **日本語**', '**日本語**'],
     changelogNav: ['[English](CHANGELOG.md) · [中文](CHANGELOG_zh-cn.md) · **日本語**', '**日本語**'],
   },
 ];
@@ -96,10 +90,10 @@ function walk(absDir, relDir, out) {
 }
 
 function includedFor(lang, rel) {
+  if (rel.startsWith('README')) return false;
+  if (rel.startsWith('CHANGELOG')) return !lang || rel === lang.changelog;
   if (!lang) return true;
   if (rel.startsWith('references/')) return rel.startsWith(`references/${lang.refs}/`);
-  if (rel === lang.readme || rel === lang.changelog) return true;
-  if (rel.startsWith('README') || rel.startsWith('CHANGELOG')) return false;
   return true;
 }
 
@@ -115,10 +109,6 @@ function contentFor(lang, rel, data) {
       `\`references/${lang.refs}/\` holds one document per step.`,
       'SKILL.md resources line'
     );
-    return Buffer.from(text, 'utf8');
-  }
-  if (rel === lang.readme) {
-    text = replaceOnce(text, lang.readmeNav[0], lang.readmeNav[1], `${lang.readme} language nav`);
     return Buffer.from(text, 'utf8');
   }
   if (rel === lang.changelog) {

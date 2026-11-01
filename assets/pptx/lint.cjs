@@ -88,7 +88,7 @@ function numberAudit(spec, sourcesFile) {
   return { errors, notes: [] };
 }
 
-function lintFile(spec, pptx) {
+function lintFile(spec, pptx, expected) {
   const errors = [];
   const warnings = [];
   const info = {};
@@ -110,13 +110,45 @@ function lintFile(spec, pptx) {
 
   slideResults.forEach((r, i) => {
     const f = r.format || {};
-    if (f.transition === 'fade' && String(f.transitionDuration) === '400') return;
-    if (!f.transition) warnings.push(`slide ${i + 1}: no transition (tell the user to add it in PowerPoint)`);
-    else errors.push(`slide ${i + 1}: transition ${f.transition}/${f.transitionDuration}, expected fade/400`);
+    const token = (spec.slides[i] && spec.slides[i].transition) || (spec.motion || {}).transition || L.DEFAULT_TRANSITION;
+    const exp = L.parseMotionToken(token, token).out;
+    const got = String(f.transition || '');
+    const gotType = got.split('-')[0];
+    if (exp.type === 'none') { if (got) warnings.push(`slide ${i + 1}: spec says no transition, file has ${got}`); return; }
+    if (!got) { warnings.push(`slide ${i + 1}: no transition (builder removed them all — tell the user to add them in PowerPoint)`); return; }
+    if (gotType !== exp.type) { errors.push(`slide ${i + 1}: transition ${got}, spec says ${token}`); return; }
+    if (exp.ms != null && String(f.transitionDuration) !== String(exp.ms)) {
+      warnings.push(`slide ${i + 1}: ${gotType} duration reads back ${f.transitionDuration || 'unset'}, spec says ${exp.ms}ms`);
+    } else if (exp.speed && f.transitionSpeed !== exp.speed) {
+      warnings.push(`slide ${i + 1}: ${gotType} speed reads back ${f.transitionSpeed || 'unset'}, spec says ${exp.speed}`);
+    }
+    const lost = exp.modifiers.filter(m => !got.split('-').slice(1).includes(m));
+    if (lost.length) warnings.push(`slide ${i + 1}: ${gotType} dropped modifier ${lost.join('/')} on readback`);
   });
   spec.slides.forEach((s, i) => {
     if (s.notes && !notePaths.has(`/slide[${i + 1}]`)) errors.push(`${s.id}: notes missing`);
   });
+
+  const wantAnims = (expected && expected.bySlide) || {};
+  if (Object.keys(wantAnims).length || (expected && expected.total)) {
+    const aq = runJson(['query', pptx, 'animation', '--json']);
+    if (aq.error) warnings.push('query animation failed: ' + aq.error);
+    else {
+      const got = {};
+      for (const r of aq.json.data.results || []) {
+        const m = String(r.path).match(/^\/slide\[(\d+)\]/);
+        if (m) got[+m[1]] = (got[+m[1]] || 0) + 1;
+      }
+      info.animations = Object.values(got).reduce((a, b) => a + b, 0);
+      for (const [n, want] of Object.entries(wantAnims)) {
+        const have = got[+n] || 0;
+        if (have !== want) errors.push(`slide ${n}: ${want} animation(s) in the spec, ${have} in the file`);
+      }
+      for (const [n, have] of Object.entries(got)) {
+        if (!wantAnims[n]) warnings.push(`slide ${n}: ${have} animation(s) in the file, none in the spec (edited outside the build spec?)`);
+      }
+    }
+  }
 
   const ids = new Map();
   for (const type of ['shape', 'picture', 'table', 'chart']) {
@@ -174,8 +206,20 @@ function main() {
   const warnings = [];
   const notes = [];
   const compiled = compile(spec, dir);
+  let expected = { bySlide: {}, total: 0 };
   if (compiled.errors) errors.push(...compiled.errors);
-  else notes.push(`spec compiled to ${compiled.batch.length} officecli commands`);
+  else {
+    notes.push(`spec compiled to ${compiled.batch.length} officecli commands`);
+    for (const cmd of compiled.batch) {
+      if (cmd.type !== 'animation') continue;
+      const m = String(cmd.parent).match(/^\/slide\[(\d+)\]/);
+      if (!m) continue;
+      expected.bySlide[+m[1]] = (expected.bySlide[+m[1]] || 0) + 1;
+      expected.total++;
+    }
+    notes.push(expected.total ? `spec declares ${expected.total} in-page animation(s) across ${Object.keys(expected.bySlide).length} slide(s)` : 'spec declares no in-page animations');
+  }
+  warnings.push(...L.motionWarnings(spec));
 
   const sk = skeletonCheck(spec, skeleton);
   errors.push(...sk.errors);
@@ -189,7 +233,7 @@ function main() {
   let info = {};
   if (!args.includes('--spec-only')) {
     if (!pptx) fail('need <out.pptx> unless --spec-only');
-    const f = lintFile(spec, pptx);
+    const f = lintFile(spec, pptx, expected);
     errors.push(...f.errors);
     warnings.push(...f.warnings);
     Object.assign(info, f.info);
@@ -214,9 +258,15 @@ function main() {
       ...(errors.length ? errors.map(e => '- ' + e) : ['- none']),
       '', '## Notes', '',
       ...(notes.length ? notes.map(n => '- ' + n) : ['- none']),
+      '', '## Motion', '',
+      `- discipline: ${(spec.motion || {}).discipline || 'calm'} (default fade-400, animation opt-in)`,
+      `- transitions: ${[...new Set(spec.slides.map(s => s.transition || (spec.motion || {}).transition || 'fade-400'))].join(', ')}`,
+      `- in-page animations: ${expected.total || 0}${expected.total ? ` on slide(s) ${Object.keys(expected.bySlide).join(', ')}` : ''}`,
       '', '## Unverified', '',
       '- PowerPoint pixel fidelity (officecli renders through its HTML path on this machine)',
-      '- per-element animations (none by design; transitions are fade 0.4s)',
+      expected.total
+        ? `- the look and click order of ${expected.total} in-page animation(s) — readback proves they exist, screenshots are stills`
+        : '- no in-page animations in the spec (page turns only)',
     ];
     fs.writeFileSync(reportPath, lines.join('\n') + '\n');
   }

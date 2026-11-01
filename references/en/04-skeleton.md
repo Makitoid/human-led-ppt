@@ -56,14 +56,15 @@ deck:
     engine: officecli | host-plugin # the conclusion of step 5's detect-engine.cjs; host-plugin names the plugin
     canvas: 16:9 (960×540pt)        # fixed; 4:3 and portrait are not supported
     fonts: {latin: <installed>, ea: <installed>}   # must be installed on the delivery machine
-    motion: {transition: fade, duration_ms: 400, element: none}  # the only allowed set
+    motion: {transition: <a token, e.g. fade-400 / push-right-600 / morph>, discipline: calm | story, why: <one-sentence reason when not fade/cut>}
+    animation: none | <slide>:<group>/<effect>/<class>[/why]   # per-slide opt-in, default none
     notes: from §7 (plain text, <strong>/<em> are stripped)
     evidence: <which slides the source footer covers + the sources page number>
   accessibility: ordered h1/h2 per slide; aria-live announcement on page change; body contrast ≥ 4.5:1
-  motion: HTML in-page animation plays on slide change, off under prefers-reduced-motion; PPTX allows only a fade 400ms page turn, in-page animation none
+  motion: HTML entrance animation plays automatically on slide change, disabled under prefers-reduced-motion; PPTX page turns use a token string (default `fade-400`, changed only by the adjacent-page relation), in-page animation is declared per slide and off by default
 ```
 
-`typography` / `hierarchy` / `theme` / `constraints` / `motion` are copied verbatim from Step 2's style decision block — do not reinvent them here. `hierarchy` is the build's first priority per page: settle the primary, then lay out the rest; a `scale` whose adjacent ratio falls below 1.4 fails outright. State the transition, duration, easing and in-page animation explicitly; the build follows them. For a dark deck also confirm `deck-shell.css`'s `--ovl-bg / --ovl-ink / --ovl-card` (overview wall) were overridden to the same family.
+`typography` / `hierarchy` / `theme` / `constraints` / `motion` are copied verbatim from Step 2's style decision block — do not reinvent them here. `hierarchy` is the build's first priority per page: settle the primary, then lay out the rest; a `scale` whose adjacent ratio falls below 1.4 fails outright. State the transition, duration, easing and in-page animation explicitly; the build follows them (the PPTX track has no easing curves to choose, only fast/med/slow and preset effects; the default is `fade-400` with in-page `none`, and a different page turn must be justified by the adjacent-page relation with the one-sentence reason written into `why`. Declare each slide's page turn and animation through §4's `transition` / `animation` keywords so they get reviewed together with the layout; under `calm` there is no expressive transition and no `exit` / `motion` animation — budgets are in `05b-pptx.md` §4). For a dark deck also confirm `deck-shell.css`'s `--ovl-bg / --ovl-ink / --ovl-card` (overview wall) were overridden to the same family.
 
 ## §2 Narrative device
 
@@ -185,6 +186,10 @@ Four rules:
 | `emphasis` ★ | The slide's single visual focal point: accent or warn, on which element | One strong colour per slide |
 | `before-after` | Then vs now / patch vs fix / misreading vs correction | Two columns |
 | `diagram` | Structure drawing: principle, architecture, flow, **attribution tree / 5-Why / fishbone** — which blocks, how they connect, arrow direction. Causal-chain nodes may be nouns (unlike `steps`, which demands verbs) | Inline SVG |
+| `transition` | **This slide's page turn**: state "what relation it has to the previous slide" first, then the token — default `fade-400`; semantic advance takes `push-right-600` / `wipe-*`; the same object reshaping across pages takes `morph`; the fancy library only at an act opening or a key reveal, and it needs a one-sentence reason. Write it only when target includes native-pptx | `slides[].transition` + `transition_why` in `PPTX-src.json`; the HTML track ignores it |
+| `animation` | **This slide's in-page animation**: which group moves (primary / title / content / cards / all) + class (`entrance` / `emphasis` / `exit` / `motion`) + a one-line job. Off by default; `exit` / `motion` only under story, with the reason in `why` | `slides[].animation` in `PPTX-src.json`; on the HTML track the shell owns the entrance animation and ignores this word |
+
+> The motion keywords (`transition` / `animation`) are native-PPTX only; the HTML track follows the "animation and page turns" discipline in `05-build.md` and never writes these two words. Default is `fade-400` throughout with no in-page animation — change the effect only if you can say "what happened between these two slides".
 
 > The media keywords divide by **file placement**: **images and backdrops are inlined** (`image` → `.img-frame` + `<img>`; `background` → `data-bg` filling the page), while **audio and video are sibling files** (`audio` / `video` → `.mp`, sitting next to the `.html`). A single-file HTML cannot carry tens of MB of media — base64 inflates it by another third and on `file://` the first paint waits for the whole data URL, so the deck simply will not open. The audio/video files therefore ship in the same folder as the `.html`; copy both, not just the html. Where they land on screen is still decided by `layout` and the keyword order — these words only declare "which media, which block, autoplay or not".
 >
@@ -202,7 +207,7 @@ Four rules:
 | `example` ★ | Concrete case or worked example: subject + situation + outcome | Case card |
 | `takeaway` ★ | The one line the audience leaves with | Closing block |
 | `action` ★ | Action items / next steps / fixes: who + what + by when, optionally "done looks like / current status", 2–4 rows. **Past 4 rows, or if a status column is needed, give the page to `table` instead — `action` and `table` never share a slide** (that is the same content written twice, which breaks picking rule 3) | Action list |
-| `transition` | How the next slide gets provoked (a question or a half-sentence) | Near the footer |
+| `bridge` | How the next slide gets provoked (a question or a half-sentence); formerly named `transition`, a name now given over to the PPTX page-turn word | Near the footer |
 
 **F Delivery — who says what**
 

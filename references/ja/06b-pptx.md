@@ -23,7 +23,8 @@ node <skill dir>/assets/pptx/lint.cjs <トピック>-PPTX-src.json <トピック
 
 検査項目：
 
-- schema、ページ数、ページ型の数（≤8）、`motion` は fade/400 だけか；
+- schema、ページ数、ページ型の数（≤8）；`motion.transition` とページごとの `transition` のトークン（タイプは 58 個のホワイトリストに必ず在る、方向 / サブタイプは合法、時間と速度は共存不可）；各ページ `animation` の `on` / `class` / `effect` / `direction` / `trigger` は効果×分類マトリクスと対応が合う、テンプレートの exit 効果に `duration` を付けてはならない；
+- **動効の規律**（`lib.cjs` の `motionPolicyErrors`）：`motion.discipline` は `calm` / `story` だけ；既定は `fade-400`；base 以外の切り替えには `motion.why` か `transition_why` が必須；`calm` では expressive の切り替え、`exit` / `motion` アニメーション、`repeat` を禁止；expressive のページ数とアニメーションのあるページ数は予算を超えず、隣接もしない；1 本のアニメーション ≤800ms；`entrance` 以外のアニメーションには `why` が必須；
 - テーマの 8 つのトークンが揃っているか；本文 / 注記が bg と panel の両方に対して ≥4.5:1、大きな文字は ≥3:1；
 - 4 段の文字サイズの比 ≥1.4、本文 ≥22px、注記 ≥14px；
 - 各ページに primary がちょうど 1 つ、accent の塗り ≤1、warn ≤1、同じ段のカード ≤4；
@@ -43,7 +44,8 @@ node <skill dir>/assets/pptx/lint.cjs <トピック>-PPTX-src.json <トピック
 `lint.cjs` は自動で次を走らせる：
 
 - `officecli query ... slide/shape/picture/table/chart/notes`：ページ数、id の一意性、要素がキャンバス内にあるか；
-- 各ページの `transition=fade` と `transitionDuration=400`；欠けていれば警告のみ（ビルダーが切り替えをすべて削除した可能性がある。納品メモに「ご自身で追加してください」と書く）；値が違えばその時点で失敗；
+- 各ページの `transition` を spec のトークンと突き合わせる：**タイプ**が違えば直接失敗（spec が `push-right` で成品が `fade` なら誤り）；`transitionDuration` / `transitionSpeed` / 方向またはサブタイプだけが読み戻せないなら警告として記録（エンジンは一部の接尾を黙って捨てる）；spec に `animation` が宣言されていればページごとに数え、`officecli query animation` と比較して、1 つ欠けていれば失敗；
+- `officecli query animation --compact` の抜き取り確認：`effect class trigger duration direction` の読み戻し値；
 - プロンプトのあるページに `notes` があるか；
 - `officecli validate`：終了コード 0、または 2 かつ `success:true`；終了 2 は警告として記録するだけ；
 - `officecli view issues --json`：`low_contrast` / `picture_aspect_distorted` / `broken_part_ref` のどれか 1 つで失敗。
@@ -52,9 +54,12 @@ node <skill dir>/assets/pptx/lint.cjs <トピック>-PPTX-src.json <トピック
 
 ```bash
 officecli get <トピック>.pptx "/slide[3]" --json          # transition / notes
+officecli query <トピック>.pptx animation --compact        # ページ内アニメーションがどの要素に付いているか
 officecli query <トピック>.pptx media --compact           # メディアが本当に埋め込まれているか
 officecli view <トピック>.pptx outline                    # ページ数とタイトル
 ```
+
+アニメーション自体は**スクリーンショットで検収できない**（スクリーンショットは静的なコマであり）；`query animation` が証明できるのは「コマンドが書き込まれ、読み戻しがどういう値か」だけであって、再生効果とクリック順は納品メモでユーザーに PowerPoint をめくって確認してもらうしかない。
 
 ## 3. レンダリングの再確認
 
@@ -87,13 +92,15 @@ officecli view <トピック>.pptx screenshot --page 1-N --out <トピック>-sh
 実測済み：仕様検査 / validate / issues / ページ数とページ型の突き合わせ / 数字監査 / ページごとのスクリーンショット
 未検証：PowerPoint での最終的な見栄え（手元に PowerPoint が無く、スクリーンショットは officecli の HTML レンダリング経路）；
         一度 PowerPoint / WPS で開いて、書体とページ送りを確認してください。
-モーション：ページ送りの fade 0.4s のみ；ページ内アニメーションは無し。足す場合は PowerPoint の「アニメーション」パネルでご自身で。
+モーション：ページ切り替え <spec のトークン、例 fade-400；6 ページ目は push-right-600>；ページ内アニメーション <K> 件、分布は第 <ページ番号を列挙> ページ、
+      クリック順は読み順どおり。再生効果は PowerPoint で実際に一度めくって確認してください——スクリーンショットではモーションに出ません。
+      画像と表にはアニメーションを付けられません（エンジンは shape / chart のみ対応）。
 ノート：3、5、7 ページ目に発表者ノートがあります；PPTX のノートはプレーンテキストで、HTML の発表者ウィンドウの強調書式は残りません。
 書体：納品先のマシンにインストール済みの <latin> / <ea> に依存；欠けると置換され、版面が変わりえます。
 メディア：画像 / 音声 / 動画はファイルに埋め込み済み；.pptx を 1 つコピーすれば済みます。
 ```
 
-`lint` に warning がある場合（切り替えが無い、骨子のページ型と spec が一致しないなど）は、1 つずつ書き出す；warning を通った項目として書いてはならない。
+`lint` に warning がある場合（ページ切り替えの時間が読み戻せなかった、方向の接尾がエンジンに捨てられた、骨子のページ型と spec が一致しないなど）は、1 つずつ書き出す；warning を通った項目として書いてはならない。アニメーションは「書き込まれた」ことしか証明できず、「見栄えよさ」は証明できない——この一文は納品メモに書くこと。省略しない。
 
 ## 6. HTML との能力の対照
 
@@ -104,6 +111,7 @@ officecli view <トピック>.pptx screenshot --page 1-N --out <トピック>-sh
 | 版面の精度 | CSS / SVG でピクセル単位 | ネイティブオブジェクト、書体と PowerPoint の組版に左右される |
 | 美しさの上限 | より高い：透明の重ね、非標準のグリッド、自作のグラフ | PowerPoint のオブジェクトモデルに縛られる |
 | ページ送り / 総覧 / 全画面 | 標準装備の G / F / キーボード / タッチ | PowerPoint 標準 |
+| モーション | CSS トランジション + ページ内 keyframes、曲線と時間は自由設定、`prefers-reduced-motion` で一括オフ可 | PowerPoint のプリセット：ページ送り 58 種に方向 / 時間付き、ページ内は 4 分類（入場 / 退場 / 強調 / モーションパス）；選べるイージング曲線は無く、画像と表にはアニメーションを付けられない |
 | 画面注記 / 黒板 | ステップ 7 のレイヤー | 無し；PowerPoint のインクを使う |
 | 発表者 2 ウィンドウ | ステップ 8 のレイヤー | 無し；PowerPoint の発表者ビューを使う |
 | ディープリンク / 縦画面マスク | あり | 無し |
@@ -114,8 +122,10 @@ officecli view <トピック>.pptx screenshot --page 1-N --out <トピック>-sh
 
 ## 7. 既知の制限（納品時に必要に応じて開示する）
 
-- ページ内アニメーション、Morph、自動ナレーションは非対応；ページ送りは fade だけ。
-- 任意の古い `.pptx` の編集 / 美化は非対応；本軌道は骨子から新規に作るだけ。
+- **モーションの能力はエンジンが与えるもの、境界は規律が引くもの**：officecli は 58 種のページ切り替え（`morph` を含む）と 4 分類のページ内アニメーション（入場 / 退場 / 強調 / モーションパス；クリックトリガーと遅延を含む）を書ける。本軌道は自動ナレーション / 自動録音を開かない；`morph` は書けるが同名図形のマッチに依存し、実際は大半が通常のページ送りに退化する。
+- ページ内アニメーションは `shape` と `chart` にだけ付けられる：**画像、表、メディアは付けられない**；選べる CSS イージング曲線は無く、PowerPoint のプリセットと fast/med/slow だけ。
+- アニメーションの再生効果は手元で検収できない（スクリーンショットは静的なコマ）；`query animation` は書き込まれたことを証明するだけ。
+- 任意の古い `.pptx` の編集 / 美化は非対応；本軌道は骨子から新規に作るだけ（再審査後の再構築の契約は `05b-pptx.md` §12 を参照）。
 - テンプレート / マスターの路線は第 1 版に入っていない；「所属先のテンプレートを当てる」と約束しない。
 - 対数軸、ウォーターフォール、2 単位のグラフは、表か単純な棒グラフに降格する。
 - PowerPoint が無いときはピクセル単位の検収ができない；スクリーンショットは版面の構造を証明するだけ。
@@ -130,7 +140,27 @@ officecli view <トピック>.pptx screenshot --page 1-N --out <トピック>-sh
 # 画像 / メディアが無い → 構築失敗、パスを示す
 # コントラストの低い theme → lint 失敗、比を示す
 # 数字が資料まとめに無い → lint 失敗、ページと数字を示す
-# transition が 400 に読み戻せない → ビルダーが切り替えをすべて削除して警告
+# ページ切り替えのタイプが読み戻せない → ビルダーが切り替えをすべて削除して警告；時間 / 方向だけが読み戻せない → 効果を残して WARN
+# 未知の切り替え型（例 bogus-400）→ lib が誤り判定；時間と速度の混用（fade-fast-400）→ lib が誤り判定
+# 方向サフィックスは型依存：fade-up は受理されるが読み戻しは fade のみ（ビルダーがページごとに WARN）；circle-in / wipe-in はエンジンに拒否される → バッチ全体がロールバックされ、ビルダーが拒否されたコマンドを表示する
+# 古い motion オブジェクト {transition:"fade",duration:400} → lib が誤り判定し "fade-400" への変更を促す
+# calm で honeycomb-400 / cube などの expressive な切り替え → lib が誤り判定（story でだけ解禁）
+# push-right / morph / expressive の切り替えに transition_why が無い → lib が誤り判定；デッキ全体で fade 以外なのに motion.why が無い → 同じ
+# calm で exit/motion アニメーション、repeat、>800ms のアニメーション、アニメーションのあるページが 1/3 超過または隣接 → lib が誤り判定
+# animation の class=emphasis/exit/motion に why が無い → lib が誤り判定
+# 効果×分類の不一致（spin + entrance / contract + entrance）→ lib が誤り判定
+# テンプレートの exit 効果に duration → lib が誤り判定
+# on がアニメーション可能な要素を 1 つも選べない（例：表だけのページで on:content かつ文字が無い）→ 構築失敗、黙ってスキップしない
+# 1 ページのアニメーション > 6 → 構築失敗
+# 手作業であるページの最後のアニメーションを消す → officecli validate が p:timing incomplete を報告（だからアニメーションの撤回は spec を直して再構築する）
 ```
 
 すべてが期待どおりに失敗してはじめて、その回の変更は納品可能とみなす。
+
+## 9. レビューで「不可」が出た後
+
+ステップ 0 で誰が検査するかを尋ねた；誰が見つけた問題でも、回修は `05b-pptx.md` §12 のあの 1 本道を通る：**`<トピック>-PPTX-src.json` を直す → 再コンパイル → §1–§4 をもう一度走らせる**——成品ファイルは直さない。
+
+- 1 回の回修はユーザーが名指しした箇所だけ；直し終わったら新旧の QA レポートを並べて報告する——ついでに全稿を組み直さない。
+- ユーザーがすでに PowerPoint / WPS でこのファイルをいじっていたら、**先に問う**：「spec に書き戻して再構築」か「成品の部分修正」か——再構築は旧ファイルを消して新たに作るため、ユーザーが手で付けたアニメーションまで一緒に失われる（詳細は §12）。
+- 数字または言葉だけの変更なら、まず資料まとめと骨子を直し、その後に spec を直す；順序を逆さにすると第二の真実を製造してしまう。

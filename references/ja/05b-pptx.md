@@ -2,7 +2,7 @@
 
 > 本稿の `target` に `native-pptx` を含むときだけ本ファイルを読む。HTML 軌道は `05-build.md` を読む；2 つの軌道はステップ 1–4 と、同じ骨子・同じ資料まとめを共有する。
 
-目標：承認済みの骨子を、**PowerPoint / WPS / Keynote でそのまま編集できる** `.pptx` にコンパイルする。ネイティブの図形、文字、表、グラフ、画像、メディア、ノート；ページ送りは一律 `fade` 0.4s；ページ内アニメーションは一切足さない。**OOXML を手書きするな**、officecli コマンドを 1 つずつ手打ちするな——幾何、文字サイズ、余白はすべて `assets/pptx/build.cjs` のレイアウトライブラリが担う。
+目標：承認済みの骨子を、**PowerPoint / WPS / Keynote でそのまま編集できる** `.pptx` にコンパイルする。ネイティブの図形、文字、表、グラフ、画像、メディア、ノート；ページ送りのモーションは `motion.transition` から、ページ内モーションはページごとの `animation` から来る（細則は §4「動効」）。**OOXML を手書きするな**、officecli コマンドを 1 つずつ手打ちするな——幾何、文字サイズ、余白はすべて `assets/pptx/build.cjs` のレイアウトライブラリが担い、モーションも同様に spec からのみ生成する。
 
 ## 1. 開始前の前提
 
@@ -32,6 +32,7 @@ node <skill dir>/assets/pptx/detect-engine.cjs --json
   - または `npm i -g @officecli/officecli` / `scoop install officecli` / `brew install officecli`
 - **`officecli install` を実行するな**：officecli 自身の skills / MCP を、検出されたすべての agent に一緒に入れてしまう。バイナリだけを入れる。
 - `officecli --version >= 1.0.159` を要求する；インストール後にシェルを開き直すか、フルパスで検証する。それでも失敗するなら止まる——OOXML を手書きしない。
+- **動効は 1.0.160 以降**：fade 以外の切り替えとページ内アニメーションは 1.0.160 でのみ実測済み。それより低いバージョンでは `build.cjs` が構築を拒否する（バイナリを更新するか、`motion: "fade-400"` に戻して各ページの `animation` を外す）。
 
 ## 3. 成果物
 
@@ -60,11 +61,14 @@ node <skill dir>/assets/pptx/detect-engine.cjs --json
     "scale": { "claim": 48, "title": 34, "body": 24, "meta": 14 },
     "radius": 16
   },
-  "motion": { "transition": "fade", "duration": 400 },
+  "motion": { "transition": "fade-400", "discipline": "calm" },
   "slides": [{
     "id": "s3", "type": "kpi-hero", "topic": "…", "title": "…", "key": "…",
     "blocks": [{ "kind": "kpi", "items": [{ "value": "-32", "unit": "%", "label": "…" }] }],
     "emphasis": { "role": "kpi", "index": 0, "tone": "accent" },
+    "transition": "push-right-600",
+    "transition_why": "第 2 幕の項目別コスト分解から、第 3 幕の二者択一の結論へ押し出す——方向は論証に従う",
+    "animation": { "on": "cards", "effect": "fade", "class": "entrance", "duration": 400 },
     "source": "機関 · 年",
     "notes": "…"
   }]
@@ -72,16 +76,79 @@ node <skill dir>/assets/pptx/detect-engine.cjs --json
 ```
 
 - `theme` はステップ 2 のスタイル決定ブロックからそのまま写す；`scale` は 1280×720 の px 値で、構築時に 1px = 0.75pt で pt に変換する（48/34/24/14 → 36/25.5/18/10.5pt）。4 段の比率は変えない。
-- `motion` は `{ "transition": "fade", "duration": 400 }` だけを許す；他の値はその時点で誤りとする。
 - `emphasis`：`role` は `key | kpi | title`、`tone` は `accent | warn`；そのページの主役にしか落とせない。
 - `source` は `kpi` / `table` / `chart` / `compare` / `quote` を含むページで必須；右下のフッターに落ちる。
 - `notes` は骨子 §7 に由来するプレーンテキスト；`<strong>` / `<em>` はビルダーが剥がす。強調の書式は HTML の発表者ウィンドウにだけ残る。
+
+### 動効（`motion` とページ別 `animation`）
+
+動効は**演示の規律であって、版面ではない**：幾何は一切変えず、`p:transition` と `p:timing` を書くだけ。エンジンが渡せるものは初版で開放したより多い；ホワイトリストは officecli 自身のエラーメッセージを正とし、`assets/pptx/lib.cjs` にハードコードされている。だが「エンジンが 58 種を許す」ことと「この稿が何種を使うべきか」は別問題で、後者は ppt-master の動効規範に沿って締める（既定は `fade-400`、ページ内アニメーションは既定でオフ）。それを `lib.cjs` の `motionPolicyErrors` が止める。
+
+**先に規律を選び、それから効果を選ぶ。** `motion.discipline` は 2 段階だけ：
+
+| 段階 | 切り替えで使えるもの | ページ内アニメーション | 予算 |
+|---|---|---|---|
+| `calm`（既定） | base + directional + identity | `entrance` / `emphasis` だけ | アニメーションのあるページ ≤ `max(1, ⌈ページ数/3⌉)`、隣り合う 2 ページを両方動かさない |
+| `story` | さらに expressive | 4 分類すべて | アニメーションのあるページ ≤ `⌈ページ数/2⌉`；expressive の切り替え ≤ `max(2, ⌈ページ数×20%⌉)`、隣接不可 |
+
+切り替えは**隣り合う 2 ページの関係**で選ぶ——変化のために変えない：
+
+| 隣り合う 2 ページの関係 | 使うもの | 階層 |
+|---|---|---|
+| 同じ節の中の連続した叙述 | `fade-400`（既定） | base |
+| 連続性を保つ必要のない直接的な切り替え | `none` / `cut-400` | base |
+| 手順・年表・階層に明確な推進方向がある | `push-*` / `wipe-*` / `cover-*` / `pull-*` / `split-*` / `reveal-*` | directional |
+| 同じ対象がページをまたいで位置・サイズ・クロップを変える | `morph` | identity |
+| 幕の開き・重要な提示・明確な状態の境界 | 残りの「華やかな」ライブラリ（`zoom` / `flip` / `cube` / `vortex` …） | expressive |
+
+- **base 以外の効果には理由が要る**：デッキ全体の既定は `motion.why`、1 ページの上書きは `slides[].transition_why` に、「この 2 ページの間で何が変わったか」を一言で書く。理由が書けないなら効果を変えない——`fade` / `cut` / `none` に理由は要らない。
+- **`random` は不確実性そのものが内容のときだけ**（ランダム抽出、ランダムな故障など）使い、理由にもそう書く；「単調が怖い」は理由にならない。
+- **expressive は句読点であって、飾りではない**：1 つの節に最大 1 回、しかも隣り合う 2 ページには使わない。残りのページは `fade` に戻す。
+
+**ページ切り替え `motion.transition`**（デッキ全体の既定）と `slides[].transition`（1 ページの上書き）は同じトークン文字列を使う：
+
+```
+タイプ[-方向またはサブタイプ][-速度 fast|med|slow | ミリ秒]
+fade-400 · push-right-600 · split-vertical-in · wipe-slow · morph · none
+```
+
+- タイプは 58 個のホワイトリスト値（`fade cut dissolve circle diamond newsflash plus random wedge wipe push cover pull wheel zoom split blinds checker comb bars strips flash honeycomb vortex switch flip ripple glitter prism cube rotate orbit clock doors window shred ferris flythrough warp gallery conveyor pan reveal morph box fallOver drape curtains wind prestige fracture crush peelOff pageCurlDouble pageCurlSingle airplane origami none`）からしか選べない；綴りを誤ると `lib.cjs` が直接に誤りと判定する。officecli は無効なトークンを受け取ると**batch 全体をロールバック**するからである。
+- 時間と速度はどちらか一方：`fade-400` は p14 拡張の `transitionDuration` を通り、`fade-slow` は legacy の `transitionSpeed` を通る。両方を同時に与えれば誤りとする。
+- 方向とサブタイプは**タイプ依存**（`push-right` は合法、`circle-in` は無効）；構築後は読み戻し結果とのズレを報告する——推測しない。
+- `morph` はエンジンが書けて読み戻せるが、マッチは**前ページ同名の図形**に依存し、ビルダーが図形に渡すのは安定 id で意味上の名前ではないため、効果は大半が通常のページ送りに退化する——使う前に納品メモの約束を 1 段下げておこう。
+- 古い書き方 `{ "transition": "fade", "duration": 400 }` は廃止された。`lib.cjs` は誤りを報告し、`"fade-400"` への変更を促す。
+
+**ページ内 `animation`**（宣言したページだけに付く）：
+
+```json
+"animation": { "on": "content", "effect": "fade", "class": "entrance", "direction": "up", "duration": 400, "delay": 0, "trigger": "onClick" }
+```
+
+| 鍵 | 取り得る値 | 説明 |
+|---|---|---|
+| `on` | `primary` / `title` / `content` / `cards` / `all` | **すでに組版済みの要素**からどれにアニメーションを付けるか：主役、タイトル（主役を含む）、本文レイヤー、カードレイヤー、すべて。全面背景とスクリム（`ground`）、角標フッター（`role:detail`）は決して動かない |
+| `class` | `entrance` / `exit` / `emphasis` / `motion` | 4 分類で、効果のホワイトリストは分類別に分かれる：emphasis は `spin grow bold wave fade`（+ 色系）だけ、entrance/exit は `appear fade fly zoom wipe bounce float split wheel swivel checkerboard blinds dissolve flash box circle diamond plus strips wedge random` を使い、`contract floatOut sinkDown …` の 16 個のテンプレート効果は `class=exit` に限る |
+| `trigger` | `onClick`（既定）/ `withPrevious` / `afterPrevious` | クリック 1 回で 1 項目出る——それが講義のテンポである。`onClick` のとき要素は読み順（上を先、それから左）に並ぶ |
+| `duration` / `delay` | 整数 ms | テンプレートの exit 効果は PowerPoint 内蔵の長さを保つ；`duration` を与えたら直接に誤りとする |
+| `direction` | `in out left right up down` | 方向を持つ効果だけがこれを受け取る；読み戻しは `left/right/up/down` に正規化される |
+| `path` / `d` | `line arc circle diamond triangle square custom` | `class=motion` は `effect` の代わりにこれを使う；`path=custom` は `d`（0..1 の相対座標、SVG 風）が必須 |
+| `repeat` | 正整数 / `indefinite` | emphasis / motion にだけ意味がある；`calm` では禁止、`story` では `why` を書く |
+| `why` | 一言 | `class` が `entrance` 以外のとき必須：そのアニメーションが担う伝達の役割（注意を取り戻す / 場所を空ける / 動きが何を表すか）を書く |
+
+- **ページ内アニメーションはページごとの opt-in**：`calm` では `entrance`（読み順に現す）と `emphasis`（すでに見えている対象に注意を戻す）だけを許す；`exit` / `motion` は `story` に属し、`why` が必須。既定ではページ全体が一度に現れる。
+- **予算**：`calm` でアニメーションのあるページは 3 分の 1 を超えない、しかも隣り合う 2 ページを両方動かさない；`story` では半分を超えない。1 ページは依然 ≤ 6 要素、クリック 1 回で 1 項目出る——一言の説明が終わってもまだ動いている効果は書き直させる。
+- **1 本の長さ ≤ 800ms**：800ms を超えたら直接に誤り——アニメーションが語りより遅いのは、強調ではなく足枷である。
+- **背景、スクリム、フッター、角標は決して動かない**（`ground` と `role:detail` はアニメーションの池に入らない）；表紙 / 出典 / 謝辞のページはふつう静止のまま、`lint` が注意する。
+- **`exit` は「ページ内の内容を取り去る / 差し替える」ときだけ**：普通のページ送りはすでにページ全体を移す；**動きそのものが意味を運ぶとき**（因果、空間関係）だけ `motion` のパスを使い、それ以外は `entrance` / `emphasis`。
+- **画像と表にはアニメーションを付けられない**：officecli のアニメーションの親ノードは `shape` と `chart` だけ。画像ページを動かしたいなら、その上の文字／カードを動かす；`on` がアニメーション可能な要素を 1 つも選べないなら構築は失敗する——黙ってスキップはしない。
+- 1 ページ ≤ 6 のアニメーション要素（= クリック ≤ 6 回）。超過は誤りとし、内容を削るか `trigger` を変えさせる。
+- HTML 主軌と違い、ここでは `prefers-reduced-motion` のセーフティネットも CSS のイージング曲線の選択も**無い**；PowerPoint のアニメーションはプリセットと fast/med/slow だけ。本物の入場カーブが要るなら HTML 軌道へ。
 
 ### block kind（第 1 版はこれだけを認める）
 
 `points` · `prose` · `kpi` · `table` · `chart` · `compare` · `steps` · `timeline` · `diagram` · `image` · `media` · `pull` · `quote` · `code`
 
-骨子の 56 語の語彙から block への対応表はこれ 1 つだけ（骨子 §4 に写さない）：
+骨子の 58 語の語彙から block への対応表はこれ 1 つだけ（骨子 §4 に写さない）：
 
 | 骨子の語 | block |
 |---|---|
@@ -149,8 +216,9 @@ node <skill dir>/assets/pptx/build.cjs <トピック>-PPTX-src.json <トピッ�
 - すべての図形に `id`（`10000 + slide*100 + slot`）、`fill`、`line` を明示的に与える；以後の変更は揺れる `[N]` ではなく `@id` で行う；
 - 表は `;` で行を分け、引用符をエスケープする；行ごとに高さを計算し、セルごとに書体 / 塗りを設定する；
 - 画像は元の幅・高さから `crop`（パーセント）を計算する；全面背景は「画像をクロップ + 黒のスクリム」で作る；
-- 各ページに `transition=fade-400` を書き、構築後に `transitionDuration=400` を読み戻す；読み戻せなければ**すべての切り替えを削除**して端末に警告する——黙って `fade-med` に降格させない；
-- `animation` 要素は一切書かない。
+- 各ページに `motion.transition`（またはそのページの `transition` の上書き）のトークン文字列を書き、構築後にページごとに読み戻す：**タイプ**が読み戻せなければすべての切り替えを削除して警告する——黙って別の効果へ置き換えることは絶対にしない；時間または方向・サブタイプだけが読み戻せないなら効果は保持し、WARN を出し、納品メモに明記する；
+- 構築の前に `motionPolicyErrors` を通す：`discipline`、`why` / `transition_why`、expressive とアニメーションのあるページの予算はこの層で誤りになり、officecli のバッチには持ち込まれない；
+- `animation` を宣言したページでは、読み順に選択された `shape` / `chart` へ一つずつ `add … --type animation` を実行する——コマンドの順序がそのまま PowerPoint のクリック順序になる。
 
 ## 8. 表、グラフ、画像、メディア
 
@@ -176,10 +244,10 @@ officecli get <トピック>.pptx "/slide[3]/notes" --json
 ## 10. 既知の罠（踏んだ頻度順）
 
 1. **常駐プロセスがファイルを掴む**：`create` は resident を 1 つ残す；先に `close`、次に `rm`、それから `create`。削除に失敗するときは `fs.rmSync(..., {maxRetries:5, retryDelay:200})`；ビルダーに内蔵済み。
-2. **batch が失敗すると全体が書き込まれない**：先にすべての slide を作り、それからページごとに埋める；どの batch が失敗しても中止し、`--best-effort` は使わない。
-3. **`/shape[N]` は揺れる**：一律 `@id` を使う；id は構築時に割り当てられ、以後の変更で番号から探さない。
+2. **batch はアトミック**：どの 1 コマンドでも拒否されたら（無効な切り替えトークン、無効な効果×分類、画像へのアニメーションの取り付け）batch が**まるごとロールバック**し、`officecli batch` の終了コードは 0 以外になる。ビルダーは `--json` の結果を解析するようになり、拒否された先頭 5 コマンドの理由を表示する——生の JSON をまとめて放り込むだけのことはしない。
+3. **`/shape[N]` は揺れる**：一律 `@id` を使う；id は構築時に割り当てられ、以後の変更で番号から探さない。アニメーションノードも同様に `@id` にぶら下がる（`/slide[2]/shape[@id=10203]/animation[1]`）。
 4. **図形は既定でテーマ色を継承する**：すべての rect に `fill` と `line=none` を明示する。さもないと accent1 の線や下地が湧く。
-5. **切り替えの時間は p14 拡張の中に隠れる**：`transition=fade-400` を読み戻して 400 でなければ、すべての切り替えを削除する；XML を手で直さない。
+5. **切り替えの時間は p14 拡張の中に隠れる**：`fade-400` を読み戻して 400 でなければ WARN を出すだけ（タイプがまだ残っていれば効果は保持）；タイプ自体が読み戻せないときだけ、すべての切り替えを削除する。XML を手で直さない。
 6. **表の `data` は `;` で行を分ける**、`\n` ではない；カンマを含むセルは引用符で囲む（ビルダーが処理済み）。
 7. **画像の変形**：`view issues` が `picture_aspect_distorted` を報告する；幅・高さの比から `crop`（0–100 のパーセント）を計算し、無理に引き伸ばさない。
 8. **書体**：納品先のマシンにインストール済みの書体だけを使い、`font.latin` / `font.ea` を明示する；`create --locale` で言語を固定する。書体が欠けると PowerPoint が置換し、版面が変わりうる。
@@ -187,7 +255,26 @@ officecli get <トピック>.pptx "/slide[3]/notes" --json
 10. **`--grid` はヘッドレスブラウザを要する**：手元に無いときは `--page N` で 1 ページずつ撮るか、複数ページを `--page 1-N` で縦長 1 枚にする。
 11. **音声のポスターは 1×1**：音声は正方形の枠を使う；動画は実在の poster を必ず与える。さもないと変形と判定される。
 12. **構築仕様は第二の真実ではない**：ページ数 / ページ型 / 数字が骨子・資料まとめと食い違ったら、`PPTX-src.json` を直し、骨子 §6 に 1 行記録する。
+13. **切り替えトークンはタイプ依存**：`push-right` は合法、`circle-in` はエンジンに拒否されて batch 全体を道ずれにロールバックされる；`zoom-in` は受理されても読み戻しは `zoom` だけ残る。方向とサブタイプは読み戻し結果だけに基づいて納品メモに書く——必ず効くと仮定しない。
+14. **画像と表にはアニメーションを付けられない**：officecli のアニメーションの親ノードは `shape` と `chart` だけ；`on` がアニメーション可能な要素を 1 つも選ばなければ構築は即失敗する——これは意図どおりで、黙ってスキップに切り替えない。
+15. **あるページの最後のアニメーションを消すと空の `p:timing` が残る**（それを受けて `validate` は即座に incomplete content を報告）。アニメーションを撤回するなら spec を直して再構築する——本番の成果物に対して `officecli remove` をしない。
+16. **58 種の切り替えはパレットではない**：`calm` での expressive な効果、`story` 以外での高強度のアニメーションは `lib.cjs` が誤りにする；fade 以外の切り替えに変えるたびに「この 2 ページの間で何が起きたか」を言えなければならない。言えた理由は `why` / `transition_why` へ、言えなければ `fade-400` に戻す。
+17. **`random` / `repeat` には内容上の理由が要る**：前者は「不確実性そのもの」にだけ仕え、後者は `story` で why を書いたときだけ使える；「単調が怖い」は spec にも納品メモにも書かない。
 
 ## 11. 出力
 
 骨子 §1 の `filename` が指定する `.pptx` のパス（既定は骨子と同じディレクトリ）に書き出す。書き終えたらすぐステップ 6 へ進み、先に納品しない。
+
+## 12. レビュー通過後の再編集
+
+`.pptx` はコンパイルの成果物で、**唯一の真実は `<トピック>-PPTX-src.json`**（ページ数、ページ型、文字、数字はなお骨子と資料まとめを正とする）。ステップ 6 の再審査後にユーザーが何でも直したいなら——言葉を換える、版面を調整する、1 行足す、ページ切り替えやアニメーションを変える——すべて同じ 1 本道を通る：
+
+1. 変更を `PPTX-src.json` へ書き戻す（構造を動かすなら先に骨子を直し、骨子 §6 に 1 行記録する）；
+2. `build.cjs` で再コンパイルする；
+3. ステップ 6 を再び走らせる：ビルダー自身のモーション読み戻し + `lint.cjs`（アニメーション数と切り替えタイプの照合を含む）+ ページごとのスクリーンショット。
+
+**再コンパイルは古いファイルを削除してから全体を作り直す**（`close → rm → create → batch`）——だから：
+
+- ユーザーが PowerPoint / WPS の中で手作業で加えた変更はすべて失われる。手で付けたアニメーション、変えた文字サイズ、差し込んだ 1 ページも含む；
+- `.pptx` を手渡した後、またはユーザーが「このファイルいじった」と明言したら、**先に問う**：(a) 変更を spec へ書き戻して再コンパイルするか（推奨——変更は lint のカバー下に留まる）、それとも (b) この完成品の上で最小限の点改だけするか。(b) の選ばれた場合は再コンパイルせず、`officecli set @id` 水準の部分修正だけを行い、このファイルは以後 spec と非同期になること、アニメーション数が食い違えば `lint` が `none in the spec (edited outside the build spec?)` と報告することをありのままに伝える；
+- 完成品が動く変更を受けたか不确定なら、まず `lint.cjs` を 1 回走らせてから直しかたを決める——あのアニメーション照合はまさにこのためにある。

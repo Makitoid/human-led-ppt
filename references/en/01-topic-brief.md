@@ -25,7 +25,7 @@ A. HTML deck (this skill's primary track; recommended when the point is "to pres
 
 B. Native PPTX (.pptx; recommended when the point is "to hand in / someone else keeps editing")
    - Native shapes, text, tables, charts, images, media and notes, editable onward in PowerPoint / WPS / Keynote;
-   - Each slide's notes are the speaker notes; page turns are a uniform fade 0.4s with no in-page animation;
+   - Each slide's notes are the speaker notes; page turns are selectable (uniform fade 0.4s by default, 58 other types available), in-page animation can be added page by page (images and tables cannot carry it);
    - Cost: no browser overview / annotation / two-window view / deep links / portrait mask; layout depends on the target machine's fonts;
      without PowerPoint on this machine, only structural checks + rendered-screenshot review are possible, and you have to open it once in PowerPoint for the final look.
 

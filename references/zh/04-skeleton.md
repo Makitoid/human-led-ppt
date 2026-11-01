@@ -56,14 +56,15 @@ deck:
     engine: officecli | host-plugin # 第 5 步 detect-engine.cjs 的结论；host-plugin 要注明插件名
     canvas: 16:9（960×540pt）        # 固定；不支持 4:3 / 竖版
     fonts: {latin: <已装>, ea: <已装>} # 交付机必须已安装
-    motion: {transition: fade, duration_ms: 400, element: none}  # 只允许这一组
+    motion: {transition: <令牌，如 fade-400 / push-right-600 / morph>, discipline: calm | story, why: <非 fade/cut 时的一句话理由>}
+    animation: none | <页号>:<元素组>/<效果>/<类别>[/why]   # 逐页 opt-in，默认 none
     notes: from §7（纯文本，<strong>/<em> 会被剥掉）
     evidence: <来源页脚覆盖哪些页 + 来源页页码>
   accessibility: 每页 h1/h2 有序；翻页 aria-live 播报；正文对比度 ≥ 4.5:1
-  motion: HTML 进场动画随切页自动播放、prefers-reduced-motion 时关闭；PPTX 只允许切页 fade 400ms，页内动画 none
+  motion: HTML 进场动画随切页自动播放、prefers-reduced-motion 时关闭；PPTX 切页用令牌串（默认 `fade-400`，只按相邻页关系换），页内动画按页声明、默认不加
 ```
 
-`typography` / `hierarchy` / `theme` / `禁止` / `motion` 五块直接抄第 2 步的"风格决定块"，不要在这里重新发明。`motion` 要写清**切页方式 + 时长 + easing + 页内动画类型**，构建时照做；深色主题额外确认 `deck-shell.css` 的 `--ovl-bg / --ovl-ink / --ovl-card`（总览墙）已一并覆盖。`hierarchy` 是第 5 步排版时的第一顺位：先定每页主语，再排其余内容；`scale` 的相邻级比低于 1.4 就直接判不合格。
+`typography` / `hierarchy` / `theme` / `禁止` / `motion` 五块直接抄第 2 步的"风格决定块"，不要在这里重新发明。`motion` 要写清**切页方式 + 时长 + easing + 页内动画类型**，构建时照做（PPTX 轨没有 easing 可选，只有 fast/med/slow 与预设效果；默认 `fade-400` + 页内 `none`，换切页只按相邻页关系换、并写一句理由进 `why`。逐页的切换与动画写在 §4 的 `transition` / `animation` 两个词里，让它们和版式一起被你审；`calm` 下不许出现 expressive 切页与 `exit` / `motion` 动画，预算见 `05b-pptx.md` §4）。深色主题额外确认 `deck-shell.css` 的 `--ovl-bg / --ovl-ink / --ovl-card`（总览墙）已一并覆盖。`hierarchy` 是第 5 步排版时的第一顺位：先定每页主语，再排其余内容；`scale` 的相邻级比低于 1.4 就直接判不合格。
 
 ## §2 叙事装置
 
@@ -185,6 +186,10 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | `emphasis` ★ | 本页唯一的视觉重点：用 accent 还是 warn、落在哪个元素 | 一页只允许一处强色 |
 | `before-after` | 前后对照 / 改前改后 / 误读 vs 纠正 | 双栏 |
 | `diagram` | 结构图的构成：原理图、架构图、流程图、**归因树 / 5Why / 鱼骨**——有哪几块、怎么连、箭头朝哪。因果链的节点允许是名词（不像 `steps` 必须动词开头） | 内联 SVG |
+| `transition` | **本页切页**：先写"和上一页是什么关系"，再给令牌——default `fade-400`；语义推进用 `push-right-600` / `wipe-*`；同对象跨页变形用 `morph`；章节开场/关键揭示才用华丽库，且必须写一句理由。只在 target 含 native-pptx 时写 | `PPTX-src.json` 的 `slides[].transition` + `transition_why`；HTML 轨不读 |
+| `animation` | **本页页内动画**：动哪一组（主语/标题/正文/卡片/全部）+ 类别（`entrance` / `emphasis` / `exit` / `motion`）+ 一句话任务。默认不写；`exit` / `motion` 只在 story 档、且理由写进 `why` | `PPTX-src.json` 的 `slides[].animation`；HTML 轨的进场动画由壳接管，不读这个词 |
+
+> 动效类词（`transition` / `animation`）只在原生 PPTX 轨使用；HTML 轨按 `05-build.md` 的「动画与切页」纪律执行，不写这两个词。默认整份 `fade-400` + 页内无动画，换效果必须能说出"这两页之间发生了什么"。
 
 > 媒体类关键词按**文件归属**分工：**图片与背景内联**（`image` → `.img-frame` + `<img>`；`background` → `data-bg` 铺满整页），**音视频是 sibling 文件**（`audio` / `video` → `.mp`，放在 `.html` 同目录）。单文件 HTML 装不下几十 MB 的音视频——base64 会再胀大三分之一，`file://` 下首屏还要把整个 data URL 读完才显示，deck 直接打不开。所以音视频的物理文件必须和 `.html` 放在同一个文件夹一起交付，拷贝时别只拷 html。落屏位置仍由 `layout` 和词序决定，这些词只声明"放什么媒体、放哪一块、要不要自动播"。
 >
@@ -202,7 +207,7 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | `example` ★ | 具体案例 / 例题：对象 + 情境 + 结果 | 案例卡 |
 | `takeaway` ★ | 本页结论，一句观众能带走的话 | 收束块 |
 | `action` ★ | 行动项 / 下一步 / 改进项：谁 + 做什么 + 到什么时候，可再加"做到什么算完成 / 当前状态"，2–4 条。**超过 4 条、或要带状态列，就整页改用 `table` 承载，`action` 与 `table` 不得同时出现在一页**（否则就是同一批内容抄两遍，违反选词规则 3） | 行动清单 |
-| `transition` | 下一页怎么被引出来（问句或半句） | 页脚附近 |
+| `bridge` | 下一页怎么被引出来（问句或半句）；原名 `transition`，该名已让位给 PPTX 切页词 | 页脚附近 |
 
 **F 讲述与互动 —— 谁怎么说**
 

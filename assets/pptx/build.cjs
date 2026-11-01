@@ -176,6 +176,40 @@ function elementCommands(el, theme, slidePath, specDir) {
   throw new Error('unknown element kind ' + el.kind);
 }
 
+function animProps(anim) {
+  const props = { class: anim.class, trigger: anim.trigger || 'onClick' };
+  if (anim.class === 'motion') {
+    props.path = anim.path;
+    if (anim.d) props.d = anim.d;
+  } else props.effect = anim.effect;
+  if (anim.direction) props.direction = anim.direction;
+  if (anim.duration != null) props.duration = anim.duration;
+  if (anim.delay != null) props.delay = anim.delay;
+  if (anim.repeat != null) props.repeat = anim.repeat;
+  return props;
+}
+
+// Click order is the order the commands run in, so targets go in reading order (top-to-bottom, left-to-right).
+function animationCommands(slide, elements, slidePath, at, errors) {
+  const anim = slide.animation;
+  if (!anim) return [];
+  const targets = L.animationTargets(slide, elements, anim)
+    .slice().sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  if (!targets.length) {
+    errors.push(`${at}: animation.on="${anim.on}" matched no animatable element — pictures, tables and media cannot carry animations in officecli`);
+    return [];
+  }
+  if (targets.length > L.ANIM_MAX_PER_SLIDE) {
+    errors.push(`${at}: animation on ${targets.length} elements > ${L.ANIM_MAX_PER_SLIDE} clicks — shorten the block or drop the animation`);
+    return [];
+  }
+  return targets.map(el => ({
+    command: 'add', parent: `${slidePath}/${L.ANIM_SEGMENT[el.kind]}[@id=${el.id}]`, type: 'animation', props: animProps(anim),
+  }));
+}
+
+function motionToken(spec, slide) { return slide.transition || (spec.motion || {}).transition || L.DEFAULT_TRANSITION; }
+
 function compile(spec, specDir) {
   const errors = L.validateSpec(spec);
   if (errors.length) return { errors };
@@ -206,7 +240,7 @@ function compile(spec, specDir) {
     } },
   ];
   spec.slides.forEach(s => {
-    batch.push({ command: 'add', parent: '/', type: 'slide', props: { layout: 'Blank', background: theme.bg, transition: 'fade-400' } });
+    batch.push({ command: 'add', parent: '/', type: 'slide', props: { layout: 'Blank', background: theme.bg, transition: motionToken(spec, s) } });
   });
   slides.forEach(({ slide, elements }, i) => {
     const slidePath = `/slide[${i + 1}]`;
@@ -214,6 +248,7 @@ function compile(spec, specDir) {
       try { batch.push(...elementCommands(el, theme, slidePath, specDir)); }
       catch (e) { errors.push(`${slide.id}/${el.id}: ${e.message}`); }
     }
+    batch.push(...animationCommands(slide, elements, slidePath, slide.id, errors));
     if (slide.notes) batch.push({ command: 'add', parent: slidePath, type: 'notes', props: { text: L.stripTags(slide.notes) } });
   });
   if (errors.length) return { errors };
@@ -227,29 +262,65 @@ function applyBatch(out, batch, locale) {
   let r = officecli(['create', out, '--force', '--locale', locale || 'zh-CN']);
   if (r.status !== 0) fail('create failed: ' + (r.stderr || r.stdout));
   officecli(['close', out]);
-  const r2 = officecli(['batch', out, '--input', '-'], { input: JSON.stringify(batch) });
-  if (r2.status !== 0) fail('batch failed: ' + (r2.stderr || r2.stdout));
+  // A rejected item rolls the whole batch back; report the per-command reason instead of dumping the JSON.
+  const r2 = officecli(['batch', out, '--input', '-', '--json'], { input: JSON.stringify(batch) });
+  let parsed = null;
+  try { parsed = JSON.parse(r2.stdout); } catch { /* older officecli without --json support */ }
+  if (r2.status !== 0 || (parsed && parsed.success === false)) {
+    if (!parsed) fail('batch failed: ' + (r2.stderr || r2.stdout));
+    const s = (parsed.data || {}).summary || {};
+    const first = ((parsed.data || {}).results || []).filter(x => !x.success).slice(0, 5).map(x => {
+      const item = x.item || {};
+      return `    #${x.index} ${item.command} ${item.type || ''} ${item.path || item.parent || ''} — ${x.error}`;
+    });
+    fail(`${s.failed || '?'} of ${s.total} batch commands rejected${s.atomicRolledBack ? ' and the batch rolled back' : ''} — nothing was written:\n${first.join('\n')}`);
+  }
   officecli(['close', out]);
   return r2.stdout;
 }
 
-function verifyTransitions(out, count) {
+// Type mismatch removes every transition (never ship a different effect than the spec names);
+// duration/direction drift is reported, because officecli drops some modifiers silently.
+function verifyTransitions(out, spec) {
+  const count = spec.slides.length;
   const bad = [];
-  for (let i = 1; i <= count; i++) {
-    const r = officecli(['get', out, `/slide[${i}]`, '--json']);
-    if (r.status !== 0) { bad.push(i); continue; }
-    try {
-      const d = JSON.parse(r.stdout);
-      const f = d.data.results[0].format;
-      if (f.transition !== 'fade' || String(f.transitionDuration) !== '400') bad.push(i);
-    } catch { bad.push(i); }
-  }
-  if (!bad.length) return true;
+  const drift = [];
+  spec.slides.forEach((s, i) => {
+    const token = motionToken(spec, s);
+    const exp = L.parseMotionToken(token, token).out;
+    const r = officecli(['get', out, `/slide[${i + 1}]`, '--json']);
+    if (r.status !== 0) { bad.push(i + 1); return; }
+    let f;
+    try { f = JSON.parse(r.stdout).data.results[0].format; } catch { bad.push(i + 1); return; }
+    const got = String(f.transition || '');
+    const gotType = got.split('-')[0];
+    if (exp.type === 'none') { if (got) drift.push(`slide ${i + 1}: spec says no transition, file has ${got}`); return; }
+    if (!got || gotType !== exp.type) { bad.push(i + 1); return; }
+    const gotParts = got.split('-').slice(1);
+    const lost = exp.modifiers.filter(m => !gotParts.includes(m));
+    if (exp.ms != null && String(f.transitionDuration) !== String(exp.ms)) {
+      drift.push(`slide ${i + 1}: ${gotType} duration reads back ${f.transitionDuration || 'unset'}, spec says ${exp.ms}ms`);
+    } else if (exp.speed && f.transitionSpeed !== exp.speed) {
+      drift.push(`slide ${i + 1}: ${gotType} speed reads back ${f.transitionSpeed || 'unset'}, spec says ${exp.speed}`);
+    }
+    if (lost.length) drift.push(`slide ${i + 1}: ${gotType} dropped modifier ${lost.join('/')} on readback`);
+  });
+  if (!bad.length) return { ok: true, drift };
   const batch = [];
   for (let i = 1; i <= count; i++) batch.push({ command: 'set', path: `/slide[${i}]`, props: { transition: 'none' } });
   officecli(['batch', out, '--input', '-'], { input: JSON.stringify(batch) });
   officecli(['close', out]);
-  return false;
+  return { ok: false, drift, slides: bad };
+}
+
+// Transitions beyond fade, and every in-page animation, are verified only on officecli 1.0.160.
+function motionGateError(version, spec) {
+  if (L.versionAtLeast(version, '1.0.160')) return null;
+  const beyondFade = (spec.slides || []).some(s => s.animation)
+    || [spec.motion && spec.motion.transition].concat((spec.slides || []).map(s => s.transition))
+      .filter(Boolean).some(t => String(t).split('-')[0] !== 'fade');
+  if (!beyondFade) return null;
+  return `officecli ${version}: transitions beyond fade and in-page animations are only verified on 1.0.160+. Upgrade the binary, or set motion to "fade-400" and drop every slide.animation.`;
 }
 
 function main() {
@@ -265,6 +336,8 @@ function main() {
   if (vr.status !== 0) fail('officecli not available. Install the BINARY only (never `officecli install`) and retry.');
   const version = (vr.stdout || '').trim();
   if (!L.versionAtLeast(version, '1.0.159')) fail(`officecli ${version} is older than 1.0.159; upgrade before building.`);
+  const gate = motionGateError(version, spec);
+  if (gate) fail(gate);
   const result = compile(spec, specDir);
   if (result.errors) fail('\n  - ' + result.errors.join('\n  - '));
   const batchPath = args.includes('--batch') ? args[args.indexOf('--batch') + 1] : out + '.batch.json';
@@ -273,14 +346,16 @@ function main() {
     process.stdout.write(`pptx-build: OK — emitted ${result.batch.length} commands to ${batchPath}\n`);
     return;
   }
-  const log = applyBatch(out, result.batch, spec.meta.locale);
-  const transitionsOk = verifyTransitions(out, spec.slides.length);
+  applyBatch(out, result.batch, spec.meta.locale);
+  const motion = verifyTransitions(out, spec);
   officecli(['close', out]);
   const bytes = fs.statSync(out).size;
   process.stdout.write(`pptx-build: OK — ${path.basename(out)} (${spec.slides.length} slides, ${result.batch.length} commands, ${bytes} bytes)\n`);
-  if (!transitionsOk) process.stdout.write('pptx-build: WARN — transition readback failed; all transitions removed, add them in PowerPoint\n');
-  if (log && log.includes('failed')) process.stdout.write(log + '\n');
+  if (!motion.ok) process.stdout.write(`pptx-build: WARN — transition type did not read back on slide ${motion.slides.join('/')}; all transitions removed, add them in PowerPoint\n`);
+  for (const w of motion.drift) process.stdout.write(`pptx-build: WARN — ${w}\n`);
+  const animated = (spec.slides || []).filter(s => s.animation).length;
+  if (animated) process.stdout.write(`pptx-build: ${animated} slide(s) carry in-page animations — check them in PowerPoint, officecli screenshots do not show motion\n`);
 }
 
 if (require.main === module) main();
-module.exports = { compile, applyBatch, verifyTransitions };
+module.exports = { compile, applyBatch, verifyTransitions, motionGateError };

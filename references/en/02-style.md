@@ -155,11 +155,11 @@ HTML's CSS tricks do not port straight to PPTX; the style decision block has to 
 
 - **Fonts**: only fonts already installed on the delivery machine; name both `latin` + `ea` for headings and body (e.g. `Arial` + `Microsoft YaHei`); no web fonts, no embedded fonts. A missing font gets substituted by PowerPoint and the layout may shift.
 - **Footer**: 10.5pt minimum (the HTML 9px citation bar does not migrate); all information-bearing text still ≥ 4.5:1.
-- **Motion**: only a page-turn `fade` of 400ms; **no in-page animation at all**. If the skeleton's `motion` names any other transition or an in-page animation, fix it to fade/400 in step 4 — do not leave it for the compiler to reject at build time.
+- **Motion**: page turns default to a uniform `fade` 400ms and can be overridden per slide with any of the 58 PowerPoint effects (token grammar and whitelist in `05b-pptx.md` §4); in-page animation is declared per slide, attaches only to `shape` / `chart` (never pictures, tables or media), caps at 6 per page and releases one item per click. There is no CSS easing curve to pick here — only fast/med/slow and PowerPoint presets. Decide which ones land on which slides in this step and write them into the style decision block; do not leave it to the build.
 - **Shapes and effects**: radii, outlines, shadows and glows use native PowerPoint parameters; where a preset asks for a CSS texture ("glass / refraction / scanlines / halftone"), PPTX approximates it with the closest native fill / outline / transparency and the style decision block says "PPTX approximation" — never promise pixel parity.
 - **Charts**: native charts, 2–12 categories, 1–3 series, linear axis; for log axes, waterfalls and dual units, mark "PPTX degrades this to a table / bar chart" in the style block first.
 - **Images**: PNG/JPEG, ≤ 2MB per image recommended; a full-bleed backdrop must carry a readable scrim (the builder defaults to 55% black, adjustable in the block).
-- **Forbidden**: web fonts, CSS filters, scrolling/parallax, autoplaying audio or video (unless the user explicitly asks for it), in-page animation.
+- **Forbidden**: web fonts, CSS filters, scrolling/parallax, autoplaying audio or video (unless the user explicitly asks for it), describing a PowerPoint preset as if it were a CSS easing curve.
 
 ## Output: style decision block
 

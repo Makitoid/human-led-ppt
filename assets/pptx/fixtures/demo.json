@@ -21,7 +21,7 @@
     "scale": { "claim": 48, "title": 34, "body": 24, "meta": 14 },
     "radius": 16
   },
-  "motion": { "transition": "fade", "duration": 400 },
+  "motion": { "transition": "fade-400" },
   "slides": [
     {
       "id": "s1",
@@ -51,6 +51,7 @@
           ]
         }
       ],
+      "animation": { "on": "content", "effect": "fade", "class": "entrance", "duration": 400 },
       "notes": "先把成本分成三类，后面的数字都按这个口径。"
     },
     {
@@ -110,11 +111,14 @@
         }
       ],
       "source": "示例研究院 · 2026",
+      "animation": { "on": "content", "effect": "wipe", "class": "entrance", "direction": "up", "trigger": "withPrevious" },
       "notes": "这根曲线是峰值证据：协作成本没有被远程省掉。"
     },
     {
       "id": "s6",
       "type": "split-compare",
+      "transition": "push-right-600",
+      "transition_why": "从第二幕的逐项成本推到第三幕的二选一结论，方向跟着论证往前走",
       "topic": "第三幕 · 结论",
       "title": "两种工作方式",
       "key": "远程不是免费午餐",

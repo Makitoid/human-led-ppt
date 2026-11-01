@@ -2,9 +2,18 @@
 
 [English](CHANGELOG.md) · **中文** · [日本語](CHANGELOG_ja.md)
 
-## v2.0 (2026-10-31)
+## v2.0.0b2 (2026-11-01)
 
-- **新增原生 PPTX 兼容轨道**：`officecli` + JSON 页规格 + 版式编译器，产出可编辑的原生形状/表格/图表/图片/媒体/备注；切页统一 `fade` 0.4s，不加页内动画；构建前后双检（规格 + 成品回读）、`validate` / `issues` / 逐页截图复核。
+- **PPTX 动效加了一层设计纪律**：参照 [`hugohe3/ppt-master`](https://github.com/hugohe3/ppt-master)（MIT）的动效规范——默认 `fade-400`、页内动画默认关闭、按相邻页关系选切页——新增 `motion.discipline`（`calm` / `story`）、`motion.why`、`slides[].transition_why` 与 `animation.why`。`calm` 只允许 base（fade / cut / none）、directional（push / wipe / cover / pull / split / reveal）与 identity（morph）；expressive 效果、`exit` / `motion` 动画、`repeat` 与超过 800ms 的入场都判错。动画页 ≤1/3 且不许相邻；expressive 切页 ≤20% 且不许相邻。切页仍按 officecli 1.0.160 的 58 个白名单逐字校验。
+- **构建与验收同步**：`lib.cjs` 新增 `motionPolicyErrors`，在 officecli 之前卡住不合纪律的 spec；`lint.cjs` 的 QA 报告增加 discipline 行；`fixtures/demo.json` 补 `transition_why`，继续作为动效读回的冒烟样例。
+- **三语文档**：`05b-pptx.md` 增加「先选纪律」、相邻页关系表与预算表，`06b-pptx.md` 增加对应检查项与负例；`04-skeleton.md` §1 的 `pptx.motion` 改为 discipline + why，§4 新增 `transition` / `animation` 两个动效关键字（原叙事引出词 `transition` 改名为 `bridge`）。
+
+## v2.0.0b1 (2026-10-31)
+
+- **新增原生 PPTX 兼容轨道**：`officecli` + JSON 页规格 + 版式编译器，产出可编辑的原生形状/表格/图表/图片/媒体/备注；切页默认统一 `fade` 0.4s，可按页换成 58 种效果之一，页内动画按页声明；构建前后双检（规格 + 成品回读）、`validate` / `issues` / 逐页截图复核。
+- **PPTX 动效从「只允许 fade」改为可选**：切页令牌 `类型[-方向][-速度|毫秒]`（`fade-400` / `push-right-600` / `split-vertical-in` / `morph` / `none`），页内 `animation` 支持进场、退场、强调、自定义运动路径四类，按阅读顺序排队、一次点击出一条。白名单逐字取自 officecli 的报错文本；图片、表格与媒体挂不上动画（父节点只有 `shape` / `chart`），每页 ≤6 条。旧的 `{transition:"fade",duration:400}` 写法报错并提示改成 `"fade-400"`。非 fade 的切页与所有页内动画只在 officecli 1.0.160 上实测过，构建器在更低版本会直接拒绝生成（退回 `fade-400` 仍可构建）。
+- **构建与验收跟着补**：`build.cjs` 解析 `officecli batch --json`，任一条命令被拒就报出前 5 条原因（批是原子的，过去只看退出码会把回滚当成成功）；切页类型读不回仍删光所有切换，只有时长或方向后缀被引擎丢弃时改为 WARN；`lint.cjs` 逐页核对动画条数，成品上出现 spec 里没有的动画会警告。
+- **复审后再编辑的契约写进文档**：成品是编译产物，唯一真相是 `<主题>-PPTX-src.json`；第 6 步没过就改 spec → 重编译 → 重新验收。重编译删旧建新，用户在 PowerPoint 里手工加的东西（含手动动画）会被覆盖，交付出文件后要先问「回写 spec 重编」还是「在成品上点改」（`05b-pptx.md` §12、`06b-pptx.md` §9）。
 - **banner 重绘**：左侧放大品牌与人主导理念，右侧叠放 HTML 幻灯片与可编辑的原生 PPTX 卡片，底部串联五步流程与人工审核闸门；沿用纸面/墨绿/琥珀三色，零渐变、零外部字体。
 - **HTML 仍是主轨**：第 1 步用固定文案让用户选 HTML / PPTX / 两份，不替用户默认；README 先讲 HTML 的轻量、Agent 友好与审美上限。
 - **引擎规则**：officecli 强制；Claude Code / Codex / ZCode 优先用宿主 PPTX 插件、缺则回退 officecli；DeepSeek Harness 先查插件；只装 officecli 二进制，不跑 `officecli install`。

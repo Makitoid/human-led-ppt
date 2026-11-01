@@ -4,7 +4,7 @@
 
 **以人主导、Agent 辅助的 PPT 设计系统。HTML 是主轨，原生 PPTX 是兼容交付。** 人定主题、风格与措辞，Agent 管证据、结构与构建纪律；五步各留一份可审核的文件，用户点头之后才允许构建。
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0](https://img.shields.io/badge/version-2.0-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0.0b2](https://img.shields.io/badge/version-2.0.0b2-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
 
 > [!note]
 > 本项目已经迁移到 Codeberg 开发。GitHub 只作为副本同步。
@@ -36,7 +36,7 @@
 | 1 主题与叙事 | **先选交付形态**；定主问题、受众、时长页数、分幕结构与张力弧度 | 需求确认块 |
 | 2 风格方向 | 9 套气质预设（Fluent / Material 3 / 纸面中性 / 人文出版物 / Liquid Glass / 文档清单 / 漫画风 / 学术 / 趣味）与 13 套模板（J–Q 版式 + R–V 五套完整风格） | 风格决定块 |
 | 3 资料库（按需） | 循证检索：明确标出争议、二手转引、打不开 | `主题-资料总结.md` |
-| 4 骨架说明书 | 分幕、**每页关键字**（内核三项 `type`/`key`/`sec`，其余从 56 词词库选 5–11 个）、实现细则、演讲者提示词 | `主题-HTML-PPT骨架.md` 或 `主题-PPTX骨架.md`（**等用户审核**） |
+| 4 骨架说明书 | 分幕、**每页关键字**（内核三项 `type`/`key`/`sec`，其余从 58 词词库选 5–11 个）、实现细则、演讲者提示词 | `主题-HTML-PPT骨架.md` 或 `主题-PPTX骨架.md`（**等用户审核**） |
 | 5 构建 | HTML：严格按骨架出单文件；PPTX：按骨架写 `PPTX-src.json`，再用版式编译器出原生对象 | `主题.html` / `主题.pptx` |
 | 6 自检与交付 | HTML：静态自检 + 浏览器实测 + 数字审计；PPTX：规格/成品双检 + validate + issues + 逐页截图 | 实测通过项 + 未验证项 |
 | 7 屏幕批注（可选，HTML） | 钢笔、荧光笔、两种橡皮、按页存笔迹 | 同一份 `主题.html` 多一个叠加层 |
@@ -85,7 +85,8 @@ officecli view <主题>.pptx screenshot --page 1 --out shots/s1.png
 
 - 12 个版式 recipe 覆盖封面、幕间、主张、要点、KPI、表格、图表、对比、图示、图片、代码、收束；每页一个主语、四档字号、accent ≤1、warn ≤1、卡片 ≤4。
 - 文字容量是硬闸门：放不下直接报错，**不缩字**。
-- 切页统一 `fade` 400ms；**没有页内动画**。读不回 400ms 就删光切换，并在交付说明里让你自行添加。
+- 切页动效默认统一 `fade` 400ms，也可按页覆盖成 58 种效果之一（`push-right-600`、`split-vertical-in`、`morph`…）；页内动画按页声明（进场/退场/强调/路径，点击逐条出场）。图片与表格挂不上动画；类型读不回就删光切换，只有时长或方向读不回时报 WARN。
+- 审查后的再次编辑只改 `<主题>-PPTX-src.json` 再重编译：成品是编译产物，重编译会删旧建新，**你在 PowerPoint 里手工改的（包括手动加的动画）会被覆盖**。
 - 图片/音视频会嵌入 `.pptx`；单张图片建议 ≤2MB。
 - 本机没有 PowerPoint 时，截图走 officecli 的 HTML 渲染路径：它证明版式结构，不证明 PowerPoint 像素级一致；交付时会请你打开一次。
 
@@ -132,13 +133,13 @@ officecli view <主题>.pptx screenshot --page 1 --out shots/s1.png
 - 文档里提到的第三方 skill 名称是 2026-10-14 的市场快照，未安装也未验证正文；调用前请复核并让用户确认。
 - 文档里的示例全是占位符（`<…>` / `……`），不要照抄数字，也不许让占位符进成品。
 - PPTX 轨道的模板/母版路线尚未纳入第一版；不要承诺“套用单位模板”。
-- PPTX 不支持页内动画、Morph、自动旁白，也不支持编辑任意旧 `.pptx`；只从骨架新建。
+- PPTX 的动效吃 PowerPoint 预设：切页 58 种带方向与时长，页内动画只能挂 `shape` / `chart`（图片、表格、媒体不行），没有 CSS 那种缓动曲线；自动旁白/自动录制仍不支持。编辑任意旧 `.pptx` 仍不支持，本轨道只从骨架新建。
 - PPTX 的对数轴、瀑布、双单位图表会降级为表格或简单条形图。
 - 没有 PowerPoint 时无法做像素级验收；截图只证明版式结构。
 
 ## 2.0 更新
 
-- **原生 PPTX 兼容轨道**：`officecli` + JSON 页规格 + 版式编译器，产出可编辑的原生形状/表格/图表/图片/媒体/备注；切页统一 fade 0.4s，不加页内动画；构建前后双检 + 逐页截图复核。
+- **原生 PPTX 兼容轨道**：`officecli` + JSON 页规格 + 版式编译器，产出可编辑的原生形状/表格/图表/图片/媒体/备注；切页默认统一 fade 0.4s、可按页换成 58 种效果之一，页内动画按页声明（图片与表格除外）；构建前后双检 + 逐页截图复核。
 - **banner 重绘**：左侧放大品牌与人主导理念，右侧叠放 HTML 幻灯片与可编辑的原生 PPTX 卡片，底部串联五步流程与人工审核闸门。
 - **HTML 仍是主轨**：README 与第 1 步都先讲 HTML 的优势；只有硬性要 `.pptx` 时才走兼容轨道。
 - **README 三语重写**：结构改为“为什么 HTML 为主 → 两种形态 → 五步 → PPTX 兼容轨道 → 安装 → 对照表 → 限制”。
