@@ -8,6 +8,9 @@
 - **构建与验收同步**：`lib.cjs` 新增 `motionPolicyErrors`，在 officecli 之前卡住不合纪律的 spec；`lint.cjs` 的 QA 报告增加 discipline 行；`fixtures/demo.json` 补 `transition_why`，继续作为动效读回的冒烟样例。
 - **三语文档**：`05b-pptx.md` 增加「先选纪律」、相邻页关系表与预算表，`06b-pptx.md` 增加对应检查项与负例；`04-skeleton.md` §1 的 `pptx.motion` 改为 discipline + why，§4 新增 `transition` / `animation` 两个动效关键字（原叙事引出词 `transition` 改名为 `bridge`）。
 
+- **HTML 轨道吸收 ppt-master 的设计规范**：`05-build.md` 新增「版面基线」（页面闭合、文字角色、行距、观看距离、对比与语义编码、换行、对齐、视觉重量、边界强度、容器、标题与页眉）；`动画与切页` 改为同一套动效纪律（默认交叉淡变、按相邻页关系换切页、页内动画默认关闭、一次揭示一组、200–800ms、禁循环、装饰件不动）；`06-verify.md` 增加链接检查与「2.5 链接」实测。
+- **HTML 超链接支持打开目录下的文件**：骨架 §4 新增 `link` 关键字（显示文字 + 相对路径 + `target="_blank" rel="noopener"`），§1 增加 `links:` 策略；壳只接管 http(s)（内嵌预览器也能新开标签），本地文件交给浏览器原生打开、不触发翻页，并拒绝 `javascript:` / `vbscript:` / `data:`；`assemble.cjs` 在装配时逐个核对链接文件存在，缺一个就中止构建；`.file-link` 由壳给样式（accent 下划线 + ↗）。
+
 ## v2.0.0b1 (2026-10-31)
 
 - **新增原生 PPTX 兼容轨道**：`officecli` + JSON 页规格 + 版式编译器，产出可编辑的原生形状/表格/图表/图片/媒体/备注；切页默认统一 `fade` 0.4s，可按页换成 58 种效果之一，页内动画按页声明；构建前后双检（规格 + 成品回读）、`validate` / `issues` / 逐页截图复核。

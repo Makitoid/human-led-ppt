@@ -1233,7 +1233,13 @@
     tx = ty = null;
   }, { passive: true });
 
-  // always open links in a new tab (embedded previewers ignore target="_blank") and never page
+  /* Links. Three kinds, three behaviours:
+     - `#s5` jumps stay with the shell's hash routing (hashchange → fromHash).
+     - http(s) opens in a new tab because embedded previewers ignore target="_blank"; the author
+       still writes target="_blank" rel="noopener" so a plain browser does the same.
+     - a sibling file (`assets/paper.pdf`, `./notes.docx`) is left to the browser: script-opened
+       file:// windows are blocked by Chrome, while a real anchor click navigates normally and
+       keeps the deck in its tab. The paging handler below ignores any click inside <a>. */
   document.addEventListener('click', function (e) {
     var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
     if (!a) return;
@@ -1241,8 +1247,10 @@
        a PNG. window.open() on a megabyte-long data: URL is not a download, it is a popup
        holding the whole image — so let the browser do what download="" means. */
     if (a.hasAttribute('download')) return;
-    var href = a.getAttribute('href');
+    var href = String(a.getAttribute('href') || '').trim();
     if (!href || href.charAt(0) === '#') return;
+    if (/^(javascript|vbscript|data):/i.test(href)) { e.preventDefault(); e.stopPropagation(); return; }
+    if (!/^https?:/i.test(href)) return;   // sibling file / mailto / tel / file: — native behaviour
     e.preventDefault(); e.stopPropagation();
     var w = window.open(href, '_blank', 'noopener');
     if (!w) location.href = href;

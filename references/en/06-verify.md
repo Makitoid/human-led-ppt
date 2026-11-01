@@ -32,6 +32,9 @@ grep -c 'class="foot"' <topic>.html
 
 # the §4 reviewer-facing legend is human-only and must not leak into the deck (expect 0)
 grep -c '⧉\|legend start' <topic>.html
+
+# link schemes: only http(s), #sN and local relative paths are allowed; the active schemes below must be 0 (the assembler blocks them too)
+grep -nEo '<a[^>]*href="(javascript|vbscript|data):' <topic>.html
 ```
 
 Do not grep a built deck for `data-src` and count the hits: the inlined shell's own JS comments carry the markup example `data-src="clip.mp4"`, so those two comment lines always match. Count media figures inside `#stage`, or grep `class="mp"` instead.
@@ -292,6 +295,36 @@ Reading the report (any miss goes back for a fix; "looks fine to me" is not a pa
 - **Token checks**: `--muted` against `--bg` and against `--panel` once each, ≥ 4.5:1; `--accent-ink` against `--accent` ≥ 4.5:1. Any `opacity` / `rgba()` text colour on the page is recomputed on the composite colour, not on the token value.
 - **Grayscale pass**: temporarily add `filter:grayscale(1)` to `#stage` and go page by page — the primary must still be the first thing found. A page that loses its hierarchy without colour goes back for a size / weight / position change. If it cannot be screenshotted, write "not tested"; never default to pass.
 
+### 2.5 Links (run when there is a `link` keyword, a citation bar or a sources page)
+
+```js
+async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const out = { fileLinks: [], jumps: [] };
+  for (const a of document.querySelectorAll('#stage a.file-link')) {
+    const before = window.__deck.index;
+    // stop the browser's own navigation for the probe; we are testing "does it page?"
+    a.addEventListener('click', e => e.preventDefault(), { once: true, capture: true });
+    a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    await sleep(80);
+    out.fileLinks.push({
+      href: a.getAttribute('href'),
+      samePage: window.__deck.index === before,
+      blank: a.target === '_blank',
+      noopener: /(^|\s)noopener(\s|$)/.test(a.rel || ''),
+    });
+  }
+  const jump = document.querySelector('#stage a[href^="#s"]');
+  if (jump) { jump.click(); await sleep(450); out.jumps.push({ href: jump.getAttribute('href'), index: window.__deck.index }); }
+  return JSON.stringify(out);
+}
+```
+
+- Every `fileLinks` entry: `samePage` must be `true` (a file link does not page), and `blank` plus `noopener` must both be `true`.
+- A `jumps` `index` must equal N−1 from the `#sN`; after the jump, `window.__deck.go(0)` back to the first slide.
+- Static side: `grep -nEo '<a[^>]*href="(javascript|vbscript|data):' <topic>.html` must return 0 lines; for every `href` that is a relative path, confirm the target file sits in the same directory as the `.html` (assembly's `linkErrors` checked once already — here you confirm the delivery folder really holds it).
+- Click a local link once more on a real machine: the browser opens the file somewhere new and the deck itself is not replaced; if it does not open, `target` is missing or the file was not copied along.
+
 ## 3. Number audit (never skip)
 
 Walk **every number and claim on screen** back to a specific row of the source file:
@@ -312,6 +345,7 @@ The reply to the user contains:
 - slide count, summed duration, style name
 - **what was actually tested**: navigation, G overview, click-half paging, hash, portrait mask, zero external requests, per-slide overflow, font floor, **per-slide single primary / type ladder / accent budget / full-text contrast**, number audit
 - **when there is media**: the list of audio/video file names plus the reminder that they must be copied along with the folder; images are inlined, so they are unaffected
+- **when `link` is used**: list the file name of every local link and say each must ship in the same folder as the `.html`; call out external links separately
 - **what was not tested and what was assumed**: e.g. print pagination not exercised, some source unreachable due to network, deep link verified on desktop only
 - open decisions for the user (credits, whether to keep a given slide)
 - which optional layer was enabled and the exception it brings (the ink layer's localStorage; the presenter layer's popup permission and non-printing prompts) — fill this in per `07-annotation.md` §7 and `08-presenter-mode.md` §9

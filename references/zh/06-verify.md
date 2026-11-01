@@ -32,6 +32,9 @@ grep -c 'class="foot"' <主题>.html
 
 # 骨架 §4 的词表注释只给人看，不许泄漏进成品（应为 0）
 grep -c '⧉\|词表注释\|legend start' <主题>.html
+
+# 链接协议：只允许 http(s)、#sN 和本地相对路径；下列危险协议应为 0（装配器也会拦）
+grep -nEo '<a[^>]*href="(javascript|vbscript|data):' <主题>.html
 ```
 
 数媒体图时不要对成品裸 grep `data-src`：内联进来的壳在自己的 JS 注释里就带着示例 `data-src="clip.mp4"`，那两行永远命中；改数 `#stage` 里的 `[data-mp]`，或者 grep `class="mp"`。
@@ -288,6 +291,36 @@ async () => {
 - **令牌自检**：`--muted` 对 `--bg` 与 `--panel` 各测一次 ≥4.5:1，`--accent-ink` 对 `--accent` ≥4.5:1。页面里出现 `opacity`/`rgba()` 文字色，按合成色重算，不按令牌值算。
 - **灰度目检**：给 `#stage` 临时加 `filter:grayscale(1)`，逐页看主语是否仍是第一眼可辨；去掉颜色就分不出主次的页，回去改字号 / 字重 / 位置。这一项截图不了就写"未实测"，不要默认通过。
 
+### 2.5 链接（有 `link` 关键字、引用条或来源页时跑）
+
+```js
+async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const out = { fileLinks: [], jumps: [] };
+  for (const a of document.querySelectorAll('#stage a.file-link')) {
+    const before = window.__deck.index;
+    // stop the browser's own navigation for the probe; we are testing "does it page?"
+    a.addEventListener('click', e => e.preventDefault(), { once: true, capture: true });
+    a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    await sleep(80);
+    out.fileLinks.push({
+      href: a.getAttribute('href'),
+      samePage: window.__deck.index === before,
+      blank: a.target === '_blank',
+      noopener: /(^|\s)noopener(\s|$)/.test(a.rel || ''),
+    });
+  }
+  const jump = document.querySelector('#stage a[href^="#s"]');
+  if (jump) { jump.click(); await sleep(450); out.jumps.push({ href: jump.getAttribute('href'), index: window.__deck.index }); }
+  return JSON.stringify(out);
+}
+```
+
+- 每条 `fileLinks`：`samePage` 必须为 `true`（点文件链接不翻页），`blank` 与 `noopener` 必须为 `true`。
+- `jumps` 的 `index` 必须等于 `#sN` 里的 N−1；跳完记得 `window.__deck.go(0)` 回首页。
+- 静态侧：`grep -nEo '<a[^>]*href="(javascript|vbscript|data):' <主题>.html` 必须为 0 行；`href` 是相对路径的，确认目标文件就在 `.html` 同目录（装配时 `linkErrors` 已经查过一次，这里再核交付文件夹里确实有它）。
+- 真机再点一次本地链接：浏览器新开一处显示该文件，演示稿本身没有被替换；打不开就说明 `target` 漏了或文件没跟着拷。
+
 ## 3. 数字审计（不可跳过）
 
 逐页把 HTML 上出现的**每一个数字和主张**回指到资料总结的具体行：
@@ -308,6 +341,7 @@ async () => {
 - 页数、时长合计、风格名
 - **实测通过项**：导航、G 总览、点击半屏、hash、竖屏遮罩、零外部请求、逐页无溢出、字号下限、**逐页单一主语 / 字号阶梯 / accent 预算 / 全文字对比度**、数字审计
 - **有媒体时**：音视频文件名清单 + "要连同文件夹一起拷走"这句提醒；图片是内联的所以不受影响
+- **有 `link` 时**：列出每个本地链接的文件名，并说明它必须和 `.html` 放在同一文件夹一起交付；外链单独标出
 - **未验证项与假设**：例如打印分页未实测、某来源因网络不可达未核实、深链只在桌面验证
 - 需要用户拍板的点（如署名、是否保留某页）
 - 启用了哪个可选层，以及它带来的例外（批注层的 localStorage / 演讲者层的弹窗权限与不打印提示词）——细节按 `07-annotation.md` §7、`08-presenter-mode.md` §9 补

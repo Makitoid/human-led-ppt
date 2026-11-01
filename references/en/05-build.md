@@ -95,6 +95,22 @@ Hard rules:
 - **Decoration ≤ 15% of the page** and never inside the primary's 1/3 hot zone.
 - **One accent block and one warn mark per slide**; `emphasis` must land on the primary, and no second accent colour goes on the page.
 
+## Layout baseline (shared aesthetic floor)
+
+`hierarchy` and the four-tier ladder above come first; below is the floor you follow when they say nothing. The rules are lifted from ppt-master's slide-design norms — the rules only, not its SVG pipeline:
+
+- **Page closure**: the finished HTML must hold every visible word, image, shape and backdrop on that page; never count on the shell or CSS to add content afterwards.
+- **Few semantic text roles**: four size tiers are already enough; separate roles by size + weight + colour + position + whitespace combined, and never fake a hierarchy with a near-ladder like `24 / 22 / 20`.
+- **Leading by role**: titles 1.2–1.3×, dense small text 1.4–1.5×, body 1.5–1.6×, large or sparse pages 1.6–2.0×; never crush the leading to make something fit.
+- **Density by viewing distance**: ask "can the back row read it" first, then decide how much goes on the page; when it does not fit, rewrite, split the slide or change the layout — never quietly shrink the type or thin it out with `opacity`.
+- **Contrast and semantic encoding**: information-bearing text must be distinguishable from its real background; new distinctions lean on lightness, weight, size, shape, position or an explicit label first, and colour may only reinforce the meaning, never carry it alone.
+- **Natural line breaks**: break at a phrase or a punctuation mark; a short last line is fine, an orphan on its own is not. Spaces and `%` in mixed CJK/Latin text follow the content language consistently.
+- **Alignment and proximity**: related elements share an edge, a baseline or a centre axis; related groups sit closer than unrelated ones. Breaking an alignment axis has to be expressing hierarchy, direction or tension.
+- **Visual weight**: judge area, lightness, saturation, density, stroke and image detail together, not colour depth alone; weight must support where the eye lands, and symmetry is not an obligation.
+- **Boundary strength**: from whitespace/alignment and hairlines/brackets and pale grounds up to strokes, solid panels and true floating layers — pick the strength by relation. Peer relations share one strength; only a hierarchy or material difference changes it.
+- **Containers must earn their place**: a card or panel has to express grouping, hierarchy, boundary, capacity or a material difference; a row of "web cards" that decides nothing is not a layout.
+- **Titles and page chrome are part of the composition**: `h2` is part of this page's composition, not an automatic top bar; only keep a standing header/footer when it carries navigation, identity, attribution or page-number duty.
+
 ## Media (image / audio / video)
 
 The three skeleton §4 keywords `image` / `audio` / `video` decide **where the file goes**; in the HTML there are exactly three ways to write them.
@@ -157,6 +173,7 @@ Points:
 | Space / → / ↓ / PageDown next, ← / ↑ / PageUp previous, Home / End, digits 1–9 | deck-shell |
 | **G grid overview** (current slide highlighted, click a thumbnail to jump, ←/→ still page inside it, Esc closes) | deck-shell |
 | **click left/right half to page**; links and the overview do not page | deck-shell |
+| **local file links** (the `link` keyword): click a sibling file, no paging, `target="_blank" rel="noopener"`; http(s) opens a new tab; assembly checks the file exists and the scheme | deck-shell + `assemble.cjs` |
 | touch swipe | deck-shell |
 | URL hash remembers the slide (`#s5`), survives reload / back-forward | deck-shell |
 | F fullscreen | deck-shell |
@@ -190,17 +207,40 @@ You supply: per-slide layout, page types, charts, badges, persona capsules, cita
 
 ## Motion
 
-Implement skeleton §1 `motion` (Step 2 gives a recommendation per preset):
+Motion is presentation discipline, not decoration: by default there is one cross-fade, and in-page animation is opt-in. These rules share their source with the PPTX track (`05b-pptx.md` §4's discipline table); only the landing spot changes from `p:transition` to CSS.
 
-- **Transition**: the shell cross-fades by default (`.45s` in / `.3s` out). For a hard cut + flash, directional slide or refractive fade, change only the `opacity` + `transform` transitions on `.slide` / `.slide.active` / `.slide.leaving`. **Never animate paging with `display`** — thumbnails are restored by `#overview .frame .slide{display:block}` and would go blank.
-- **In-page**: bars `width:0→final`; lines via `stroke-dashoffset`; cards `riseIn` staggered 0.2–0.35 s; numerals via `data-count`.
-- Everything plays on slide change, never on click; re-entering a slide replays it (the shell's `runCounters` does this; CSS animation replays through the `.active` class).
-- ≤ 6 animated elements per slide; `prefers-reduced-motion` must win (built into the shell — do not defeat it with `!important` in your own `@keyframes`).
-- Need timing/easing values you can defend? Consult `web-animation-design` (marketplace) rather than inventing magic numbers.
+- **The page turn cross-fades by default** (shell: `.45s` in / `.3s` out). Change it only when the relation between two adjacent pages changes: continuous narration inside one section keeps the fade; a direct cut takes a hard cut; steps / timelines / hierarchy advances may take a lateral move; only an act opening or a key reveal gets one stronger effect, at most once per act. Never change it for the sake of variety.
+- **No in-page animation by default**; add one only when you can name the communication task it carries: revealing in reading order (`riseIn` / a drawn line / a count), or pulling attention back to something already visible. Backdrops, scrims, headers/footers and citation bars stay still by default; only ambient background drift that a style preset explicitly declares is exempt (presets A / E / G / M, amplitude ≤3% of the viewport), and it stops under `prefers-reduced-motion` too.
+- **One semantic group per reveal**: the same group (one card, one `kpi` group, one process) enters together by default; do not fly each icon and each line separately. Only a preset that explicitly asks for a stagger may reveal item by item, still ≤ 6 animated elements per slide and never cascading more than two levels.
+- **Timing follows the style preset, ≤ 800ms per effect**: an entrance slower than 800ms lags behind the talking and is a drag rather than emphasis; never loop body or content elements (`infinite`) — that is the main source of the "AI feel".
+- **A page turn changes only `opacity` + `transform` on `.slide` / `.slide.active` / `.slide.leaving`**; never animate paging with `display` (overview thumbnails are restored by `display:block`, so `display` turns them blank).
+- In-page implementation stays as it was: bars `width:0→final`; lines drawn via `stroke-dashoffset`; cards `riseIn` one after another (0.2–0.35s apart, the whole group together); numerals counted via `data-count`. All of it plays automatically on the page turn without a click; re-entering a slide replays it (`runCounters` already does this; CSS animation re-hangs through the `.active` class).
+- Under `prefers-reduced-motion` everything is off (built into the shell — do not defeat it with `!important` in your own `@keyframes`).
+- **No autoplaying media, no auto-advance**: a live talk is paced by a person; a looping booth build is a different deliverable and needs the user's sign-off first.
 
 ## Links
 
-Citation bars, sources slide and inline `srcline` all use `target="_blank" rel="noopener"`; the shell already falls back to `window.open` (embedded previewers ignore `target`) and keeps link clicks from paging. Entries with no verifiable URL get **no link**, and the source file records why (paywall / delisted / unreachable).
+Three kinds of link, three landing points. The assembler checks each one as it assembles (`linkErrors` in `assets/assemble.cjs`); a broken link stops the build outright.
+
+**1. Local files (the skeleton's `link` keyword)** — the click opens a file that sits in the same folder as the `.html` (or a subdirectory such as `./assets/`):
+
+```html
+<a class="file-link" href="./file.pdf" target="_blank" rel="noopener">Full paper (PDF)</a>
+```
+
+- `href` may only be a **relative path**: no `C:\…`, no `file:///…`, and no `../` escaping the delivery folder; a file name with spaces is written as `%20` (or just drop the spaces).
+- Link only files that really exist and ship together; the `.html` and those files go in one folder and travel together.
+- `target="_blank" rel="noopener"` is mandatory: the shell takes over http(s) only, and a local file is left to the browser to open; without `target` the presentation is replaced in place.
+- `class="file-link"` is styled by the shell (accent underline + ↗), so a dark theme needs no second set of rules.
+- When the same file appears on several slides, write the `<a>` again — do not copy the file, and never base64 it into the HTML.
+
+**2. External links** — http(s) links in citation bars, the sources page and body text:
+
+- Always `target="_blank" rel="noopener"`; the shell falls back to `window.open` (embedded previewers ignore `target`), and a link click never pages.
+- An entry with no verifiable URL gets **no link**, and the source file records why (paywall / delisted / unreachable).
+- `javascript:` / `vbscript:` / `data:` links are banned — the assembler fails them outright.
+
+**3. In-deck jumps** — `href="#s5"` goes through the shell's hash router to slide 5; never point at a page number that does not exist, and never use bare `#` as an empty link.
 
 ## Known traps
 
@@ -227,6 +267,7 @@ Citation bars, sources slide and inline `srcline` all use `target="_blank" rel="
 21. **Two largest font sizes = no primary**: putting both `h2` and `.key` at 48px is the most common way to look tiered while being flat. Only one element may stand on the first tier; the other drops to the second, or step 6's hierarchy assertion will flag it.
 22. **Using `opacity` to recede text silently kills contrast**: `--muted` picked at 4.5:1 and then wrapped in `.6` alpha lands near 2:1. Recede with tokens and size, not transparency; step 6 recomputes on the composite colour.
 23. **Three equal-width columns with three colours is noise, not hierarchy**: equal cards each with their own colour leave the eye no landing point. Either make the main column ≥ 1.4× a side column, or accent one card and set the rest to panel.
+24. **A local file link is not an external link**: the shell intercepts http(s) only, so a local relative href only counts as "somewhere else" with `target="_blank" rel="noopener"`; without `target` the presentation is replaced by the PDF in place. At assembly `linkErrors` checks both the file's existence and the scheme, and `javascript:` / `vbscript:` / `data:` fail outright.
 
 ## Output
 

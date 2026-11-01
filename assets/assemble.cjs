@@ -71,6 +71,9 @@ const hadCss = html.includes(CSS_TOKEN);
 const hadJs = html.includes(JS_TOKEN);
 if (!hadCss && !hadJs) fail('no shell placeholders found in ' + inPath + ' — already assembled?');
 
+/* Check links on the authored markup only, before the shell is inlined: the shell carries
+   example anchors in its own comments, and scanning those would report phantom files. */
+const authored = html;
 html = html.split(CSS_TOKEN).join(css).split(JS_TOKEN).join(js);
 
 /* Optional overlays: appended verbatim before </body> so the deck's own markup, CSS
@@ -87,6 +90,34 @@ for (const name of ORDER) {
 
 const left = (html.match(/__SHELL_(CSS|JS)__/g) || []).length;
 if (left) fail(left + ' placeholder(s) still present after replacement');
+
+/* The `link` keyword promises a click opens a file that sits beside the .html. Check that
+   promise at the only moment it can be checked: assembly. #jumps and http(s)/mailto/tel pass;
+   an active scheme (javascript:/vbscript:/data:) is refused outright; every other href is a
+   path relative to the output deck and must exist now, so a dead link never reaches delivery. */
+function linkErrors(markup, out) {
+  const dir = path.dirname(path.resolve(out));
+  const problems = [];
+  const seen = new Set();
+  // Comments are author notes and template examples, not delivered links.
+  const live = String(markup).replace(/<!--[\s\S]*?-->/g, '');
+  for (const m of live.matchAll(/<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
+    const raw = String(m[1] != null ? m[1] : m[2] || '').trim();
+    if (!raw || raw.startsWith('#')) continue;
+    if (/^(javascript|vbscript|data):/i.test(raw)) { problems.push('unsafe link scheme: ' + raw.slice(0, 60)); continue; }
+    if (/^(https?:|mailto:|tel:)/i.test(raw)) continue;
+    let rel = raw.replace(/^file:\/{2,3}/i, '');
+    try { rel = decodeURIComponent(rel.split('#')[0].split('?')[0]); } catch { problems.push('undecodable link: ' + raw); continue; }
+    if (!rel) continue;
+    if (seen.has(rel)) continue;
+    seen.add(rel);
+    const abs = path.isAbsolute(rel) ? rel : path.resolve(dir, rel);
+    if (!fs.existsSync(abs)) problems.push('linked file not found: ' + raw + ' (looked in ' + dir + ')');
+  }
+  return problems;
+}
+const badLinks = linkErrors(authored, outPath);
+if (badLinks.length) fail('local link check failed:\n  - ' + badLinks.join('\n  - '));
 
 fs.writeFileSync(outPath, html);
 process.stdout.write('assemble: OK — ' + path.basename(outPath) + ' (' + html.length + ' bytes)'

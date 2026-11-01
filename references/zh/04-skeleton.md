@@ -51,6 +51,7 @@ deck:
   charts: HTML 内联 SVG / 纯 CSS；PPTX 原生图表（2–12 类别、1–3 序列、线性轴），见 05b-pptx.md
   presenter: off | on（on = HTML 走第 8 步；PPTX 固定 off，§7 仍写进原生备注）
   footnotes: 每页右下角引用条，格式「来源 · 年份」，HTML 9–11px；PPTX ≥10.5pt
+  links: 只放与 .html 同目录的相对路径（可下钻 ./assets/ 等子目录）；一律 target="_blank" rel="noopener"；外链仅限 http(s)
   evidence_chain: off | on          # HTML 严肃稿加 data-evidence="1"；PPTX 用来源页脚 + 来源页
   pptx:                             # 仅 target 含 native-pptx 时写
     engine: officecli | host-plugin # 第 5 步 detect-engine.cjs 的结论；host-plugin 要注明插件名
@@ -182,6 +183,7 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 | `draw` | **AI 生成图**：写生成提示词（prompt）、画幅比例、要落的位置、以及"给用户过目再生成"这一条。搜来的图若改为生成，也用它。**生成前先把 prompt 放进骨架让用户看一遍**，点头后再生成、再按 `image` / `background` 落位 | 先 `draw` 声明 → 用户确认 → 成为 `image` 或 `background` |
 | `audio` | 音频：**文件名（与 html 同一个文件夹）**、内容（是什么声音、哪几句值得听）。不内联 | `.mp` 播放器卡（拖放条 / 倍速由壳生成） |
 | `video` | 视频：**文件名（与 html 同一个文件夹）**、内容、必须让人看到什么。不内联 | `.mp` 播放器卡 |
+| `link` | **点开一个文件**：显示文字 + 相对路径（与 .html 同目录，可下钻 `./assets/` 子目录）+ 一句"点开能看到什么"。只放真实存在的本地文件，或完整的 http(s) 外链；`#sN` 只能当页内跳转。写不出文件就别写这个词 | `<a class="file-link" href="./文件名" target="_blank" rel="noopener">显示文字</a>`；装配时逐个核对文件存在 |
 | `icon` | 图标语义（不用 emoji 充当图标） | 内联 SVG |
 | `emphasis` ★ | 本页唯一的视觉重点：用 accent 还是 warn、落在哪个元素 | 一页只允许一处强色 |
 | `before-after` | 前后对照 / 改前改后 / 误读 vs 纠正 | 双栏 |
@@ -191,7 +193,7 @@ keywords: type key sec topic title points data table compare bars emphasis ask h
 
 > 动效类词（`transition` / `animation`）只在原生 PPTX 轨使用；HTML 轨按 `05-build.md` 的「动画与切页」纪律执行，不写这两个词。默认整份 `fade-400` + 页内无动画，换效果必须能说出"这两页之间发生了什么"。
 
-> 媒体类关键词按**文件归属**分工：**图片与背景内联**（`image` → `.img-frame` + `<img>`；`background` → `data-bg` 铺满整页），**音视频是 sibling 文件**（`audio` / `video` → `.mp`，放在 `.html` 同目录）。单文件 HTML 装不下几十 MB 的音视频——base64 会再胀大三分之一，`file://` 下首屏还要把整个 data URL 读完才显示，deck 直接打不开。所以音视频的物理文件必须和 `.html` 放在同一个文件夹一起交付，拷贝时别只拷 html。落屏位置仍由 `layout` 和词序决定，这些词只声明"放什么媒体、放哪一块、要不要自动播"。
+> 媒体类关键词按**文件归属**分工：**图片与背景内联**（`image` → `.img-frame` + `<img>`；`background` → `data-bg` 铺满整页），**音视频是 sibling 文件**（`audio` / `video` → `.mp`，放在 `.html` 同目录）。单文件 HTML 装不下几十 MB 的音视频——base64 会再胀大三分之一，`file://` 下首屏还要把整个 data URL 读完才显示，deck 直接打不开。所以音视频的物理文件必须和 `.html` 放在同一个文件夹一起交付，拷贝时别只拷 html。落屏位置仍由 `layout` 和词序决定，这些词只声明"放什么媒体、放哪一块、要不要自动播"。`link` 打开的文件同样是 sibling 文件——和 `.html` 一起交付，装配器会逐个核对路径存在，缺一个就中止构建。
 >
 > `draw` 是**唯一的"还没拿到图"的词**：它只写生成提示词与落位，生成前必须让用户过目 prompt；生成出来后，按它落在正文还是铺满整页，转写成 `image` 或 `background`。网页搜来的图不进 `draw`，直接进资料总结的「候选图片」区，由 `image` / `background` 引用。
 

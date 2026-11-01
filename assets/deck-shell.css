@@ -28,6 +28,20 @@ body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sa
 /* ---------- speaker notes: never rendered ---------- */
 .notes{display:none !important}
 
+/* ---------- file links (the `link` skeleton keyword) ----------
+   Contract:  <a class="file-link" href="./assets/paper.pdf" target="_blank" rel="noopener">论文全文</a>
+   The href is a relative path beside the .html — never a bare filename in another folder and
+   never a scheme other than http(s). target="_blank" keeps the deck in its tab; the shell only
+   intercepts http(s), so a local file opens through the browser's own file:// navigation.
+   Styling stays in the accent token so a dark deck does not need a second rule. */
+a.file-link{color:var(--accent);text-decoration:underline;text-decoration-thickness:1px;
+            text-underline-offset:3px;font-weight:600;white-space:nowrap}
+a.file-link::after{content:"↗";display:inline-block;margin-left:.18em;font-size:.82em;
+                   font-weight:400;opacity:.75;transform:translateY(-.06em)}
+a.file-link:hover{text-decoration-thickness:2px}
+a.file-link:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+@media print{a.file-link::after{content:""}}
+
 /* ---------- full-bleed page backdrop (the `background` skeleton keyword) ----------
    Contract:  <section class="slide" data-bg="data:image/jpeg;base64,…"
                         data-bg-scrim="linear-gradient(180deg,rgba(8,10,20,.30),rgba(8,10,20,.72))">

@@ -32,6 +32,9 @@ grep -c 'class="foot"' <トピック>.html
 
 # §4 のレビュー用凡例は人間専用で、デッキへ漏れてはならない（期待値 0）
 grep -c '⧉\|語句凡例 開始' <トピック>.html
+
+# リンクのスキーム：http(s)、#sN、ローカルの相対パスだけを許す；次の危険なスキームは 0 であること（アセンブラも止める）
+grep -nEo '<a[^>]*href="(javascript|vbscript|data):' <トピック>.html
 ```
 
 ビルド済みのデッキを `data-src` で grep して件数を数えてはならない：インライン化されたシェルは自分の JS コメントに例示の `data-src="clip.mp4"` を運んでいるので、そのコメント 2 行は必ずヒットする。メディアの figure は `#stage` の中で数えるか、`class="mp"` を grep すること。
@@ -295,6 +298,36 @@ async () => {
 - **トークンの自己チェック**：`--muted` を `--bg` と `--panel` に対してそれぞれ ≥4.5:1、`--accent-ink` を `--accent` に対して ≥4.5:1。ページに `opacity` / `rgba()` の文字色があれば、トークンの値ではなく合成色で計算し直す。
 - **グレースケールの目視**：`#stage` に一時的に `filter:grayscale(1)` を足し、各ページで主役が最初の一目で見分けられるかを見る；色を外すと主従が分からないページは、文字サイズ / 字重 / 位置を直す。スクリーンショットが撮れないなら「未実測」と書き、既定で通過にしない。
 
+### 2.5 リンク（`link` キーワード、出典バー、出典ページがあるときに実行）
+
+```js
+async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const out = { fileLinks: [], jumps: [] };
+  for (const a of document.querySelectorAll('#stage a.file-link')) {
+    const before = window.__deck.index;
+    // ブラウザ自身の遷移はプローブのために止める；テストしたいのは「ページが送られるか」である
+    a.addEventListener('click', e => e.preventDefault(), { once: true, capture: true });
+    a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    await sleep(80);
+    out.fileLinks.push({
+      href: a.getAttribute('href'),
+      samePage: window.__deck.index === before,
+      blank: a.target === '_blank',
+      noopener: /(^|\s)noopener(\s|$)/.test(a.rel || ''),
+    });
+  }
+  const jump = document.querySelector('#stage a[href^="#s"]');
+  if (jump) { jump.click(); await sleep(450); out.jumps.push({ href: jump.getAttribute('href'), index: window.__deck.index }); }
+  return JSON.stringify(out);
+}
+```
+
+- `fileLinks` の各行：`samePage` は `true`（ファイルリンクをクリックしてもページ送りしない）、`blank` と `noopener` も `true` でなければならない。
+- `jumps` の `index` は `#sN` の N−1 と等しくなければならない；飛んだ後は `window.__deck.go(0)` で先頭ページへ戻すこと。
+- 静的側：`grep -nEo '<a[^>]*href="(javascript|vbscript|data):' <トピック>.html` が 0 行であること；`href` が相対パスなら、対象ファイルが `.html` と同じディレクトリにあることを確認する（アセンブル時に `linkErrors` が一度見ているが、ここで納品フォルダーに実在するかをもう一度確かめる）。
+- 実機でもう一度ローカルリンクをクリックする：ブラウザが別の場所にそのファイルを表示し、デッキ自体は置き換わらない；開かないなら `target` の落ちか、ファイルが一緒にコピーされていない。
+
 ## 3. 数字監査（絶対に省略しない）
 
 画面上の**すべての数字と主張**を、資料ファイルの特定の行までたどってください：
@@ -315,6 +348,7 @@ async () => {
 - スライド数、所要時間の合計、スタイル名
 - **実際にテストした項目**：ナビゲーション、G 総覧、左右半分のクリックによるページ送り、ハッシュ、縦向きマスク、外部リクエストゼロ、スライドごとのオーバーフロー、フォントの下限、**ページごとの主役 1 つ / 文字サイズの階段 / accent の予算 / 全文のコントラスト**、数字監査
 - **メディアがあるとき**：音声 / 動画のファイル名一覧 + 「フォルダごと一緒にコピーすること」という注意；画像はインライン化されているので影響を受けない
+- **`link` があるとき**：ローカルリンクのファイル名を 1 つずつ挙げ、`.html` と同じフォルダーに置いて一緒に納品しなければならないと伝える；外部リンクは別に示す
 - **テストしなかった項目と仮定**：例——印刷のページ割りは未実施、一部の出典はネットワーク到達不可のため未確認、深いリンクはデスクトップでのみ検証
 - ユーザーの判断を仰ぐ未決の点（クレジット表記、あるスライドを残すか）
 - どの任意レイヤーを有効にしたか、それが持ち込む例外（ink レイヤーの localStorage；presenter レイヤーのポップアップ権限と印刷されないプロンプト）——`07-annotation.md` §7 と `08-presenter-mode.md` §9 に従って記入してください

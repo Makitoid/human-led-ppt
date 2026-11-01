@@ -18,6 +18,8 @@
   证据链（只有严肃稿才开）：在 <html> 或 <body> 上加 data-evidence="1"（骨架 §1 evidence_chain: on），
   壳才会在右下角建那枚来源徽标；普通稿不要加，右下角保持干净。
   aria 播报与壳/叠加层的运行时文案会按 <html lang> 在中文 / 日文 / 英文之间自动切换。
+  本地文件（`link` 关键字）：<a class="file-link" href="./文件名.pdf" target="_blank" rel="noopener">显示文字</a>
+  —— href 只能是相对 .html 的路径，文件要和 .html 放在一起；装配器会逐个核对它是否存在。
   `Q` 快捷键面板由壳自动创建（#deckhelp）；叠加层想上自己的分区，加载时往
   window.__deckHelp 里 push {title, rows} 即可，面板打开时按当时的注册表渲染。
   注意：占位符在文件里只出现一次，替换时用全局替换，别只替换第一处。
