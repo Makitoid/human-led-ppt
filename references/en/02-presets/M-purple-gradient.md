@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# M. Developer purple gradient (GitHub Blog / changelog register)
 
-## M. Developer purple gradient (GitHub Blog / changelog register)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: GitHub blue-black, purple-blue ambient bloom, 60px masked grid, centred composition, tri-stop gradient headings.
 - Signatures: ① tri-stop gradient headline `#a855f7→#60a5fa→#34d399` (covers and dividers only) ② blockquote/point block with a purple left rule
 - Default partner: C OpenAI's number discipline (≤ 4 numbers per page)

@@ -1,6 +1,7 @@
-> 本文件是第 2 步风格库里的 **A 套**。搭配建议、模板纪律与风格决定块见 `../02-style.md`；同目录放着其余 21 套。
+# A. Fluent Design 2（微软 / 机构感 / 报告体）
 
-## A. Fluent Design 2（微软 / 机构感 / 报告体）
+> 通用约束与风格决定块见 [02-style.md](../02-style.md)；仅加载本稿选用的预设。
+
 - 观感：分层深度 + 亚克力背板 + 细描边卡片，秩序感强，适合政策、数据、正式汇报。
 - 浅色：bg `#FAF9F8`，panel `#FFFFFF`，ink `#201F1E`，muted `#605E5C`，accent `#0F6CBD`，warn `#8A5A00`，rule `#E1DFDD`
 - 深色：bg `#1B1A19`，panel `#292827`，elevated `#323130`，ink `#FAF9F8`，muted `#AAAAAA`，accent `#75B6E9`，warn `#F1D08A`，rule `#3B3A39`

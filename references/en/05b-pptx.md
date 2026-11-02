@@ -241,25 +241,25 @@ officecli get <topic>.pptx "/slide[3]/notes" --json
 - Numbers in the prompts are still bound by the source notes; notes are not a place to add facts.
 - Step 8's two-window presenter layer **does not apply to PPTX**; use PowerPoint's own presenter view. Step 7's screen annotation does not apply either — use PowerPoint ink.
 
-## 10. Known traps (ordered by how often they bite)
+## 10. Maintenance notes
 
-1. **A resident process holds the file**: `create` leaves a resident behind; `close`, then `rm`, then `create`. If deletion fails use `fs.rmSync(..., {maxRetries:5, retryDelay:200})`; the builder has this built in.
-2. **A batch is atomic**: as soon as one command is rejected (an invalid page-turn token, an invalid effect×class pair, an animation hung on a picture) the **whole batch rolls back** and `officecli batch` exits non-zero. The builder now parses the `--json` result and prints the reason of the first 5 rejected commands instead of dumping a blob of raw JSON.
-3. **`/shape[N]` drifts**: always address `@id`; ids are assigned at build time, so later edits must not look shapes up by index. Animation nodes hang off `@id` the same way (`/slide[2]/shape[@id=10203]/animation[1]`).
-4. **Shapes inherit the theme colour by default**: every rect needs an explicit `fill` and `line=none`, or an accent1 outline/fill shows up.
-5. **The transition duration hides in a p14 extension**: when `fade-400` does not read back as 400 it only reports a WARN (the effect stays as long as the type is there); only when the type itself fails to read back are all transitions deleted. Never hand-edit the XML.
-6. **Table `data` splits rows on `;`**, not `\n`; cells containing commas must be quoted (the builder handles this).
-7. **Image distortion**: `view issues` reports `picture_aspect_distorted`; compute `crop` from the aspect ratio (0–100 percentage), never stretch.
-8. **Fonts**: use only fonts installed on the delivery machine and name `font.latin` / `font.ea` explicitly; `create --locale` fixes the language. With a missing font PowerPoint substitutes it and the layout may shift.
-9. **A screenshot is not PowerPoint**: without PowerPoint on this machine `view screenshot` goes through officecli's HTML rendering path; it proves layout structure, not pixel parity with PowerPoint.
-10. **`--grid` needs a headless browser**: when this machine has none, screenshot page by page with `--page N`, or several pages with `--page 1-N` into a vertical strip.
-11. **An audio poster is 1×1**: use a square box for audio; video must supply a real poster or it gets flagged as distorted.
-12. **The build spec is not a second truth**: when slide count / page types / numbers conflict with the skeleton or the source notes, fix `PPTX-src.json` and log one row in skeleton §6.
-13. **Page-turn tokens are type-dependent**: `push-right` is legal, `circle-in` is rejected by the engine and rolls the whole batch back with it; `zoom-in` is accepted but reads back as `zoom` only. Write the delivery note for directions and subtypes from the read-back result — never assume they took effect.
-14. **Pictures and tables cannot carry animation**: officecli's animation parents are `shape` and `chart` only; when `on` selects nothing the build fails outright — that is intentional, do not turn it into a silent skip.
-15. **Deleting a slide's last animation leaves an empty `p:timing`**, and `validate` immediately reports incomplete content. To revoke an animation, change the spec and recompile — do not run `officecli remove` on the production file.
-16. **58 transitions are not a palette**: under `calm` every expressive effect — and outside `story` every high-intensity animation — is rejected by `lib.cjs`; each non-fade page turn has to answer "what happened between these two slides". A reason that can be written goes into `why` / `transition_why`; one that cannot falls back to `fade-400`.
-17. **`random` / `repeat` need a content reason**: the former serves "uncertainty itself" only, the latter works only under `story` with a `why`; "afraid of monotony" goes neither into the spec nor into the delivery note.
+1. The builder handles resident state with close → remove → create; deletion retries at most five times, 200ms apart.
+2. Batch is atomic: any refusal rolls it back. Parse JSON and report the first five failures.
+3. Use stable `@id`, not shifting `/shape[N]`; attach animation by id too.
+4. Set fill / line on every shape instead of inheriting theme defaults.
+5. Duration in p14 may not read back: suffix drift is WARN; only missing types remove all transitions.
+6. Table data uses semicolon-separated rows and quoted comma cells; let the builder escape it.
+7. Compute 0–100% crop from the source aspect ratio; fix `picture_aspect_distorted`.
+8. Use installed delivery-machine fonts with explicit `font.latin` / `font.ea` and create locale; missing fonts substitute.
+9. Without PowerPoint, HTML-rendered screenshots prove structure, not pixel parity.
+10. `--grid` needs a headless browser; otherwise use per-page images or `--page 1-N`.
+11. Audio posters are 1×1: use square boxes. Video needs a real poster.
+12. Resolve JSON conflicts with the skeleton/sources and record §6; do not create a second factual authority.
+13. Directions/subtypes depend on type: `push-right` works, `circle-in` is refused, `zoom-in` may read as zoom. Report actual read-back.
+14. Only shape / chart animate; pictures, tables and media do not. An empty on selection fails the build.
+15. Removing the last animation can leave empty `p:timing`; edit the spec and rebuild instead of removing it in place.
+16. Follow §4 for calm / story and budgets; justify non-base transitions in why / transition_why, or use fade-400.
+17. Use random only to express uncertainty; repeat needs story and why. Variety alone is not a reason.
 
 ## 11. Output
 

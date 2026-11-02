@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# N. Red-amber alert (incident post-mortem · red team · policy-as-code)
 
-## N. Red-amber alert (incident post-mortem · red team · policy-as-code)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: white/warm-white, 45° hazard stripes top and bottom, struck-through display headings, green/amber/red tier cards. The audience learns not to skim.
 - Signatures: ① hazard stripe bands on the page edges ② L1/L2/L3 tier cards — the tier is always spelled out in words, colour is never the only carrier
 - Default partner: F Notion's density, or A Fluent's institutional voice

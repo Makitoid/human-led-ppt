@@ -6,15 +6,11 @@ Order: **ask first** → static checks → live browser test → number audit �
 
 ## 0. Ask the user who runs the check (do not skip this)
 
-The **first thing** step 6 does is ask the user one question:
+Confirm who owns final checks; reuse an existing choice.
 
-> The deck is written. For this final check, do you want me to **run it myself** (I execute the assertions below and hand you the pass list and the untested items), or do you want to **check it yourself** (I do the static cross-check only and leave the assertion scripts for you to rerun)?
-
-- The user wants the agent to run it → go through the whole flow below (static + live browser + number audit).
-- The user wants to check it themselves → still do **section 1's static checks** (zero-dependency, page count, placeholder leakage — skipping those is a dereliction), and let the live test and the number audit follow the user's wish: if they want to see it, hand them the script and the expected values; if they want to run it, hand them the script.
-- Either way, the **delivery note states which items were live-tested and which the user is verifying**, and never claims an untested item as passed.
-
-**Do not run it by default**: some users want to walk it themselves, and racing ahead blocks them. This question is a fixed action of this step.
+- Agent checks: run static checks, browser tests and the number audit.
+- User checks: still complete §1 static checks; supply scripts, expected results and untested items as requested.
+- Distinguish agent-tested, user-verified and untested items in delivery.
 
 ## 1. Static checks
 

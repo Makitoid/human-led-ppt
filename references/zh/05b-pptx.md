@@ -2,7 +2,7 @@
 
 > 只在本稿 `target` 含 `native-pptx` 时读本文件。HTML 轨道读 `05-build.md`；两条轨道共用第 1–4 步与同一份骨架、同一份资料总结。
 
-目标：把已审核的骨架编译成一份**可在 PowerPoint / WPS / Keynote 里继续编辑**的 `.pptx`。原生形状、文字、表格、图表、图片、媒体、备注；切页动效来自 `motion.transition`，页内动效来自逐页的 `animation`（细则见 §4「动效」）。**不要**手写 OOXML，也不要逐条手敲 officecli 命令——所有几何、字号、留白由 `assets/pptx/build.cjs` 的版式库负责，动效也一样只从 spec 生成。
+目标：把已审核的骨架编译成一份**可在 PowerPoint / WPS / Keynote 里继续编辑**的 `.pptx`。原生形状、文字、表格、图表、图片、媒体、备注；切页动效来自 `motion.transition`，页内动效来自逐页的 `animation`（细则见 §4「动效」）。**不得**手写 OOXML，也不要逐条手敲 officecli 命令——所有几何、字号、留白由 `assets/pptx/build.cjs` 的版式库负责，动效也一样只从 spec 生成。
 
 ## 1. 进入前
 
@@ -136,7 +136,7 @@ fade-400 · push-right-600 · split-vertical-in · wipe-slow · morph · none
 | `why` | 一句话 | `class` 不是 `entrance` 时必填：说清这条动画承担什么沟通任务（重新夺回注意力 / 腾出位置 / 移动表达什么） |
 
 - **页内动画逐页 opt-in**：`calm` 下只允许 `entrance`（按阅读顺序揭示）和 `emphasis`（让已可见的对象重新获得注意）；`exit` / `motion` 属于 `story`，且必须写 `why`。默认整页一次性出现。
-- **预算**：`calm` 下带动画的页不超过三分之一，且不许相邻两页都动；`story` 下不超过一半。每页仍 ≤ 6 个元素、每次点击出一条，讲完一句话还没动完的效果要重写。
+- **预算**：`calm` 下带动画的页不超过三分之一，且不得相邻两页都动；`story` 下不超过一半。每页仍 ≤ 6 个元素、每次点击出一条，讲完一句话还没动完的效果要重写。
 - **单条时长 ≤ 800ms**：超过 800ms 直接判错——动画跑得比讲解慢，就是拖累而不是强调。
 - **背景、遮罩、页脚、眉标永远不动**（`ground` 与 `role:detail` 不进动画池）；封面 / 来源 / 感谢页通常保持静止，`lint` 会提醒。
 - **只有"去掉/替换页内内容"才用 `exit`**：普通翻页已经会把整页移走；**只有运动本身承载意义**（因果、空间关系）才用 `motion` 路径，否则用 `entrance` / `emphasis`。
@@ -241,25 +241,25 @@ officecli get <主题>.pptx "/slide[3]/notes" --json
 - 提示词里的数字仍受资料总结约束；备注不是新增事实的地方。
 - 第 8 步的演讲者双窗**不适用于 PPTX**；用 PowerPoint 自带的演讲者视图。第 7 步屏幕批注也不适用，用 PowerPoint 墨迹。
 
-## 10. 已知坑（按踩坑频率）
+## 10. 维护注意事项
 
-1. **常驻进程占管**：`create` 会留一个 resident；先 `close` 再 `rm` 再 `create`。删除失败用 `fs.rmSync(..., {maxRetries:5, retryDelay:200})`；构建器已内置。
-2. **batch 是原子的**：任一条命令被拒（无效切页令牌、无效效果×类别、动画挂到图片上）就**整批回滚**，`officecli batch` 退出码非 0。构建器现在解析 `--json` 结果并打印前 5 条被拒命令的原因，不再只丢一坨原始 JSON。
-3. **`/shape[N]` 会漂移**：一律用 `@id`；id 在构建时分配，后续修改不要按序号找。动画节点同样挂在 `@id` 上（`/slide[2]/shape[@id=10203]/animation[1]`）。
-4. **默认形状继承主题色**：每个 rect 都要显式 `fill` 与 `line=none`，否则会冒出 accent1 描边/底。
-5. **切页时长藏在 p14 扩展里**：`fade-400` 读不回 400 只报 WARN（类型还在就保留效果）；类型本身读不回才删光切换。不要手改 XML。
-6. **表格 `data` 用 `;` 分行**，不是 `\n`；含逗号的单元格要加引号（构建器已处理）。
-7. **图片变形**：`view issues` 会报 `picture_aspect_distorted`；按宽高比算 `crop`（0–100 百分比），不要硬拉。
-8. **字体**：只用交付机已装字体，显式写 `font.latin` / `font.ea`；`create --locale` 固定语言。缺字体时 PowerPoint 会替换，版式可能变。
-9. **截图不是 PowerPoint**：本机没有 PowerPoint 时，`view screenshot` 走 officecli 的 HTML 渲染路径；它证明版式结构，不证明 PowerPoint 像素级一致。
-10. **`--grid` 需要无头浏览器**：本机没有时用 `--page N` 逐页截，或多页 `--page 1-N` 出纵向长图。
-11. **音频海报是 1×1**：音频请用方形盒；视频必须给真实 poster，否则会被判变形。
-12. **构建规格不是第二真相**：页数/页型/数字与骨架、资料总结冲突时，改 `PPTX-src.json`，并在骨架 §6 记一行。
-13. **切页令牌是类型相关的**：`push-right` 合法，`circle-in` 会被引擎拒绝并连带整批回滚；`zoom-in` 能被接受但读回只剩 `zoom`。方向和子类型只按读回结果写交付说明，不要假设它一定生效。
-14. **图片与表格挂不上动画**：officecli 的动画父节点只有 `shape` 和 `chart`；`on` 选空了就直接构建失败，这是有意的，别改成静默跳过。
-15. **删掉一页最后一个动画会留下空 `p:timing`**，`validate` 随即报 incomplete content。要撤动画就改 spec 重编，不要在生产文件上 `officecli remove`。
-16. **58 种切页不是调色盘**：`calm` 下 expressive 效果、`story` 外的高强度动画都会被 `lib.cjs` 判错；每换一种非 fade 切页都要能说出"这两页之间发生了什么"。写得出的理由进 `why` / `transition_why`，写不出就退回 `fade-400`。
-17. **`random` / `repeat` 要有内容上的理由**：前者只服务"不确定性本身"，后者只在 `story` 且写了 why 时可用；"怕单调"既不进 spec，也不进交付说明。
+1. 构建器按 close → 删除旧文件 → create 处理 resident；删除用最多 5 次、间隔 200ms 重试。
+2. batch 为原子操作，任一拒绝都会整批回滚；解析 JSON 并报告前 5 条失败原因。
+3. 使用稳定 `@id`，不使用会漂移的 `/shape[N]`；动画同样挂在 id 下。
+4. 每个形状显式设置 fill / line，避免继承主题色。
+5. 时长只在 p14 扩展时可能读不回：仅后缀偏差报 WARN；类型读不回才移除全部切页。
+6. 表格 data 用分号分行，含逗号的单元格加引号，交由构建器转义。
+7. 按固有比例计算 0–100% crop；`picture_aspect_distorted` 必须修复。
+8. 只用交付机已装字体，明确 `font.latin` / `font.ea` 与 create locale；缺字体会替换。
+9. 无 PowerPoint 时截图来自 HTML 渲染，只证明结构，不证明像素一致。
+10. `--grid` 需要无头浏览器；不可用时逐页或用 `--page 1-N` 长图。
+11. 音频海报为 1×1，使用方形盒；视频必须提供真实 poster。
+12. JSON 与骨架/资料冲突时同步修正，并记录骨架 §6，不建立第二份事实。
+13. 方向/子类型依赖类型；如 `push-right` 有效、`circle-in` 被拒、`zoom-in` 可能只读回 zoom。以读回为准。
+14. 动画只挂 shape / chart；图片、表格、媒体不可挂，on 选空时构建失败。
+15. 直接删最后一条动画会留下空 `p:timing`；撤动画应改 spec 重编，不对成品 remove。
+16. 按 §4 选择 calm / story 与效果预算；非 base 切页说明 why / transition_why，无理由用 fade-400。
+17. random 只表达不确定性；repeat 仅 story 且有 why，不能为避免单调而用。
 
 ## 11. 产出
 

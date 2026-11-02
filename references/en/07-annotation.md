@@ -22,7 +22,7 @@ It never edits the deck's DOM, its CSS or `deck-shell.js`. It assumes the shell'
 `.active` DOM lookup if `__deck` is absent. Before shipping, edit **only** the two config blocks
 marked in the file.
 
-## 2. CONFIG BLOCK 1 · theme (CSS) — the bar must look like it grew out of this deck
+## 2. Config block 1 · theme (CSS)
 
 The overlay reads ten custom properties. Map them onto the deck's own tokens; do not invent a
 new look, and do not ship the dark-teal defaults. **The bar's surface is one flat colour**
@@ -59,7 +59,7 @@ Floor to verify, not to assume: `--ink-ink` against `--ink-surface` composited o
 **lightest** thing the bar can sit on (the bar floats over the slide, so the worst case is a white
 chart card, not `--bg`) must stay ≥ 4.5:1 for the 12–13px labels. Run §7's contrast probe.
 
-## 3. CONFIG BLOCK 2 · PALETTE — five colours derived from this deck, plus one user slot
+## 3. Config block 2 · PALETTE (five colours and one user slot)
 
 `PALETTE` is the hard-coded set of pen colours; the 6th swatch is always the user-defined one
 (dashed ring, opens the system colour picker, persisted). Pick the five from the deck's palette
@@ -102,7 +102,7 @@ const table = Object.entries(candidates).map(([n,c]) => ({ n, c,
 Report the chosen five with their measured ratios against each surface — the same evidence
 discipline as the number audit.
 
-## 4. What intercepts what (the part that breaks decks if you get it wrong)
+## 4. Event isolation
 
 | Surface | Mechanism | Why |
 |---|---|---|
@@ -122,7 +122,7 @@ each other off with `stopImmediatePropagation`. The live symptom of leaving this
 annotation on, pressing `S` downloads a PNG **and** pops the presenter window — each is "correct" on
 its own; together they are an incident.
 
-## 5. Data model (do not "optimise" this away)
+## 5. Data model
 
 - Strokes are **data**, never pixels: `{t:'p'|'m'|'x', c, w, pr, pts:[[nx,ny,pressure],…]}`.
   `nx,ny` are normalised to `#stage`, so a resized window or a different projector maps them back
@@ -208,7 +208,7 @@ switches the ink layer inside that iframe; strokes sync both ways through the re
 §5. After each stroke the iframe hands the keyboard back (`parent.focus()`), so ← → pages the
 presenter window immediately.
 
-## 7. Verify (mandatory — the traps below were all found this way)
+## 7. Verification
 
 Static:
 
@@ -255,40 +255,19 @@ const band = (fx, fy) => { const x = Math.round((r.left + fx*r.width)*D), y = Ma
 Then reload and confirm the ink came back, and clear your own test data
 (`localStorage` keys + the in-memory store) before delivery — the user must open a clean deck.
 
-## 8. Traps already paid for
+## 8. Maintenance notes
 
-1. `backdrop-filter` (like `filter`) **makes an ancestor the containing block for `position:fixed`
-   descendants**. A popover nested inside the acrylic toolbar is positioned from the toolbar's box:
-   measured 28px off-centre and 293px too high. Popovers live at body level.
-2. A centred fixed bar (`left:50%` + `translateX(-50%)`) only gets **half the viewport** as
-   available width. With `flex-wrap:nowrap` it does not overflow, it squeezes (measured 528px for
-   753px of content). Set `width:max-content`.
-3. Move buttons out of their styled container and the **UA button face leaks through** as a grey
-   block. Re-declare `background/border/color/font` in the new scope.
-4. `requestAnimationFrame` is paused in hidden tabs: resize redraws must be synchronous (this block
-   registers after `deck-shell.js`, so `fit()` has already run), and expose a `redraw()` hook for
-   testing.
-5. Clicks bubbling to `document` are the deck's paging handler — every ink surface needs `isolate`.
-6. On `file://` the browser strips `?v=N` and `#hash` from a `navigate` URL, and `hashchange`,
-   `MutationObserver` and class flips are all async: read them in the **next** tool call, not the
-   same script.
-7. Harness state drifts: clicking every button in one test leaves the last tool/visibility active
-   and silently invalidates later assertions. Print `InkOverlay.eraser()/pop()/page()` before each
-   measurement group.
-8. `getImageData` coordinates are device pixels (multiply by `cv.width / innerWidth`), and sampling
-   a point that fell outside the canvas reads transparent — return `OUT` rather than a fake 0.
-9. **`a[download]` is not navigation.** The shell has an "open every link in a new tab with
-   `window.open`" fallback that also swallows the `<a download="…">` this layer builds for exporting:
-   `window.open` on a multi-megabyte `data:` URL is not a download but a window holding the whole
-   image, and it steals focus too. The shell now lets `download` anchors through, so **keep your own
-   download logic in this file and do not edit the shell's link fallback**.
-10. **With the ink layer on, `S` belongs to the ink layer** (export PNG); open the presenter window
-    by pressing `A` first to leave annotation, or by using the top-right bubble.
-11. **Media keys collide with ink keys by name**: `M` (mute / highlighter), `[` `]` (rate / pen
-    width), `Space` (play / page). The shell cuts off later listeners on the `window` capture phase
-    with `stopImmediatePropagation`, so the key belongs to the media when focus is inside the
-    transport and to the ink otherwise. **Except `←` `→`, which belong to neither and always page** —
-    otherwise clicking play pins the presenter to one slide.
+1. filter / backdrop-filter changes the fixed containing block; place popovers at body level.
+2. Give centred toolbars `width:max-content` so nowrap content is not compressed.
+3. When moving buttons across scopes, reset background / border / color / font.
+4. Background tabs pause rAF: redraw synchronously after resize and retain a `redraw()` test hook.
+5. Isolate every annotation UI click from paging handlers.
+6. file:// navigation may lose query/hash; read asynchronous hash/DOM changes on the next tool call.
+7. Check `InkOverlay.eraser()/pop()/page()` before each test group to avoid state contamination.
+8. Scale `getImageData` coordinates by `cv.width/innerWidth`; return OUT for out-of-bounds, not a transparent pass.
+9. Let `a[download]` bypass the shell’s window.open fallback; keep export logic in the ink layer.
+10. While ink is open, S only exports PNG; exit with A or use the bubble to open presenter mode.
+11. Inside transport, M / [ / ] / Space belong to media; elsewhere use ink rules. Use capture-phase stopImmediatePropagation; ← / → always page.
 
 ## 9. Limits to state when delivering
 

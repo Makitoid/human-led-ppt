@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# P. VC roadshow (traction · hero metrics · the ask)
 
-## P. VC roadshow (traction · hero metrics · the ask)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: white, navy→violet gradient confined to headings and the CTA, oversized KPIs, one traction curve.
 - Signatures: ① a NOW/NEXT/LATER milestone rail per act ② a four-up KPI card row with 96–120px numerals and small delta chips
 - Default partner: A Fluent or C OpenAI

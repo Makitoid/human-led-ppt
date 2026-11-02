@@ -1,6 +1,7 @@
-> 本文件是第 2 步风格库里的 **S 套**。搭配建议、模板纪律与风格决定块见 `../02-style.md`；同目录放着其余 21 套。
+# S. Bold Signal（自信 / 高冲击 / 主题演讲）
 
-## S. Bold Signal（自信 / 高冲击 / 主题演讲）
+> 通用约束与风格决定块见 [02-style.md](../02-style.md)；仅加载本稿选用的预设。
+
 - 观感：深炭底压亮橙焦点卡 + 超大章节编号（01/02/03），一眼让人坐直。适合主题演讲、有结论要甩出来的汇报、向领导述职。提炼自 `zarazhangrui/frontend-slides` 的 Bold Signal（MIT，© Zara Zhang）。
 - 浅色（若必须用亮场）：bg `#F4F1EC`，panel `#FFFFFF`，ink `#141414`，muted `#63615C`，rule `#E1DDD5`，accent `#C2410C`（正文可用，5.4:1——亮橙 `#FF5722` 只有 2.7:1，**仅限 ≤10 个大字与色块**）
 - 深色：bg `#1A1A1A`，panel `#242424`，elevated `#2E2E2E`，ink `#F5F3EF`，muted `#A6A29B`，rule `#33322F`，accent（橙卡底）`#FF5722`、其上一律走 `--accent-ink`（配 `#1A1A1A` 时约 5.3:1，可用）

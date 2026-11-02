@@ -1,6 +1,7 @@
-> 本文件是第 2 步风格库里的 **U 套**。搭配建议、模板纪律与风格决定块见 `../02-style.md`；同目录放着其余 21 套。
+# U. Terminal Green（极客 / 终端 / 开发者分享）
 
-## U. Terminal Green（极客 / 终端 / 开发者分享）
+> 通用约束与风格决定块见 [02-style.md](../02-style.md)；仅加载本稿选用的预设。
+
 - 观感：近黑终端底 + 荧光绿等宽字，像一块跑着的终端。适合开发者分享、CTF／安全、命令行 demo、极客观点的技术评审。提炼自 `zarazhangrui/frontend-slides` 的 Terminal Green（MIT，© Zara Zhang）。
 - 与 **L 暗底终端**的区别：L 是**版式模板**（可叠任意气质，用 `$ prompt` 标题 + 扫描线），U 是**完整气质**（固定荧光绿单色 + 近黑底 + 全等宽）；两者别叠着用。
 - 浅色（几乎不用，仅备）：bg `#F2F4F0`，panel `#FFFFFF`，ink `#12211A`，accent `#0B6B3A`（正文可用，5.6:1）

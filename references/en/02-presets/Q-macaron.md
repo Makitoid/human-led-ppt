@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# Q. Macaron cards (lifestyle · slow rhythm · carousel)
 
-## Q. Macaron cards (lifestyle · slow rhythm · carousel)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: cream base, three large blurred blobs, italic serif display mixed with sans body, rounded cards at high chroma but low glare (peach / mint / sky / lilac / lemon / rose).
 - Signatures: ① ≤ 3 background blobs that only fade with the page (no drift) ② `Playfair italic` numerals `01–04`
 - Default partner: I Playful's radius and pills, one weight and one notch of saturation lighter

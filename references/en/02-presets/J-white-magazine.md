@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# J. White-page magazine (editorial · display headings · long-form narrative)
 
-## J. White-page magazine (editorial · display headings · long-form narrative)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: pure white, a 4–6px multicolour bar across the top, 80–110px headings, black-on-white "focus pills". Reads like a magazine you can flip.
 - Signatures: ① top colour bar (the only place gradient text is allowed) ② focus pill — a filled chip with 2–6 words, one per page
 - Default partner: the temperament of D Claude or C OpenAI; this family supplies structure, not colour mood

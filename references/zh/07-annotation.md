@@ -19,7 +19,7 @@ node assets/assemble.cjs deck.src.html deck.html --ink assets/ink-overlay.html
 .slide.active`、`#overview`、`window.__deck.index`），`__deck` 不在时退回查 `.active` 下标。
 交付前**只改文件里标出来的两个配置块**。
 
-## 2. 配置块 1 · 主题（CSS）——工具条必须像从这份 PPT 里长出来的
+## 2. 配置块 1 · 主题（CSS）
 
 叠加层只读 10 个自定义属性。把它们映射到这份 PPT 自己的 token 上；不要另造一套视觉，更不要拿
 默认的暗青配色直接交付。**工具条背板是纯色**（`--ink-surface` 加模糊与提饱和），不再叠顶部渐变
@@ -54,7 +54,7 @@ node assets/assemble.cjs deck.src.html deck.html --ink assets/ink-overlay.html
 底线要测不要猜：`--ink-ink` 对 `--ink-surface` 合成到**它能压住的最亮东西**之上（工具条浮在页面上，
 最坏情况是一张白色图表卡而不是 `--bg`）仍要 ≥ 4.5:1，因为标签只有 12–13px。跑 §7 的对比度探针。
 
-## 3. 配置块 2 · PALETTE——五个颜色从这份 PPT 的配色里挑，第六个留给用户
+## 3. 配置块 2 · PALETTE（五色与用户自选色）
 
 `PALETTE` 是硬性笔色集合；第 6 块永远是用户自定义（虚线环、点开系统取色器、结果持久化）。按下面
 的规则挑那五个：
@@ -88,7 +88,7 @@ const table = Object.entries(candidates).map(([n,c]) => ({ n, c,
 
 交付时把选中的五色连同它对每个表面的实测比值一起报出来——和数字审计同一套证据标准。
 
-## 4. 谁拦谁（这一步弄错就会把 PPT 弄坏）
+## 4. 事件隔离
 
 | 对象 | 机制 | 原因 |
 |---|---|---|
@@ -105,7 +105,7 @@ const table = Object.entries(candidates).map(([n,c]) => ({ n, c,
 `stopImmediatePropagation`。漏这一步的现场表现是：批注开着按 `S`，PNG 哗地下载一份，演讲者窗
 也弹了出来——两件事都"对"，合起来就是事故。
 
-## 5. 数据模型（别"顺手优化"掉）
+## 5. 数据模型
 
 - 笔迹是**数据**不是像素：`{t:'p'|'m'|'x', c, w, pr, pts:[[nx,ny,pressure],…]}`。`nx,ny` 相对
   `#stage` 归一化，所以换窗口尺寸、换投影仪都能映射回页面上同一个位置，线宽跟着缩放而不是糊掉。
@@ -168,7 +168,7 @@ const table = Object.entries(candidates).map(([n,c]) => ({ n, c,
 放开、演讲者窗卡片上有一枚「批注」按钮开/关墨水层；在预览里画的笔迹实时同步回听众窗（见 §5 的
 修订号协议），反之亦然。落笔结束后把焦点交还演讲者窗（`parent.focus()`），← → 立刻可翻页。
 
-## 7. 验收（必做——下面那些坑都是这样发现的）
+## 7. 验收
 
 静态检查：
 
@@ -219,33 +219,19 @@ const band = (fx, fy) => { const x = Math.round((r.left + fx*r.width)*D), y = Ma
 然后重载确认笔迹回来了，并在交付前清掉自己的测试数据（`localStorage` 键 + 内存里的 store）——
 用户打开的必须是一份干净的稿子。
 
-## 8. 已经踩过并付过账的坑
+## 8. 维护注意事项
 
-1. `backdrop-filter`（和 `filter` 一样）会**让祖先成为 `position:fixed` 后代的包含块**。把浮层嵌在
-   亚克力工具条里，它的 `left/bottom` 就从工具条左上角算起——实测偏 28px、高出 293px。浮层必须放
-   在 body 层级。
-2. 居中的定宽条（`left:50%` + `translateX(-50%)`）**可用宽度只有半个视口**。加上
-   `flex-wrap:nowrap` 它不会溢出而是被挤扁（753px 的内容被压成 528px）。要写 `width:max-content`。
-3. 把按钮从已样式化的容器里搬出去，**浏览器默认按钮灰底会直接露出来**。新作用域里要把
-   `background/border/color/font` 整套重写一遍。
-4. 隐藏标签页里 `requestAnimationFrame` 是暂停的：缩放后的重绘必须同步做（本块注册在
-   `deck-shell.js` 之后，`fit()` 已经算完），并留一个 `redraw()` 出口给测试。
-5. 冒泡到 `document` 的点击就是原稿的翻页处理器——每个批注界面都要 `isolate`。
-6. `file://` 上 `navigate` 会把 `?v=N` 和 `#hash` 整个剥掉；而且 `hashchange`、`MutationObserver`、
-   class 变更都是异步的：要在**下一次工具调用**里读，别在同一个脚本里同步读。
-7. 测试脚本自己的状态会漂移：一次点遍所有按钮会把最后的工具/可见性留在末态，后面断言全被污染。
-   每组测量前先打印 `InkOverlay.eraser()/pop()/page()`。
-8. `getImageData` 的坐标是设备像素（要乘 `cv.width / innerWidth`），而且采样点掉出画布外会读到全
-   透明——这种情况要返回 `OUT` 而不是假装是 0。
-9. **`a[download]` 不是导航**。壳有一条"所有链接都 `window.open` 到新标签"的兜底，它会连本层
-   导出用的那个 `<a download="…">` 一起吃掉：`window.open` 一个几 MB 的 `data:` URL 不是下载，
-   是弹出一个装着整张图的窗口，还顺手把焦点带走。壳现在按 `download` 属性放行，**自己写的下载
-   逻辑要留在本文件里，不要去改壳的链接兜底**。
-10. **批注层开着时 `S` 归批注层**（导出 PNG），演讲者窗请先按 `A` 退出批注或点右上角气泡。
-11. **媒体键与批注键同名**：`M`（静音 / 荧光笔）、`[` `]`（倍速 / 笔粗）、`Space`（播放 / 翻页）。
-    壳在 `window` 捕获阶段用 `stopImmediatePropagation` 掐断后续监听器，所以焦点落在传输条内时
-    键归媒体、焦点在别处时归批注。**唯独 `←` `→` 哪边都不给，永远翻页**——不然点完播放就被钉在
-    这一页上。
+1. filter / backdrop-filter 会改变 fixed 包含块；浮层放在 body 层级。
+2. 居中工具条使用 `width:max-content`，避免 nowrap 内容被挤扁。
+3. 按钮换作用域时重设 background / border / color / font，避免浏览器默认样式泄漏。
+4. 后台标签页暂停 rAF；缩放后同步重绘，并保留 `redraw()` 测试入口。
+5. 所有批注 UI 隔离点击，避免冒泡触发翻页。
+6. file:// 导航可能丢查询串与 hash；异步 hash / DOM 变更在下一次工具调用读取。
+7. 每组测试先检查 `InkOverlay.eraser()/pop()/page()`，避免前序操作污染状态。
+8. `getImageData` 采样坐标乘 `cv.width/innerWidth`；出界返回 OUT，不能当作透明像素通过。
+9. `a[download]` 必须绕过壳的 window.open 兜底；导出逻辑留在批注层。
+10. 批注开启时 S 只导出 PNG；开演讲者窗需先 A 退出或点气泡。
+11. 媒体条内 M / [ / ] / Space 归媒体，其他位置按批注规则；捕获阶段用 stopImmediatePropagation，← / → 始终翻页。
 
 ## 9. 交付时必须说明的边界
 

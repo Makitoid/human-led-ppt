@@ -1,6 +1,6 @@
 # Step 3 · Evidence base
 
-Run this step only when the user asks for web research, or when the topic needs external facts/data. Output: `<topic>-sources.md` (Chinese convention: `<主题>-资料总结.md`), the single data source for Steps 4 and 5.
+Run for requested research or external facts. Produce `<topic>-sources.md` as the shared evidence base for skeleton and build.
 
 ## Evidence procedure
 

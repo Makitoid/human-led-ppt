@@ -9,7 +9,7 @@
 3. The source file is open beside you; take data per slide from it.
 4. **Skip §4's reviewer-facing legend when reading the skeleton** — jump from `⧉ legend start` straight to `⧉ legend end` and read nothing between. That block is a human-facing copy of §4's library; reading it only burns context. If you need a keyword's meaning, look it up in this document's §4 table. Trailing `- xxx: value <!-- comment -->` annotations are cross-reference too — they never produce DOM.
 
-## Conflict rules (most important)
+## Conflict rules
 
 Build strictly from skeleton + source file. **Add nothing on your own initiative.** When the skeleton has a problem:
 
@@ -202,8 +202,13 @@ You supply: per-slide layout, page types, charts, badges, persona capsules, cita
 - **The evidence-chain badge gathers those footnotes into one chip in the bottom-right — but only a serious deck shows it.** When the skeleton sets `evidence_chain: on` (a defence, research, data report or review where every claim must be traceable), the build adds `data-evidence="1"` to `<html>` or `<body>` and the shell builds the badge; a casual deck leaves it off and the corner stays clean. All you do is write the `.foot` ("source · year") fully — the badge counts them and a click lists them. **Do not style it yourself, and never draw a separate "evidence chain" on the page.**
 - **Full-bleed backdrop**: `data-bg` goes on the `<section>` only, with the content lifted to `z-index:1` (see the media section above); a backdrop does not enter the text flow and is not framed — it is a different thing from an `image` in an `.img-frame`.
 - **Persona capsules**: persistent at the bottom; the speaking persona gets a border plus a `›` before its name; never more than two speak on one slide.
-- **Charts**: inline SVG / pure CSS. Five recurring forms — log bars (cross-magnitude comparison), indexed line (2024 = 100, shared origin, start value folded into the x label to avoid overlap, annotate "middle segment is a linear illustration"), waterfall/steps (self-revision narratives), iceberg (direct vs indirect), lifecycle strip (horizontal segments with a data card each, problem segments in warn).
-- **Chart text**: white halo stroke on every label (`paint-order:stroke; stroke:<bg>; stroke-width:4px`) so lines never cross glyphs; axis titles, units and years complete; derived/estimated values labelled as such inside the chart.
+- **Charts**: inline SVG / pure CSS, no charting library. Five recurring forms — log bars (cross-magnitude comparison), indexed line (2024 = 100, shared origin, start value folded into the x label to avoid overlap, annotate "middle segment is a linear illustration"), waterfall/steps (self-revision narratives), iceberg (direct vs indirect), lifecycle strip (horizontal segments with a data card each, problem segments in warn).
+- **Chart and diagram templates**: `assets/visual-templates.html` provides 21 templates (11 charts, 10 diagrams). Copy `<style data-viz-kit>` once and a selected `<figure class="viz">` into `.slide-body`; add `on-panel` on panel surfaces. Keep tokens, halos and motion hooks; select by time, hierarchy or flow relationships.
+- **Appearance and copying**: rounded by default; choose `viz-outline`, `viz-blueprint` or `viz-editorial`, optionally with `on-panel`. Appearance preserves scales and connection semantics. Gallery filters, search, light/dark previews and copying help selection; copying suffixes internal ids. For manual copies, rename `id`, `url(#…)` and `aria-labelledby` together. Exclude gallery controls/scripts from decks.
+- **New chart scales**: slope charts compare two times only; dumbbell endpoints share a scale; bullet values and targets share a scale; each 100% stacked row sums to 100% and does not imply absolute totals; bubble matrix radii use `sqrt(value/max)` with comparable column units; diverging bars retain zero and equal scales on both sides. Coordinate formulas live inside each template. Expand the whole domain for out-of-range values instead of clipping data.
+- **Swap the data**: update labels, values, units, SVG `<title>` and the matching coordinates/dimensions together, recalculating geometry with the template formula rather than changing labels alone — preserve the `viewBox`, class names or `pathLength`; when the number of data points changes, recompute the coordinates from the ratio note above the template. Log bars must take their width from `log10(value)`, never the raw value; linear charts convert through the template's ratio formula. The numbers inside a template are placeholder examples and must be replaced with the real figures from the source summary at build time (hard rule 1); write units, years and estimated/extrapolated notes in full, and put the source in `.foot`.
+- **Diagram emphasis and text**: emphasis colour lands only on key nodes, warn only on risk nodes; a risk step is stroked in warn rather than filled, and its text stays on `--ink`. Text inside a solid block carries no halo (the kit already hits `<text>` directly through `.box-label` / `.box-sub`), and text on an accent ground takes `--accent-ink`; arrows use `marker-end`, and when several copies of a template share one page, suffix the marker id.
+- **Chart text**: the templates already carry the stroke halo in the ground's colour (`paint-order:stroke;stroke:var(--viz-halo);stroke-width:4px`) — do not delete it; axis labels use `--muted`, which must clear 4.5:1 against both `--bg` and `--panel`.
 
 ## Motion
 
@@ -242,32 +247,32 @@ Three kinds of link, three landing points. The assembler checks each one as it a
 
 **3. In-deck jumps** — `href="#s5"` goes through the shell's hash router to slide 5; never point at a page number that does not exist, and never use bare `#` as an empty link.
 
-## Known traps
+## Maintenance notes
 
-1. **Do not recompute scaling yourself**: `fit()` sets `scale` plus the centring offset with `transform-origin:0 0`. Switching `#stage` to a `translate(-50%,-50%)` scheme breaks the click-half hit test.
-2. **Never `display:none` on `.slide`** — it blanks the thumbnails. Use `opacity` + `visibility`.
-3. **Override the shell through variables**: set `--bg/--ink/--accent/--ovl-bg/--ovl-ink/--ovl-card` in your own `:root`; do not edit colours inside the shell CSS.
-4. **Click collisions**: any custom control must fall outside the shell's paging hit test (it already ignores `a`, `button`, `#overview`).
-5. **rAF pauses in background tabs**: numeral animations stall; the shell has a `setTimeout` fallback — add your own final-value fallback for custom animation too.
-6. **Portrait mask rule**: "portrait + (coarse pointer or short side < 600px)", so a narrow desktop window does not trigger it; to test layout, add `.show` to `#rotate-mask`.
-7. **Chinese font fallback**: a Latin stack must be followed by a CJK stack (`"PingFang SC","Microsoft YaHei"`), otherwise headings render in a serif face.
-8. **Dark themes**: purge every hard-coded colour (chart fills, badges, borders, overview wall) or pale rectangles survive the switch.
-9. **Print**: `@media print` must reset `#stage`'s transform and positioning, else only slide 1 prints.
-10. **Mobile**: `<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">` is mandatory; the shell already sets `overflow:hidden` — do not add body scrolling.
-11. **Overlay clicks**: every clickable presenter/ink element must `stopPropagation` — the shell reads a click on either half of the screen as "turn the page", so a bubbled click becomes "the deck jumped when the speaker reached for a prompt".
-12. **`?preview=N` belongs to the shell**, not to a page: with step 8 enabled, leave it alone. A `data-preview` page builds no overview, writes no hash, and swallows every paging input. When the canvas size changes, `CANVAS` in `assets/presenter-overlay.html` has to change with the skeleton or previews read as "blurry".
-13. **Never add `controls` to `<video>` / `<audio>` or hand-write a bar**: the shell's injected one is the single entry point, and two control bars each answer a click (the shell isolates clicks inside its own bar, yours does not) — which shows up as "one click plays twice".
-14. **Do not size the media element, but do count the transport bar into the card**: the shell tags the element `.mp-el` (`width/height:100%` + `object-fit:contain`); all you set is the size on `.mp` — and that size **must include the ~30px bar below the picture**. Drop `.mp-el` and a `4:3` clip overflows the card at its intrinsic size; forget the bar and the bar is pushed outside `.slide`'s clip box — visible but unclickable. Step 6's assertions catch both.
-15. **An audio card gets stretched by the author's own flex**: `.mp[data-kind="audio"]` already collapses the media row and centres, but if your layout container still stretches it (`align-items:stretch` + a fixed-height ancestor) the card becomes one big blank panel — either stop the parent stretching, or add `align-self:center` to `.mp`. Step 6 must measure the height of `.mp`; an audio-only page rests as **one small loudspeaker** (~36px) and unfolds into the full strip (~38px) only on hover / Tab focus / a touchscreen tap — neither state may be a panel. The expansion runs **left to right**: the loudspeaker stays where it is and the strip grows to its right; the content is 416px wide (80% of the former 520px). Never put it back to centred — centring makes the buttons jump left and right under the pointer.
-16. **The overview wall is a deep clone of every slide**: the shell runs `cloneNode(true)` per slide into `#overview`, and in the clone the media card is replaced by one static chip `.mp-ph` (dark box + a play glyph) — the injected bar and the `<video>`/`<audio>` element never reach a thumbnail, and `data-mp` is taken off the clone, so `[data-mp]` in a built deck counts live players only. Do not author a second set of media styles for thumbnails, and never imply in the delivery note that a thumbnail can play anything.
-17. **Using the same inlined image twice puts two copies of the base64 in the HTML**: a 366 KB screenshot is a 488 KB string, and every extra slide that shows it adds another 488 KB (measured: the same image on two slides took the finished deck from ~540 KB to 1,032 KB). A graphic that recurs through the deck belongs in `visual`, not in `image` twice. **The same goes for a backdrop** — one image laid on three pages is three copies of its base64.
-18. **The backdrop hides the content, or the content hides the backdrop**: `data-bg` lies on the section and the scrim is the section's `::after`, both below the content; if a page's content block is in normal flow (`static`) it sits *under* the scrim, and the page reads as "a translucent wash with no visible text". Give `.slide[data-bg] > *` `position:relative;z-index:1`. Also: a `data-bg` written as an external `https://…` is refused by the shell (it names the page in the console) — a backdrop must be inlined too, or the deck is no longer offline.
-19. **The evidence chain is a per-deck choice, not a hotkey and not a default.** Skeleton §1's `evidence_chain` decides it: `on` makes the build set `data-evidence="1"` on `<html>`/`<body>` and the shell builds a visible badge; write nothing and the corner stays empty. Decide it while writing, not on stage. It recounts per slide from `.foot` and the other sources, so an author who writes sources fully is the one who gives it something to count; a click lists the sources, and it never prints or lands in a screenshot.
-20. **A missing-media message lives inside the player box, not under the card.** `.mp[data-state="error"]` hides the picture and the bar and shows `.mp-missing` ("Video not found" / "Audio not found"). Do not go looking for the old `.mp-note`'s bottom margin — that treatment is retired, and the assertion now checks `.mp-missing` is present and **inside** the card.
-21. **Two largest font sizes = no primary**: putting both `h2` and `.key` at 48px is the most common way to look tiered while being flat. Only one element may stand on the first tier; the other drops to the second, or step 6's hierarchy assertion will flag it.
-22. **Using `opacity` to recede text silently kills contrast**: `--muted` picked at 4.5:1 and then wrapped in `.6` alpha lands near 2:1. Recede with tokens and size, not transparency; step 6 recomputes on the composite colour.
-23. **Three equal-width columns with three colours is noise, not hierarchy**: equal cards each with their own colour leave the eye no landing point. Either make the main column ≥ 1.4× a side column, or accent one card and set the rest to panel.
-24. **A local file link is not an external link**: the shell intercepts http(s) only, so a local relative href only counts as "somewhere else" with `target="_blank" rel="noopener"`; without `target` the presentation is replaced by the PDF in place. At assembly `linkErrors` checks both the file's existence and the scheme, and `javascript:` / `vbscript:` / `data:` fail outright.
+1. Let `fit()` own scaling; retain `transform-origin:0 0` rather than translate centring.
+2. Use opacity / visibility for slides; `display:none` breaks overview clones.
+3. Override theme and overview tokens in `:root`, not inside the shell.
+4. Exclude custom interactive controls from click-to-page handling.
+5. Background tabs pause rAF; counters need a timeout fallback to the final value.
+6. The portrait mask needs portrait plus coarse pointer or short edge <600px; use `.show` to inspect it.
+7. Include CJK fallbacks such as PingFang SC / Microsoft YaHei in Latin font stacks.
+8. Remove literal colours from charts, badges, borders and overview to avoid light patches in dark themes.
+9. Reset `#stage` positioning and transform for one-slide-per-page printing.
+10. Declare viewport meta; the shell owns overflow, so do not add body scrolling.
+11. Call `stopPropagation` on overlay controls to prevent accidental paging.
+12. Keep shell-owned `?preview=N`: no overview, hash writes or paging. Update presenter `CANVAS` with deck geometry.
+13. Use only shell-injected media controls; no native `controls` or duplicate transport.
+14. Let `.mp-el` size media; include about 30px of transport height in the `.mp` card.
+15. Prevent flex stretching audio cards: about 36px at rest, 38px expanded; unfold rightwards from the speaker with 416px content.
+16. Overview clones replace media with static `.mp-ph`; `[data-mp]` counts live players only.
+17. Each repeated inline image/backdrop duplicates base64; prefer `visual` for repeated graphics or reduce reuse.
+18. Set backdrop content to `position:relative;z-index:1`; `data-bg` accepts inline data: images only.
+19. Evidence is opt-in per deck: `evidence_chain: on` → `data-evidence="1"`. No hotkey; badges aggregate real citations and do not print.
+20. On missing media, show `.mp-missing` inside the player and hide the image/transport.
+21. Do not give `h2` and the primary equal maximum size; keep one primary, with the title second-tier.
+22. Recede text with muted tokens or size, not opacity; measure contrast after compositing.
+23. For three columns, make the main ≥1.4× a side column, or emphasise just one and use panel elsewhere.
+24. Local file links need `target="_blank" rel="noopener"`; assembly validates files and schemes.
 
 ## Output
 

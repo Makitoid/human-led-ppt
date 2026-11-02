@@ -1,6 +1,6 @@
 # Step 4 · Agent-native skeleton (build spec)
 
-Output: HTML track `<topic>-HTML-PPT-skeleton.md` (Chinese convention: `<主题>-HTML-PPT骨架.md`); PPTX track `<topic>-PPTX-skeleton.md` (Chinese convention: `<主题>-PPTX骨架.md`); when both are wanted, write one of each (same slide count, page types and numbers). It is a **build specification for an agent, not a script**: Step 5 executes it line by line, the user reviews and edits it. When it is written, stop and wait for review.
+Produce `<topic>-HTML-PPT-skeleton.md` or `<topic>-PPTX-skeleton.md`; for both formats, keep slide counts, types and figures aligned. The skeleton is the per-slide build specification; wait for user review when it is ready.
 
 ## File shape
 

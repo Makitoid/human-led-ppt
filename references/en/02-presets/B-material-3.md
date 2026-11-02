@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# B. Material Design 3 (Google / friendly / structured)
 
-## B. Material Design 3 (Google / friendly / structured)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: tonal surfaces + explicit role colours, component-like; good for process, method, teaching.
 - Light: primary `#6750A4`, on-primary `#FFFFFF`, surface `#FFFBFE`, surface-variant `#E7E0EC`, on-surface `#1C1B1F`, muted `#49454F`, warn `#B3261E`, rule `#CAC4D0`
 - Dark: primary `#D0BCFF`, on-primary `#381E72`, surface `#141218`, surface-container-highest `#36343B`, on-surface `#E6E1E5`, muted `#CAC4D0`, warn `#F2B8B5`, rule `#49454F`

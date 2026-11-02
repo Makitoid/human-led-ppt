@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# D. Claude (warm / human / narrative)
 
-## D. Claude (warm / human / narrative)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: cream ground + ink text + terracotta accent, serif headings give publishery calm. Good for humanities, education, opinion, interview-style narrative.
 - Light: bg `#F5F1E8`, panel `#FBF8F1`, ink `#26221C`, muted `#6B655B`, rule `#DED7C8`, accent `#9E4A28` (body-safe, 5.38:1); clay `#B75C38` is 4.05:1 — headings ≥ 32px and blocks; warn `#7A5F1B`
 - Dark: bg `#211D18`, panel `#2B2621`, ink `#F0EAE0`, muted `#B4A99B`, accent `#D97A52`, warn `#D6A94B`, rule `#3B342C`

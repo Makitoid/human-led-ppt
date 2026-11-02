@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# O. One colour per slide (keynote minimal · one idea a page)
 
-## O. One colour per slide (keynote minimal · one idea a page)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: the whole canvas is a single hue, rotating per slide (6–8 hues of similar lightness), a 160px-class heading and a 4px accent stub, everything else air.
 - Signatures: ① full-bleed background colour, changed per slide ② a `← →` key hint bottom-left (paging already works; it is a cue for the audience)
 - Default partner: any preset's type stack — this family needs almost no second device

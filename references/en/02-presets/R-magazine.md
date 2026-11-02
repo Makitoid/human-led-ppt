@@ -1,6 +1,7 @@
-> This file is preset **R** in Step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`; the other 21 presets sit alongside it.
+# R. Electronic magazine (narrative / humanist / editorial)
 
-## R. Electronic magazine (narrative / humanist / editorial)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: like Monocle magazine with code grafted on — serif display + sans body + mono metadata in three tiers, large hero pages, image-led, generous whitespace and breathing room. Suits intimate talks, opinion pieces, story-driven talks, and AI / creative / design subjects.
 - **Five e-ink palettes; pick exactly one, no custom hex** ("protecting the aesthetics matters more than giving freedom"):
   | Theme | Dark ground | Light ground | Suits |

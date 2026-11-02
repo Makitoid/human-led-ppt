@@ -6,13 +6,11 @@ Order: **ask first** → spec check → artifact read-back → rendered review �
 
 ## 0. Ask the user who runs the check
 
-As on the HTML track, the first thing this step does is ask:
+Confirm who owns final checks; reuse an existing choice.
 
-> The deck is written. For this final check, do you want **me to run it myself** (I run `lint`, `validate` and `issues`, review the per-slide screenshots, and hand you the pass list and the untested items), or do you want to **check it yourself** (I run only the spec check and the static cross-check, and leave the artifact read-back and screenshots to you)?
-
-- The user says the agent runs it → go through the whole flow below.
-- The user says they will check it themselves → still run **§1's spec check** (skipping it is a dereliction); §2–§4 follow the user's wish, and say which ones were not run.
-- The delivery note must separate "actually tested" from "verified by the user".
+- Agent checks: complete §1–§4 spec, read-back, rendering and number checks.
+- User checks: still complete §1; run §2–§4 or deliver their scripts as requested.
+- Report actual passes, warnings and untested items.
 
 ## 1. Spec check (independent of the artifact)
 

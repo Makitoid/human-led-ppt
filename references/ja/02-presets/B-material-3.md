@@ -1,6 +1,7 @@
-> 本ファイルはステップ 2 のスタイルライブラリ 22 冊のうちの 1 つ。組み合わせの助言、テンプレートの規律、スタイル決定ブロックは `../02-style.md` にあります。
+# B. Material Design 3（Google / 親しみやすい / 構造的）
 
-## B. Material Design 3（Google / 親しみやすい / 構造的）
+> 共通制約とスタイル決定欄は [02-style.md](../02-style.md) を参照。選択したプリセットのみ読む。
+
 - 見た目：トーン面 + 明示的な役割色、コンポーネント感。プロセス、方法論、教育に向く。
 - ライト：primary `#6750A4`, on-primary `#FFFFFF`, surface `#FFFBFE`, surface-variant `#E7E0EC`, on-surface `#1C1B1F`, muted `#49454F`, warn `#B3261E`, rule `#CAC4D0`
 - ダーク：primary `#D0BCFF`, on-primary `#381E72`, surface `#141218`, surface-container-highest `#36343B`, on-surface `#E6E1E5`, muted `#CAC4D0`, warn `#F2B8B5`, rule `#49454F`

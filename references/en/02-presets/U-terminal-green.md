@@ -1,6 +1,7 @@
-> This file is preset **U** in Step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`; the other 21 presets sit alongside it.
+# U. Terminal Green (geek / terminal / developer talk)
 
-## U. Terminal Green (geek / terminal / developer talk)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: near-black terminal ground with phosphor-green mono type, like a terminal that is running. Suits developer talks, CTF/security, command-line demos, technical reviews with attitude. Distilled from `zarazhangrui/frontend-slides`'s Terminal Green (MIT, © Zara Zhang).
 - Difference from **L Dark terminal**: L is a **layout template** (layer it on any temperament; `$ prompt` headings + scanlines), U is a **full temperament** (fixed phosphor green, near-black ground, all-mono); do not stack the two.
 - Light (rarely used, kept for completeness): bg `#F2F4F0`, panel `#FFFFFF`, ink `#12211A`, accent `#0B6B3A` (usable as body, 5.6:1)

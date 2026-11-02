@@ -1,6 +1,6 @@
 # Step 1 · Topic and narrative
 
-Goal: settle "who is watching, what is being said, for how long, and how it is organised" before anything is built. This step is discussion only — no files are written (the conclusion can be pasted to the user for confirmation and later copied into skeleton §0).
+Confirm audience, central question, duration and structure in chat; record the agreed brief later in skeleton §0.
 
 ## Choose the delivery form first (fixed copy, paste verbatim to the user)
 

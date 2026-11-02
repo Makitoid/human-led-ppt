@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# K. Cream blueprint (engineering · printable · zero gradients)
 
-## K. Cream blueprint (engineering · printable · zero gradients)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: cream paper, a 48px blueprint grid at low alpha, 2px hard-bordered cards, one rust accent. Looks like a README you could pin to a wall.
 - Signatures: ① grid backdrop (cover and architecture pages only) ② rust insight callout block on the right edge
 - Default partner: H Academic's chart discipline, or A Fluent's order

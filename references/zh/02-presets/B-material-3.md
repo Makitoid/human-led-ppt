@@ -1,6 +1,7 @@
-> 本文件是第 2 步风格库里的 **B 套**。搭配建议、模板纪律与风格决定块见 `../02-style.md`；同目录放着其余 21 套。
+# B. Material Design 3（Google / 亲和 / 结构化）
 
-## B. Material Design 3（Google / 亲和 / 结构化）
+> 通用约束与风格决定块见 [02-style.md](../02-style.md)；仅加载本稿选用的预设。
+
 - 观感：色调面（surface tint）+ 明确的角色色，组件感强，适合流程、方法论、教学。
 - 浅色：primary `#6750A4`，on-primary `#FFFFFF`，surface `#FFFBFE`，surface-variant `#E7E0EC`，on-surface `#1C1B1F`，muted `#49454F`，warn `#B3261E`，rule `#CAC4D0`
 - 深色：primary `#D0BCFF`，on-primary `#381E72`，surface `#141218`，surface-container-highest `#36343B`，on-surface `#E6E1E5`，muted `#CAC4D0`，warn `#F2B8B5`，rule `#49454F`

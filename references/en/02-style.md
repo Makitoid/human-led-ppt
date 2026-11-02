@@ -12,42 +12,14 @@ Goal: lock a set of executable design decisions and write them into skeleton §1
 
 Do not ask about light/dark separately — every preset has light/dark palettes; pick one per deck and write it into the skeleton (**never mix within one deck**): projected classrooms favour light, dark rooms / keynotes / code-and-data-dense favour dark. If the user says "you decide", pick the one closest to the subject, justify it in one line, and leave room to swap.
 
-## Helper skills per style
+## Optional helper skills
 
-Two kinds of helper:
-
-- **General-purpose design skills (call directly if present)** — `frontend-design` (distinctive visual direction, typography, avoiding templated defaults), `material-3` (Google Material Design 3 / Material You tokens, components, adaptive layout, expressive theming).
-- **Marketplace candidates (in a skill market; not installed here)** — use the canonicalName below only, and let the user install and confirm first: third-party skills execute code, change files. Availability changes, so before recommending re-verify it with the platform's own skill search. The entries below are a snapshot re-verified on 2026-10-14 with the platform's skill search; not installed, not read.
-
-| Preset | Primary helper | Also useful |
-|---|---|---|
-| A Fluent Design 2 | `fluent-design` (bingfoon) — Windows 11 language, Mica/Acrylic materials, WinUI 3 control specs, type hierarchy, layout patterns, dark mode, accessibility, Electron adaptation | `frontend-design` |
-| B Material Design 3 | `material-3` | `web-animation-design` for expressive motion |
-| C Paper-neutral | `frontend-design` | `agrimsingh-bringhurst-typography` (Bringhurst typographic rules applied to slides) |
-| D Editorial | `frontend-design` | `ds-ref-typography`-class type pairing, or `majiayu000-brand-typography-systems` (modular scale, serif/sans decision framework, WCAG type rules) |
-| E Liquid Glass | `majiayu000-axiom-liquid-glass` — WWDC 2025 liquid-glass design principles, API patterns, visual-artifact debugging, performance and review checklists (Swift-first; treat it as the *design* authority and re-derive the CSS yourself) | `frontend-design` |
-| F Doc-list | `frontend-design` | `vercel-labs-web-design-guidelines` (UI review pass) |
-| G Manga | `frontend-design` (no dedicated web style skill found) | `animation-shader` only if you are doing cel-shaded *illustration*, not UI |
-| H Academic / paper | `agrimsingh-bringhurst-typography` | `boisenoise-antigravity-wcag-audit-patterns` (WCAG 2.2 audit; the former `entur-accessibility` is no longer listed), `astoreyai-latex-check` only if a real LaTeX/Beamer deliverable is also required |
-| I Playful | `frontend-design` | `web-animation-design` for spring/overshoot timing |
-| R Magazine | `frontend-design` (serif/sans pairing, editorial grid) | — |
-| S Bold Signal | `frontend-design` (heavy weights + high-contrast cards) | `web-animation-design` |
-| T Creative Voltage | `frontend-design` (neon duo + halftone texture) | `web-animation-design` |
-| U Terminal Green | `frontend-design` (mono type, terminal feel) | — |
-| V Notebook Tabs | `frontend-design` (index cards and tabs) | `vercel-labs-web-design-guidelines` (UI review pass) |
-| Any — motion detail | `web-animation-design` — easing, duration, springs, stagger, page transitions, microinteractions, `prefers-reduced-motion`, animation performance | — |
-| Any — before delivery | `vercel-labs-web-design-guidelines` (UI/UX/a11y review), `boisenoise-antigravity-wcag-audit-patterns` (WCAG 2.2 contrast and semantics) | `lyndonkl-cognitive-design` (Gestalt grouping, pre-attentive processing, cognitive load) for data-heavy decks |
-
-Adjacent skills that *overlap* with this skill and may compete for the same request: `frontendslides` (zero-dependency animated HTML decks), `ppt-visual-designer` (Block-style PPT visual strategy), `doc2slides`, `image-to-editable-ppt-slide`. Do not chain them silently — mention them if the user asks for alternatives.
+- Use installed, relevant helpers: `frontend-design` for visual decisions and `material-3` for component guidance. Selecting a preset does not require installing tools.
+- Third-party skill names are historical suggestions, not dependencies. Verify availability and instructions before use; obtain consent before installation. Mention overlapping presentation skills only when alternatives are requested.
 
 ## Style presets
 
-Presets come in two families. **A–I temperament presets** (palette, type and motion character). **J–V templates** (J–Q: a slide's information structure, emphasis devices and signature elements; R–V: five complete systems that bring their own palettes and signatures). The mature move is **one deck = 1 temperament + 1 layout template**: temperament supplies the tokens, the template supplies the skeleton. Picking only one is fine; picking both signatures onto the same page is noise. **R–V are self-contained looks — use one of them as the temperament**, never layer an A–I temperament on top, and never stack them on each other.
-
-> These are **usable starting values**, not official design tokens: only Material 3 and Liquid Glass have a skill carrying the spec; the rest are reasonable approximations of a brand's look. Re-check with `frontend-design` before finalising, or ask whether the user has a brand guideline. Retune the colours to the subject; do not paste them blindly.
->
-> **Contrast was measured** (body ≥ 4.5:1, large numerals/headings ≥ 3:1, using the ratio script in `06-verify.md`), re-measure after any colour change: brand colours used directly as body text usually sit at 2–3:1 (OpenAI `#10A37F`, Fluent `#0078D4`, Notion's grey chips), so each preset gives a darkened variant and keeps the original for large type or graphics only.
-**Index**: open **that one file only** for the full light + dark palettes, signature elements, type stack, motion and risks. Do not read the other 21.
+A–I set temperament through palette, type and motion; J–Q provide compatible layouts; R–V are complete styles used alone. Choose one temperament, optionally one J–Q layout, without stacking complete styles. Palettes are starting points, not official tokens; remeasure contrast after colour changes. Open only the chosen preset.
 
 | ID | Name and character | Suits | File |
 |---|---|---|---|
@@ -60,6 +32,7 @@ Presets come in two families. **A–I temperament presets** (palette, type and m
 | G | Manga · saturated accents + thick-outlined cards + screentone and speed lines | science popularisation, clubs, student audiences (**never use copyrighted characters**) | `02-presets/G-anime.md` |
 | H | Academic · paper ground + serif headings + strict chart conventions | thesis defence, lab meetings, technical review | `02-presets/H-academic.md` |
 | I | Playful · candy blocks + very large radii + inline-SVG geometric faces | icebreakers, events, young or informal internal audiences | `02-presets/I-playful.md` |
+
 
 ## Template library (J–V)
 
@@ -119,7 +92,7 @@ Style decides what a page looks like; hierarchy decides what the eye hits first.
 - **Accent as text ≥ 4.5:1; accent as a fill takes `--accent-ink` ≥ 4.5:1.** Brand primaries (OpenAI green, Fluent blue, Notion grey) usually sit at 2–3:1 — large type or graphics only.
 - **Text on a full-bleed background is measured at the brightest point after the scrim.** If it fails, strengthen the scrim; never lighten body text to accommodate the backdrop.
 
-## Six template disciplines (distilled from a mature template system; they hold for every preset)
+## Six template disciplines
 
 0. **One backdrop per page, and it never ships without a scrim.** A full-bleed backdrop (third-party photo or generated image) goes through the `background` keyword and `data-bg` layer, with a readable gradient scrim on top; a backdrop is **never** dropped into the text flow as an `<img>` (that is what `image` is for). If contrast will not hold, dim the backdrop — do not lighten body text. See the background-layer rules in `05-build.md`.
 
@@ -134,20 +107,12 @@ Style decides what a page looks like; hierarchy decides what the eye hits first.
 
 When the user designs their own, walk the same field list as the presets (look / light palette / dark palette / type / shape / rules / motion / risks) and drive the decisions with `frontend-design` (palette relationships, type pairing, avoiding the templated look). Pull `material-3` as needed for component specs. Given a reference screenshot, measure its hex values and type scale before deciding — never work from impression. **The "six template disciplines" (including the background rule 0 and one primary per slide) hold for custom too**: every colour in `:root`, a measured `--accent-ink`, one mode only, ≤ 8 reused page types, images always framed, backdrops always scrimmed, one primary per slide.
 
-## Deck-level hard requirements, whatever is chosen
+## Shared constraints
 
-- Readable from the back row: body ≥ 22px (24px preferred), hero numerals 72–120px, `font-variant-numeric: tabular-nums`
-- **Four-tier type ladder**: primary 48–60 (KPI 72–120) / title 34 / body 22–24 / note 12–15, adjacent ratio ≥ 1.4; a page uses only these four tiers and never adds a fifth ad hoc
-- **All information-bearing text ≥ 4.5:1** (quotes, captions and sources included), large text ≥ 3:1; `--muted` measured against both `--bg` and `--panel`; no `opacity` to recede text
-- **Exactly one visual primary per slide** (`key` / one `kpi` group / `pull`); at most 4 numbers and 4 peer cards per slide, and only one card may carry accent or step up
-- **Accent fill ≤ 1 per slide and warn mark ≤ 1 per slide**; the accent lands on the primary, never on a caption or ornament
-- Charts as inline SVG / pure CSS; no charting library
-- **One light-or-dark theme only**: when overridden, also set `--ovl-bg / --ovl-ink / --ovl-card` (overview wall) and `--bg/--ink/--accent` in `deck-shell.css`; a dark deck must purge every hard-coded colour (chart fills, badges, borders, overview wall) or pale patches will survive
-- **Declare `--accent-ink` in `:root`** (the text colour used on accent fills, badges and pills) and measure it ≥ 4.5:1 with the script in `06-verify.md`; slide CSS may only use `var(...)` — no literal hex outside gradient endpoints
-- **≤ 2 signature devices per page** (the two named by the chosen template), **≤ 8 reused page types**, and no bare `<img>` — everything framed per template discipline 5
-- Do not use pure `#000` + pure white (halation on projectors); use a hue-tinted near-black and drop body text one step in lightness
-- All motion plays automatically on slide change, never on click; `prefers-reduced-motion: reduce` disables everything (already in the shell)
-- Write an explicit `constraints` list (e.g. no gradient fills, no glassmorphism, no stacked shadows, no emoji ornament, no image carousels) unless the user asks for them
+- Body ≥22px; key figures 72–120px with `tabular-nums`; at most four figures per slide. Follow the hierarchy, emphasis and contrast rules above.
+- Override both deck and overview tokens (`--ovl-bg / --ovl-ink / --ovl-card` included). Use tinted dark grey rather than pure black with pure white.
+- Charts use inline SVG / CSS without a charting library. Apply the six template disciplines to signature elements, page types, images and backdrops.
+- HTML reveals play on page entry and stop under `prefers-reduced-motion`. Record deck-specific exclusions.
 
 ### PPTX supplement (when `target` includes `native-pptx`)
 

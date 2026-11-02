@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# H. Academic / paper (rigorous / dense / defences and group meetings)
 
-## H. Academic / paper (rigorous / dense / defences and group meetings)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: paper ground + serif headings + strict chart conventions; high density without noise. Good for thesis defence, lab meetings, technical review.
 - Light: bg `#FBFAF7`, panel `#FFFFFF`, ink `#1A1A1A`, muted `#4D4D4D`, accent `#1F3A5F` (or departmental colour), warn `#8C2F1E`, rule `#D8D4CB`
 - Dark: bg `#16181C`, panel `#1E2126`, ink `#E8E6E1`, muted `#A8A69F`, accent `#7FA8D9`, warn `#E08A6E`, rule `#33373E`

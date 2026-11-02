@@ -1,6 +1,7 @@
-> This file is preset **V** in Step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`; the other 21 presets sit alongside it.
+# V. Notebook Tabs (editorial / orderly / team share)
 
-## V. Notebook Tabs (editorial / orderly / team share)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: cream paper cards + binder holes down the left + coloured index tabs on the right, like an open ring binder. Clean, light, unpressured — good for internal team shares, retrospectives, training decks, checklist-heavy content. Distilled from `zarazhangrui/frontend-slides`'s Notebook Tabs (MIT, © Zara Zhang).
 - Light (default): bg `#FBF9F4`, panel `#FFFFFF`, ink `#1F1D1A`, muted `#6E6A61`, rule `#E7E1D5`, accent `#B23A48` (usable as body, 5.2:1); tab colours (≤ 4) `#B23A48` / `#1D6FB8` / `#2E7D5B` / `#B0720A`, all darkened to body grade
 - Dark: bg `#1B1917`, panel `#232120`, ink `#F1EDE4`, muted `#A9A397`, rule `#332F2B`, accent `#E0757F`, tab colours lightened from the list above (e.g. `#E0757F` / `#6FB3E6` / `#6FCFA0` / `#E0A64B`)

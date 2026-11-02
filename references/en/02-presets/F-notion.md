@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# F. Notion (plain / document-like / dense)
 
-## F. Notion (plain / document-like / dense)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: white ground, warm-grey text, faint dividers, small coloured chips; good for bullet-dense, checklist and retrospective decks.
 - Light: bg `#FFFFFF`, side `#F7F6F3`, ink `#37352F`, muted `#787774`, line `#E9E9E7`; chip colours `#4B7399 / #D9730D / #DB3E6A / #9065B0 / #0F7B6C`
 - Dark: bg `#191919`, side `#202020`, ink `#E6E6E4`, muted `#9B9B98`, line `#2F2F2F`; chips always "light text on same-hue dark ground" (e.g. `#A9C6E0` on `#1F3A52`; amber `#E0A267`/`#4A2E15`; pink `#E091AC`/`#4A1F30`; violet `#BFA6DC`/`#33254A`; teal `#7FC9B8`/`#153A32`) — light text directly on the dark page washes out, dark text on light chips fails contrast

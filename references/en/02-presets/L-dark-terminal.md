@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# L. Dark terminal (CLI · trace · benchmark)
 
-## L. Dark terminal (CLI · trace · benchmark)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: near-black blue, 56px hairline grid, CRT vignette and scanlines, `$ prompt` headings, mint glow on hero numerals.
 - Signatures: ① traffic-light window chrome (a slide made to look like a terminal holding a trace) ② blinking caret `▍` (cover and closer only)
 - Default partner: C OpenAI's restraint — drop the glow and this becomes a light deck

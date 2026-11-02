@@ -1,6 +1,7 @@
-> 本文件是第 2 步风格库里的 **T 套**。搭配建议、模板纪律与风格决定块见 `../02-style.md`；同目录放着其余 21 套。
+# T. Creative Voltage（活力 / 复古现代 / 品牌叙事）
 
-## T. Creative Voltage（活力 / 复古现代 / 品牌叙事）
+> 通用约束与风格决定块见 [02-style.md](../02-style.md)；仅加载本稿选用的预设。
+
 - 观感：电光蓝大色块 + 霓虹黄点缀 + 半调网点纹理，活力、有节奏、偏品牌叙事。适合产品发布、创意展示、创业 demo。提炼自 `zarazhangrui/frontend-slides` 的 Creative Voltage（MIT，© Zara Zhang）。
 - 浅色：bg（电光蓝）`#0066FF`，panel（深色块）`#0A1A3F`，ink `#FFFFFF`，muted `#C7D6FF`，rule `rgba(255,255,255,.28)`，accent（霓虹黄，仅上深底／电光蓝）`#D4FF00`——`#D4FF00` 在 `#0066FF` 上约 4.8:1、在 `#0A1A3F` 上约 14:1，**别把霓虹黄放到白底上**（≈1.1:1，等于隐形）
 - 深色（默认更稳的用法）：bg `#0A1A3F`，panel `#12234D`，ink `#F2F5FF`，muted `#9FB2E0`，rule `rgba(255,255,255,.18)`，accent `#D4FF00`

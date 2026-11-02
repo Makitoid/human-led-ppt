@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# I. Playful (bright / interactive / icebreakers and clubs)
 
-## I. Playful (bright / interactive / icebreakers and clubs)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: candy blocks + very large radii + hand-drawn outlines + geometric "faces" (inline SVG circles, arrows, stars — not emoji glyphs). Good for icebreakers, events, light internal sessions.
 - Light: bg `#FFFCF5`, panel `#FFFFFF`, ink `#232323`; body-safe `accent #C24A2E` / `accent2 #007A70` / `accent4 #5A4BD1`; candy originals `#FF7A5C` / `#00B8A9` / `#FFC93C` / `#7B6CF6` for large type and blocks; rule `#EFE6D8`
 - Dark: bg `#1A1725`, panel `#241F33`, ink `#FFF6EA`, accent `#FF8E70`, accent2 `#2FD8C4`, accent3 `#FFD75E`, accent4 `#9C8CFF`, rule `#38304D`

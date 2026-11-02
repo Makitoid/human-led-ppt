@@ -260,7 +260,7 @@ remain bound by the step-6 audit — a figure in the prompt that no §4 entry on
 (`data`, `table`, `formula`, whichever it is) is the same violation as one on the page. Notes never render in the audience window and never print;
 disclose that difference in the delivery note.
 
-## 7. Verification: these assertions must actually run
+## 7. Verification
 
 The bundled browser often blocks popups (`window.open` returns null). That is **not** a defect in
 the feature: try once through a real key event (`press_key`), and if blocked exercise the `blocked`
@@ -323,7 +323,7 @@ Six more, checked individually:
   `?preview=N` iframe loads.
 - **Contrast**: re-measure this deck's actual palette against the §5 table, especially when the deck
   overrode `--accent`. If the guard swapped a colour, name it in the delivery note and let the user
-  decide whether to fix the deck's palette or 
+  decide whether to fix the deck's palette or
 - **Annotation linkage** (only when step 7 is installed as well): clicking the "Annotate" chip in
   the presenter window must put `inking` on the `body` of the iframe inside the tile; laying one
   stroke in the preview (a pointer event landing on its `#inkc`) must add the same entry to the
@@ -345,42 +345,18 @@ Six more, checked individually:
   download) and its `video` must be `muted === true`. When the browser blocks autoplay, give the
   audience window one real click and run it again — that is not a sync failure.
 
-## 8. Known traps
+## 8. Maintenance notes
 
-- **Origins on `file://`.** The presenter document is written into an `about:blank` popup via
-  `document.write`, so it inherits the deck's origin. Switching to `window.open('presenter.html')`
-  or any absolute URL makes it cross-origin under `file://`, and `postMessage` plus `localStorage`
-  both break. **Do not "tidy" this into an absolute URL.**
-- **No `BroadcastChannel`.** `file://` pages are frequently treated as opaque origins and the channel
-  works intermittently. Everything here is explicit `postMessage`, covering both the popped-out and
-  embedded cases (the opener/parent fallback in §3).
-- **`localStorage` holds card layout only**, keyed by `pv.v2|<deck URL without params>`, one
-  `{x,y,w,h,z}` record per card — `z` is the stacking order, which is why a card stays raised when
-  you let go and keeps the same front-to-back relation after a reload. This is the
-  one place in the whole skill that touches storage — disclose it. Move to another machine or
-  directory and the layout resets to default; not one prompt word is lost, since those live in the HTML.
-- **The layout key is versioned.** `pv.v1` → `pv.v2` moved with the card-set change; an old saved
-  layout is ignored once and the window falls back to the default geometry; leftover old keys are
-  never read again and may be left in place. `clean()` reads only the four ids in `IDS`, so extra
-  keys in an old record are ignored and a missing `z` reads as 1.
-- **The overview is virtualized.** At most ~8 thumbnail iframes are mounted at a time — the strip's
-  viewport neighbours only — and the rest show page number + title placeholders; a thumbnail's ink
-  reflects `localStorage` at mount time only, and opening on a long deck costs up to 8 extra
-  same-file `?preview=N` loads.
-- **Popup blocking is normal.** Browsers block it, projection software blocks it, some enterprise
-  builds block it always. The `N` prompt bar is therefore not a nicety but the only way the speaker
-  sees prompts once blocked; the `blocked` copy must state both routes.
-- **Clicking presenter UI must not page.** The shell reads a click on the left/right half as "turn the
-  page". Every clickable presenter element (prompt bar, notice) calls `stopPropagation`; do the same
-  for any new control, or the deck jumps when the speaker reaches for a prompt.
-- **`CANVAS` disagreeing with the skeleton** means mis-scaled previews that read as "blurry". Change
-  both places together.
-- **Paging does not reload the iframe.** So entrance animations and `data-count` count-ups run once,
-  at first load. For decks whose motion depends on replaying per page, record that as a known
-  limitation in the delivery note; do not add a reload delay — that buys animation at the price of flicker.
-- **With both overlays installed**, `Esc` closes the ink layer's bubble menu and the prompt bar
-  independently, without interfering; `S` belongs to the ink layer (export PNG), `N` to the
-  presenter layer, see `07-annotation.md` §8.
+- Write the presenter document into about:blank to inherit the source origin; do not replace it with presenter.html under file://.
+- Use explicit postMessage with opener/parent fallback, not BroadcastChannel.
+- Presenter localStorage stores layout only: `pv.v2|<query-free deck URL>`, each card `{x,y,w,h,z}`. Prompts stay in HTML; ink owns its separate store.
+- Ignore pv.v1 layouts; clean() keeps only the four IDS cards and defaults missing z to 1. Old keys are not read.
+- Virtualise overview to about eight iframes; other tiles show page/title placeholders, with ink captured at mount time.
+- Keep N prompts when popups are blocked; blocked copy must explain popup and fallback paths.
+- Stop propagation on presenter controls so clicks do not page the audience deck.
+- Keep CANVAS equal to the skeleton canvas; update both when geometry changes.
+- Paging does not reload iframes, so entrances/counters run on first load only. Disclose this instead of adding delayed reloads.
+- With both layers, Esc closes its respective ink/prompt UI; S exports while inking and N belongs to presenter. See `07-annotation.md` §8.
 
 ## 9. What the delivery note must add
 

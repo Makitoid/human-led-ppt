@@ -1,6 +1,7 @@
-> One of the 17 entries in step 2's style library. Pairing advice, template disciplines and the style decision block live in `../02-style.md`.
+# A. Fluent Design 2 (Microsoft / institutional / report-like)
 
-## A. Fluent Design 2 (Microsoft / institutional / report-like)
+> Shared constraints and the style decision block: [02-style.md](../02-style.md). Load only the selected preset.
+
 - Look: layered depth + acrylic backplates + hairline-bordered cards; strong order; good for policy, data, formal reporting.
 - Light: bg `#FAF9F8`, panel `#FFFFFF`, ink `#201F1E`, muted `#605E5C`, accent `#0F6CBD`, warn `#8A5A00`, rule `#E1DFDD`
 - Dark: bg `#1B1A19`, panel `#292827`, elevated `#323130`, ink `#FAF9F8`, muted `#AAAAAA`, accent `#75B6E9`, warn `#F1D08A`, rule `#3B3A39`

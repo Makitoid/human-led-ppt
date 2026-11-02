@@ -1,6 +1,7 @@
-> 本ファイルはステップ 2 のスタイルライブラリ 22 冊のうちの 1 つ。組み合わせの助言、テンプレートの規律、スタイル決定ブロックは `../02-style.md` にあります。
+# A. Fluent Design 2（マイクロソフト / 機関向け / レポート調）
 
-## A. Fluent Design 2（マイクロソフト / 機関向け / レポート調）
+> 共通制約とスタイル決定欄は [02-style.md](../02-style.md) を参照。選択したプリセットのみ読む。
+
 - 見た目：階層的な奥行き + アクリルの背板 + ヘアラインのカード、秩序感が強い。政策、データ、正式な報告に向く。
 - ライト：bg `#FAF9F8`, panel `#FFFFFF`, ink `#201F1E`, muted `#605E5C`, accent `#0F6CBD`, warn `#8A5A00`, rule `#E1DFDD`
 - ダーク：bg `#1B1A19`, panel `#292827`, elevated `#323130`, ink `#FAF9F8`, muted `#AAAAAA`, accent `#75B6E9`, warn `#F1D08A`, rule `#3B3A39`
