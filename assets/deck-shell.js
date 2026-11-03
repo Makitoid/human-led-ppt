@@ -454,22 +454,47 @@
        Inside a ?preview=N tile neither runs: `big` is only a mirror of the audience state,
        kept so the tile's own button flips its icon. */
     var big = false, realFs = false;
+    var ownerSlide = fig.closest('.slide'), home = null, savedStyle = null;
     function fsRoot() { return document.fullscreenElement || document.webkitFullscreenElement; }
     function paintFs() {
       if (!btnFs) return;
       btnFs.innerHTML = big ? MP_ICO.fsExit : MP_ICO.fs;
       btnFs.setAttribute('aria-label', big ? MC.exitFs : MC.fs);
     }
-    /* #stage is transformed, and a transformed ancestor is the containing block of a fixed
-       descendant: the take-over box has to be described in canvas units, not screen units. */
+    /* Lift the live player out of transformed/clipping slide ancestors. Keep a marker so
+       exit, Escape and paging restore the exact node, its listeners and authored position. */
+    function movePlayer(parent, before) {
+      var playing = !el.paused;
+      /* Atomic moves preserve media playback and focus in supporting browsers. */
+      if (parent.moveBefore) parent.moveBefore(fig, before);
+      else {
+        parent.insertBefore(fig, before);
+        if (playing) play();
+      }
+    }
+    function liftPlayer() {
+      if (home) return;
+      home = document.createComment('media fullscreen home');
+      fig.parentNode.insertBefore(home, fig);
+      savedStyle = fig.getAttribute('style');
+      var computed = window.getComputedStyle(fig);
+      for (var i = 0; i < computed.length; i++) {
+        var name = computed[i];
+        if (name.indexOf('--') === 0) fig.style.setProperty(name, computed.getPropertyValue(name));
+      }
+      movePlayer(document.body, null);
+    }
+    function restorePlayer() {
+      if (!home) return;
+      movePlayer(home.parentNode, home);
+      home.parentNode.removeChild(home);
+      home = null;
+      if (savedStyle === null) fig.removeAttribute('style');
+      else fig.setAttribute('style', savedStyle);
+    }
     function layoutBig() {
-      var r = stage.getBoundingClientRect(), k = r.width / W;
-      if (!k) return;
-      var st = document.documentElement.style;
-      st.setProperty('--mpfs-l', (-r.left / k) + 'px');
-      st.setProperty('--mpfs-t', (-r.top / k) + 'px');
-      st.setProperty('--mpfs-w', (Math.max(1, window.innerWidth) / k) + 'px');
-      st.setProperty('--mpfs-h', (Math.max(1, window.innerHeight) / k) + 'px');
+      fig.style.setProperty('--mpfs-w', Math.max(1, window.innerWidth) + 'px');
+      fig.style.setProperty('--mpfs-h', Math.max(1, window.innerHeight) + 'px');
     }
     function report() {
       if (previewMode) return;
@@ -488,6 +513,7 @@
           /* The deck itself may already be fullscreen (F). Do not exit it and then ask — Chrome
              refuses a request that lands while an exit is still in flight. requestFullscreen
              nests: the clip takes the screen and Escape comes back to the deck's fullscreen. */
+          liftPlayer();
           fig.setAttribute('data-takeover', '1');
           layoutBig();
           screenBig = fig;
@@ -498,6 +524,7 @@
           fig.removeAttribute('data-takeover');
           if (screenBig === fig) screenBig = null;
           if (was) exitFs();
+          restorePlayer();
         }
       }
       report();
@@ -756,7 +783,7 @@
     });
 
     var p = {
-      el: el, fig: fig, id: pid, attach: attach, toggle: toggle, play: play, sync: sync,
+      el: el, fig: fig, slide: ownerSlide, id: pid, attach: attach, toggle: toggle, play: play, sync: sync,
       seek: seekTo, rate: cycleRate,
       /* the presenter bridge, from the audience side: take the screen back, or give it up.
          A card that is not on stage cannot take the screen — the tile and the audience are
@@ -764,7 +791,7 @@
       screen: function (on) {
         if (previewMode) return;
         if (on) {
-          if (fig.closest && fig.closest('.slide') !== slides[cur]) return;
+          if (ownerSlide !== slides[cur]) return;
           attach(); play();
         }
         setBig(!!on);
@@ -806,7 +833,7 @@
       /* audience side: execute a command that arrived from a presenter tile */
       command: function (cmd, value) {
         if (previewMode) return;
-        if (fig.closest && fig.closest('.slide') !== slides[cur]) return;
+        if (ownerSlide !== slides[cur]) return;
         switch (cmd) {
           case 'toggle': toggle(); break;
           case 'play': attach(); play(); break;
@@ -871,9 +898,8 @@
   [].forEach.call(slides, applyBackdrop);
 
   /* ---------- evidence-chain badge (per-deck, off unless the deck asks for it) ----------
-     A serious deck — academic, a defence, research, a data report, anything where every claim
-     must be traceable — shows its chain in the bottom-right. A casual deck shows nothing.
-     That choice is made when the deck is written, not at presentation time: the author sets
+     All decks hide the badge by default. Ask the author and obtain explicit approval before
+     enabling it, regardless of deck type. After approval, the build sets
      `data-evidence="1"` on <html> or <body> (skeleton §1 `evidence_chain`), and only then does
      the shell build the badge. It reads back every source the author already wrote — the
      bottom-right `.foot` ("source · year") plus any inline `.srcline` / `.src` /
@@ -1011,21 +1037,14 @@
   }
   /* attach the source only once the slide has actually been shown */
   function attachIn(slide) {
-    [].forEach.call(slide.querySelectorAll('[data-mp]'), function (f) {
-      [].forEach.call(players, function (p) { if (p.fig === f) p.attach(); });
-    });
+    players.forEach(function (p) { if (p.slide === slide) p.attach(); });
   }
   function leaveAll(slide) {
-    [].forEach.call(slide.querySelectorAll('[data-mp]'), function (f) {
-      [].forEach.call(players, function (p) { if (p.fig === f) p.leave(); });
-    });
+    players.forEach(function (p) { if (p.slide === slide) p.leave(); });
   }
   function playerIn(slide) {
     var hit = null;
-    [].forEach.call(slide.querySelectorAll('[data-mp]'), function (f) {
-      if (hit) return;
-      [].forEach.call(players, function (p) { if (p.fig === f) hit = p; });
-    });
+    players.forEach(function (p) { if (!hit && p.slide === slide) hit = p; });
     return hit;
   }
 

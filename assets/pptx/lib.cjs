@@ -418,6 +418,9 @@ function validateSpec(spec) {
   const errors = [];
   if (!spec || typeof spec !== 'object') return ['spec is not an object'];
   if (!spec.meta || !spec.meta.title) errors.push('meta.title required');
+  if (spec.meta && spec.meta.evidence_chain != null && !['on', 'off'].includes(spec.meta.evidence_chain)) {
+    errors.push('meta.evidence_chain must be on or off (default off; on requires author approval)');
+  }
   if (!spec.theme) errors.push('theme required');
   else errors.push(...themeErrors(spec.theme));
   if (!Array.isArray(spec.slides) || !spec.slides.length) errors.push('slides must be a non-empty array');

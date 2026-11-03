@@ -389,3 +389,5 @@ On top of the step-6 report:
 - the `S` conflict with the ink layer is resolved: with annotation on, `S` only exports a PNG — to
   open the presenter window, press `A` or use the top-right bubble first;
 - that prompts do not print and do not reach PDF, and `notes` are never visible in the audience window.
+
+Video fullscreen acceptance: click fullscreen in the presenter Current slide tile. The audience video must cover its entire viewport, independent of slide transforms, overflow, animations and max-width; the tile keeps its layout. Exit, Escape and paging restore the player to its original position. Remote playback/pause and badges stay synchronized. Check widescreen, 4:3 and window resizing.

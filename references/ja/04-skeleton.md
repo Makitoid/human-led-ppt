@@ -2,6 +2,8 @@
 
 `<トピック>-HTML-PPT骨子.md` または `<トピック>-PPTX骨子.md` を作成。両形式ではページ数・型・数値を揃える。骨子はページ別の構築仕様で、完成後はユーザーのレビューを待つ。
 
+エビデンスバッジと出典フッターは既定で無効。稿の種類に関係なく、著者に尋ねて明示的な同意を得た場合のみ `evidence_chain: on` にする。未確認なら HTML の `data-evidence="1"` と出典バーを付けず、ネイティブ PPTX のどの隅にも出典フッターを追加しない。出典は資料とノートに保持し、出典ページは承認済み骨子に従う。
+
 ## ファイルの形
 
 ```markdown
@@ -50,17 +52,17 @@ deck:
     constraints: [<グラデーションの塗り、グラスモーフィズム、影の重ね、…>]
   charts: HTML はインライン SVG / 純粋な CSS；PPTX はネイティブグラフ（2–12 カテゴリ、1–3 系列、線形軸）、05b-pptx.md を参照
   presenter: off | on（on = HTML はステップ 8 を実行；PPTX は常に off で、§7 はネイティブノートに書く）
-  footnotes: すべてのスライドの右下に出典バー、「出典 · 年」、HTML は 9–11px；PPTX は ≥10.5pt
+  footnotes: 著者の明示的同意後のみ表示；「出典 · 年」、HTML 9–11px；PPTX ≥10.5pt
   links: .html と同じディレクトリの相対パスだけ（`./assets/` などのサブディレクトリへ下りてよい）；一律 target="_blank" rel="noopener"；外部リンクは http(s) のみ
-  evidence_chain: off | on          # HTML の真剣な稿は data-evidence="1" を付ける；PPTX は出典バー + 出典ページ
+  evidence_chain: off | on          # 既定 off；著者の明示的同意がある場合のみ on（HTML バッジ / PPTX フッター）
   pptx:                             # target に native-pptx を含むときだけ書く
-    engine: officecli | host-plugin # ステップ 5 の detect-engine.cjs の結論；host-plugin はプラグイン名を明記
+    engine: officecli
     canvas: 16:9（960×540pt）        # 固定；4:3 / 縦版は非対応
     fonts: {latin: <インストール済み>, ea: <インストール済み>} # 納品先のマシンに必ずインストールされていること
     motion: {transition: <トークン、例 fade-400 / push-right-600 / morph>, discipline: calm | story, why: <fade/cut 以外のとき、一言の理由>}
     animation: none | <ページ番号>:<要素グループ>/<効果>/<クラス>[/why]   # ページごとの opt-in、既定は none
     notes: §7 より（プレーンテキスト、<strong>/<em> は剥がされる）
-    evidence: <出典バーがどのページを覆うか + 出典ページの番号>
+    evidence: <既定 off；同意後にフッター対象と出典ページを記録>
   accessibility: スライドごとに h1/h2 の順序を守る；ページ変更時に aria-live で読み上げ；本文のコントラスト ≥ 4.5:1
   motion: HTML の入場アニメーションはスライド切り替えで自動再生、prefers-reduced-motion で無効；PPTX のページ切り替えはトークン文字列（既定は `fade-400`、隣り合うページの関係によってだけ変える）、ページ内アニメーションはページごとに宣言し、既定では付けない
 ```

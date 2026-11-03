@@ -9,27 +9,19 @@
 1. 骨子がユーザーの承認を得ている（ステップ 4 のレビューゲート）。§1 に `target` が `native-pptx` を含むと書かれている。
 2. `04-skeleton.md` の §1 / §4 / §7 と、本ファイルを読了している。
 3. 資料まとめを手元に開いている；`PPTX-src.json` のすべての数字がそこへ遡れなければならない。
-4. エンジン検出を一度走らせ（§2 を参照）、この経路で officecli を使ってよいことを確認している。
+4. officecli の有無を確認する（§2）。無ければ直ちにユーザーへ導入を案内する。
 
-## 2. エンジンのルーティング（先にやる、飛ばさない）
+## 2. officecli の有無を確認する（先に実施）
 
 ```bash
 node <skill dir>/assets/pptx/detect-engine.cjs --json
 ```
 
-スクリプトは「本 skill のインストールパス → 環境変数」でホストを識別し、そのホストにインストール済みの PPT プラグインを走査してから `officecli` を調べる：
+すべての環境で **officecli** を使用する。スクリプトはバイナリの有無だけを確認し、harness の識別やホストプラグインの走査はしない。無い場合は直ちに以下の導入方法を案内し、ユーザーがバイナリを導入してから構築を続ける：
 
-| ホスト | ルーティング |
-|---|---|
-| Claude Code / Codex / ZCode | **PPTX 能力**を持つ既定のプラグイン → `host-plugin`；無ければ **`officecli` にフォールバック**し、フォールバックが起きたことを会話で明示する |
-| DeepSeek Harness（dsh） | PPTX プラグインがあれば → `host-plugin`；無ければ → `officecli` |
-| その他（Qoder、Cursor、VS Code、リポジトリの開発コピーなど） | `officecli`（強制） |
-
-- `host-plugin`：そのプラグインの手順で PPTX を生成する。**本 skill の `lint.cjs` はその成果物では走らない**；保証するのは「骨子が承認済みで、内容を捏造していない」ところまでで、版面とコントラストはプラグイン自身の能力に従う。納品メモでは検収の約束を下げて書く。
-- `officecli` が無いときは、**先にユーザーの同意を得てから**バイナリをインストールする：
-  - Windows：`irm https://d.ai.officecli.ai/install.ps1 | iex`
-  - macOS / Linux：`curl -fsSL https://d.ai.officecli.ai/install.sh | bash`
-  - または `npm i -g @officecli/officecli` / `scoop install officecli` / `brew install officecli`
+- Windows：`irm https://d.ai.officecli.ai/install.ps1 | iex`
+- macOS / Linux：`curl -fsSL https://d.ai.officecli.ai/install.sh | bash`
+- または `npm i -g @officecli/officecli` / `scoop install officecli` / `brew install officecli`
 - **`officecli install` を実行するな**：officecli 自身の skills / MCP を、検出されたすべての agent に一緒に入れてしまう。バイナリだけを入れる。
 - `officecli --version >= 1.0.159` を要求する；インストール後にシェルを開き直すか、フルパスで検証する。それでも失敗するなら止まる——OOXML を手書きしない。
 - **動効は 1.0.160 以降**：fade 以外の切り替えとページ内アニメーションは 1.0.160 でのみ実測済み。それより低いバージョンでは `build.cjs` が構築を拒否する（バイナリを更新するか、`motion: "fade-400"` に戻して各ページの `animation` を外す）。
@@ -52,6 +44,7 @@ node <skill dir>/assets/pptx/detect-engine.cjs --json
   "meta": {
     "title": "…", "author": "…", "lang": "ja-JP", "locale": "ja-JP",
     "skeleton": "<トピック>-PPTX骨子.md", "slides": 12,
+    "evidence_chain": "off",
     "numberWhitelist": ["2026"]
   },
   "theme": {
@@ -77,7 +70,7 @@ node <skill dir>/assets/pptx/detect-engine.cjs --json
 
 - `theme` はステップ 2 のスタイル決定ブロックからそのまま写す；`scale` は 1280×720 の px 値で、構築時に 1px = 0.75pt で pt に変換する（48/34/24/14 → 36/25.5/18/10.5pt）。4 段の比率は変えない。
 - `emphasis`：`role` は `key | kpi | title`、`tone` は `accent | warn`；そのページの主役にしか落とせない。
-- `source` は `kpi` / `table` / `chart` / `compare` / `quote` を含むページで必須；右下のフッターに落ちる。
+- `source` は `kpi` / `table` / `chart` / `compare` / `quote` を含むページで必須。常にノートに保持する。出典フッターは著者の明示的同意と `meta.evidence_chain: "on"` がある場合のみ描画する。
 - `notes` は骨子 §7 に由来するプレーンテキスト；`<strong>` / `<em>` はビルダーが剥がす。強調の書式は HTML の発表者ウィンドウにだけ残る。
 
 ### 動効（`motion` とページ別 `animation`）

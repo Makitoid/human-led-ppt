@@ -210,7 +210,7 @@ out.evOpen = ev && {open: ev.getAttribute('data-open')==='1', rows: ev.querySele
 // not printed: the @media print rule includes #evidence
 ```
 
-> Skip this whole subsection when there is no `background` keyword and the deck did not opt into the chain. The chain is **not a hotkey and not always-on** — it is decided while writing: a serious deck (defence / research / data report / review) writes `evidence_chain: on` (`out.ev.exists` is true and visible); a casual deck writes nothing (`out.ev.exists` MUST be false, the corner clean). A chain appearing on a plain deck, or any toggle hotkey, means this version's design was reverted.
+> Evidence display depends on explicit author approval, regardless of deck type. Without approval, use `evidence_chain: off` and require `out.ev.exists` to be false. Check badge visibility only after the author approves enabling it. There is no toggle hotkey.
 
 ### 2.3 Annotation / blackboard (when step 7 is installed)
 
@@ -345,7 +345,7 @@ The reply to the user contains:
 - **what was not tested and what was assumed**: e.g. print pagination not exercised, some source unreachable due to network, deep link verified on desktop only
 - open decisions for the user (credits, whether to keep a given slide)
 - which optional layer was enabled and the exception it brings (the ink layer's localStorage; the presenter layer's popup permission and non-printing prompts) — fill this in per `07-annotation.md` §7 and `08-presenter-mode.md` §9
-- **Evidence chain**: tell the user it is **per deck** — a serious deck (defence / research / data report) has it, a casual deck has nothing in that corner; when present it gathers this page's footnote and a click lists the sources. There is no toggle hotkey.
+- **Evidence chain**: hidden by default; ask the author and enable only after explicit approval. When enabled, gather real sources per slide and expand on click. No toggle hotkey.
 - **Backdrop**: if `background` was used, say the backdrop is inlined into the HTML (no external file) and is a different kind of image from `image`
 - **Who ran the check**: state whether this round was "agent live-tested" or "scripts handed over, verified by the user" (see section 0)
 

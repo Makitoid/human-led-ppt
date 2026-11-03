@@ -9,7 +9,7 @@ The user owns topic, style and wording. The agent owns evidence, structure and i
 
 Language: `references/zh/` is the Chinese original (中文母本), `references/en/` and `references/ja/` are its English and Japanese mirrors — same content, so a revision touches all three. Work entirely inside the folder matching the user's language.
 
-Version 2.0.0 (2026-11-02) · License: MIT, copyright Makitoid Wang (see `LICENSE`).
+Version 2.0.1 (2026-11-03) · License: MIT, copyright Makitoid Wang (see `LICENSE`).
 
 ## Workflow
 
@@ -38,7 +38,7 @@ Read only the current step’s reference in the chosen language. For step 2, ope
 ## HTML implementation
 
 - Assemble `assets/deck-shell.*` through `assets/assemble.cjs`; preserve navigation, overview, hash links, portrait mask, shortcuts and shell-owned media controls. Do not reimplement the shell or add duplicate controls.
-- Inline images and backdrops. Keep audio, video and local linked files beside the HTML and include them in delivery; media uses `data-src`. Enable the evidence badge per deck with `evidence_chain: on`.
+- Inline images and backdrops. Keep audio, video and local linked files beside the HTML and include them in delivery; media uses `data-src`. Evidence badges and source footers default to off in both formats. Ask the author before showing them; only explicit approval permits `evidence_chain: on`. Keep source records regardless of display.
 - Copy the kit and selected figure from `assets/visual-templates.html`: **21 templates (11 charts, 10 diagrams), four appearances**. Update labels, units, SVG title and geometry together using its formula; examples are not evidence.
 - Motion defaults to crossfade, with in-slide reveals opt-in: one semantic group at a time, ≤800ms, no looping content or moving chrome. Honour `prefers-reduced-motion`; only an explicit preset may add ambient background drift.
 - Links use relative sibling paths, http(s) or `#sN`; local files must exist. File/external links use `target="_blank" rel="noopener"`. Reject active schemes and paths escaping the delivery folder.
@@ -46,10 +46,10 @@ Read only the current step’s reference in the chosen language. For step 2, ope
 
 ## PPTX implementation
 
-- Run `assets/pptx/detect-engine.cjs` first. Claude Code / Codex / ZCode / dsh use an installed host PPTX plugin, falling back to officecli if absent; other hosts use officecli. Obtain consent to install a missing binary; never run `officecli install`. Minimum: 1.0.159; non-fade transitions or element animation: 1.0.160.
+- Run `assets/pptx/detect-engine.cjs` first to check officecli availability. All environments use officecli; do not identify the harness or scan host plugins. If missing, immediately guide the user through binary installation and verify `officecli --version`; never run `officecli install`. Minimum: 1.0.159; non-fade transitions or element animation: 1.0.160.
 - Compile `<topic>-PPTX-src.json` through `assets/pptx/build.cjs` and its recipes. Do not hand-edit OOXML or bypass the compiler with ad hoc commands.
 - Default to `fade-400` and no element animation. Select `calm` / `story`, effect reasons and budgets from `05b-pptx.md` §4; `lib.cjs` enforces tokens and motion policy. Only shapes and charts animate; ≤6 elements per page.
-- Verify with `lint.cjs`, officecli validate/issues and per-page rendering. Report read-back warnings and playback limits. Host-plugin output does not receive this compiler’s lint coverage.
+- Verify with `lint.cjs`, officecli validate/issues and per-page rendering. Report read-back warnings and playback limits.
 - Rework updates sources/skeleton, then JSON, recompiles and rechecks. Rebuilding overwrites manual PowerPoint edits. After delivery, confirm whether to rebuild or make a minimal in-place edit, and disclose any resulting spec drift.
 
 ## Files and resources
@@ -65,6 +65,6 @@ Keep sources, skeleton and output in the user’s target directory (default: wor
 | `assets/visual-templates.html` | SVG gallery, shared CSS, appearances and geometry notes |
 | `assets/ink-overlay.html` | Optional annotation and shared blackboard |
 | `assets/presenter-overlay.html` | Optional presenter window, prompts and synchronisation |
-| `assets/pptx/` | Engine routing, spec validation, recipes, compiler, lint and fixtures |
+| `assets/pptx/` | officecli availability, spec validation, recipes, compiler, lint and fixtures |
 
 Detailed fields, commands, exceptions and checks belong to the step references. Read them on entering that step rather than duplicating them here.

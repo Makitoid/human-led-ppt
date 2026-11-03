@@ -3,6 +3,9 @@
 
 /promo/
 
+# Local verification scripts, screenshots and temporary browser profiles.
+/.probe/
+
 # 同目录的 PNG 是渲染产物。若要连 PNG 一起屏蔽，取消下面两行注释：
 # /promo/human-led-ppt-poster-16x9.png
 # /promo/human-led-ppt-bilibili-cover.png

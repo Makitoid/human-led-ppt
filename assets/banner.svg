@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="480" viewBox="0 0 1280 480" role="img" aria-labelledby="banner-title banner-desc">
   <title id="banner-title">human-led-ppt — You lead. The agent builds.</title>
-  <desc id="banner-desc">human-led-ppt 2.0, a human-led, agent-assisted presentation design system. A paper-white editorial layout pairs the project name with a stack of presentation slides and an editable native PPTX card. HTML is the primary delivery format; native PPTX is available when needed. The five-step workflow is Topic, Style, Evidence, Skeleton, then Build, with your approval required before building.</desc>
+  <desc id="banner-desc">human-led-ppt 2.0.1, a human-led, agent-assisted presentation design system. A paper-white editorial layout pairs the project name with a stack of presentation slides and an editable native PPTX card. HTML is the primary delivery format; native PPTX is available when needed. The five-step workflow is Topic, Style, Evidence, Skeleton, then Build, with your approval required before building.</desc>
 
   <!-- Self-contained artwork: system fonts, solid fills, no scripts or external assets. -->
   <defs>
@@ -24,8 +24,8 @@
 
     <!-- Brand: a clear name, one promise, and two delivery formats. -->
     <text x="56" y="65" class="label muted">A presentation design system</text>
-    <rect x="565" y="44" width="57" height="28" rx="14" fill="none" stroke="#C8D1C9"/>
-    <text x="593.5" y="63" class="small muted" text-anchor="middle">v2.0</text>
+    <rect x="565" y="44" width="74" height="28" rx="14" fill="none" stroke="#C8D1C9"/>
+    <text x="602" y="63" class="small muted" text-anchor="middle">v2.0.1</text>
     <text x="52" y="145" font-size="76" font-weight="700" letter-spacing="-3.4">human-led-ppt</text>
     <text x="56" y="209" class="serif" font-size="34">You lead. The agent builds.</text>
     <text x="56" y="252" font-size="19" class="muted">Evidence-backed slides, shaped by you.</text>

@@ -1,7 +1,7 @@
 'use strict';
 const L = require('./lib.cjs');
 
-function ctx(slide, theme, slideIdx) {
+function ctx(slide, theme, slideIdx, evidenceChain) {
   let slot = 0;
   const elements = [];
   const T = theme.scale;
@@ -36,7 +36,7 @@ function ctx(slide, theme, slideIdx) {
       color: accent ? theme.accentInk : warn ? theme.warn : theme.ink,
     });
   };
-  const footer = () => slide.source && text({
+  const footer = () => evidenceChain === 'on' && slide.source && text({
     layer: 'chrome', role: 'detail', x: 360, y: 642, w: 864, h: 38,
     text: slide.source, size: T.meta, color: theme.muted, align: 'right',
   });
@@ -360,7 +360,7 @@ const SUPPORTED_BLOCKS = {
   custom: L.BLOCK_KINDS,
 };
 
-function buildSlide(slide, theme, slideIdx) {
+function buildSlide(slide, theme, slideIdx, evidenceChain = 'off') {
   const recipeName = recipeFor(slide);
   const recipe = RECIPES[recipeName];
   if (!recipe) throw new Error('no recipe for type ' + slide.type);
@@ -368,7 +368,7 @@ function buildSlide(slide, theme, slideIdx) {
   for (const b of slide.blocks || []) {
     if (!allowed.includes(b.kind)) throw new Error(`type ${slide.type} (${recipeName}) does not support block ${b.kind}`);
   }
-  const c = ctx(slide, theme, slideIdx);
+  const c = ctx(slide, theme, slideIdx, evidenceChain);
   recipe(c);
   if (!c.elements.some(e => e.role === 'primary')) {
     const t = c.elements.find(e => e.kind === 'text' && e.text);

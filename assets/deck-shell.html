@@ -15,7 +15,7 @@
   满版背景（`background` 关键字）：<section class="slide" data-bg="data:image/jpeg;base64,…">
   —— 只接受内联 data: 图片；再给它一个遮罩 data-bg-scrim="linear-gradient(…)"，
   并把这一页的内容包进 position:relative;z-index:1 的容器里（见 05-build.md）。
-  证据链（只有严肃稿才开）：在 <html> 或 <body> 上加 data-evidence="1"（骨架 §1 evidence_chain: on），
+  证据链（默认关闭，先询问作者并获得明确同意后才开）：在 <html> 或 <body> 上加 data-evidence="1"（骨架 §1 evidence_chain: on），
   壳才会在右下角建那枚来源徽标；普通稿不要加，右下角保持干净。
   aria 播报与壳/叠加层的运行时文案会按 <html lang> 在中文 / 日文 / 英文之间自动切换。
   本地文件（`link` 关键字）：<a class="file-link" href="./文件名.pdf" target="_blank" rel="noopener">显示文字</a>

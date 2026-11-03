@@ -4,7 +4,7 @@
 
 **人主導・エージェント支援のプレゼン作成 skill。** テーマ・スタイル・文言は人が決め、根拠・構成・構築はエージェントが担当します。HTML を主軸に、ネイティブ PPTX にも対応。骨子の承認後に構築を始めます。
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0.1](https://img.shields.io/badge/version-2.0.1-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
 
 > [!note]
 > 開発は Codeberg に移行しました。GitHub は同期用のミラーとしてのみ維持しています。
@@ -48,7 +48,7 @@
 
 ## PPTX の範囲
 
-- 最初に `assets/pptx/detect-engine.cjs` を実行。Claude Code / Codex / ZCode / dsh はホストの PPTX プラグインを確認し、なければ officecli へ。その他も officecli を使用。
+- すべての環境で **officecli** を使用。`assets/pptx/detect-engine.cjs` は有無のみ確認し、無い場合は直ちに導入を案内する。バッジと出典フッターは著者の明示的同意まで非表示。
 - officecli は `1.0.159` 以上。fade 以外の切替とページ内アニメーションは `1.0.160` 以上。バイナリのみを導入し、`officecli install` は実行しない。
 - `PPTX-src.json` からネイティブオブジェクトを生成。再構築は PowerPoint の手動編集を上書きするため、納品後の変更は方法を確認。
 - 任意の既存 PPTX の再デザインや企業マスター適用は非対応。複雑なグラフは代替表示となる場合あり。PowerPoint がない環境のスクリーンショットは画素・再生の一致を保証しない。

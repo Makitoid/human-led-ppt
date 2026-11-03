@@ -85,7 +85,7 @@ Every number in a data block has to map to a line in the source notes; derived v
 ## 5. Delivery note (template)
 
 ```text
-Engine: officecli <version> (or: host plugin <name>, lower acceptance floor)
+Engine: officecli <version>
 Artifacts: <topic>.pptx (N slides, M bytes); build spec <topic>-PPTX-src.json; QA <topic>-PPTX-qa.md
 Tested: spec check / validate / issues / slide-count and page-type reconciliation / number audit / per-slide screenshots
 Untested: the final look in PowerPoint (no PowerPoint on this machine; screenshots use officecli's HTML rendering path);
@@ -116,7 +116,7 @@ If `lint` reports warnings (for example the page-turn duration did not read back
 | Media transport strip | built into the shell | PowerPoint native |
 | Notes | `.notes` + emphasis in the presenter window | native notes, plain text |
 | Editability | edit the source | native shapes/tables/charts are directly editable |
-| Evidence-chain badge | interactive (enabled per deck) | static source footer + a sources page |
+| Evidence-chain badge | off by default; enable after author approval | source footers off by default; sources retained in notes |
 
 ## 7. Known limitations (disclose as needed at delivery)
 
@@ -127,7 +127,6 @@ If `lint` reports warnings (for example the page-turn duration did not read back
 - The template/master route is not part of v1; do not promise "apply our corporate template".
 - Log axes, waterfalls and dual-unit charts degrade to a table or a simple bar chart.
 - Without PowerPoint there is no pixel-level acceptance; screenshots only prove layout structure.
-- Artifacts from the host-plugin route do not run this skill's lint, so the acceptance floor is lower.
 
 ## 8. Negative tests (rerun after any builder change)
 
@@ -162,3 +161,5 @@ Step 0 asked who runs the check; whoever found the problem, the fix goes down th
 - One round fixes only the places the user named; afterwards report the old and new QA reports side by side, and do not reorder the whole deck on the side.
 - When the user has already touched this file in PowerPoint / WPS, **ask first** whether to "write the change back into the spec and recompile" or "spot-edit the artifact" — recompiling deletes the old and builds new, taking the user's hand-made animations with it (see §12).
 - If only a number or the wording changed, fix the source notes and the skeleton first, then the spec; the wrong order creates a second truth.
+
+Evidence badges and source footers default to off. For every deck type, ask the author and obtain explicit approval before setting `evidence_chain: on`. Without approval, omit HTML `data-evidence="1"` and visible source strips; do not add native PPTX source footers in any corner. Keep citations in source records and notes. Include sources pages only when specified in the approved skeleton.

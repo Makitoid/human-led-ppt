@@ -4,7 +4,7 @@
 
 **A human-led, agent-assisted presentation skill.** You choose the topic, style and wording; the agent handles evidence, structure and building. HTML is the primary format, with native PPTX support. Building starts after you approve the skeleton.
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0.1](https://img.shields.io/badge/version-2.0.1-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
 
 > [!note]
 > This project has moved to Codeberg for development. GitHub is kept only as a synchronized mirror.
@@ -48,7 +48,7 @@ You choose in step 1; the agent does not choose for you. HTML embeds images and 
 
 ## PPTX boundaries
 
-- Run `assets/pptx/detect-engine.cjs` first. Claude Code / Codex / ZCode / dsh check for a host PPTX plugin and fall back to officecli if absent; other hosts use officecli.
+- All environments use **officecli**. `assets/pptx/detect-engine.cjs` checks availability only; if missing, immediately guide the user to install the binary. Evidence badges and source footers are hidden until the author explicitly approves them.
 - officecli requires `1.0.159`; non-fade transitions and in-slide animation require `1.0.160`. Install only the binary; never run `officecli install`.
 - Native objects compile from `PPTX-src.json`. Rebuilding overwrites manual PowerPoint edits; confirm the editing approach after delivery.
 - Arbitrary existing PPTX redesign and corporate masters are unsupported; complex charts may degrade. Without PowerPoint, screenshots do not prove pixel or playback parity.

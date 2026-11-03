@@ -9,27 +9,19 @@
 1. 骨架已获用户确认（第 4 步卡点），§1 写明 `target` 含 `native-pptx`。
 2. 已读 `04-skeleton.md` §1/§4/§7，以及本文件。
 3. 资料总结在手边；`PPTX-src.json` 里每个数字都要能回指它。
-4. 运行一次引擎检测（见 §2），确认本条链路允许用 officecli。
+4. 运行 officecli 可用性检查（见 §2）；缺失时直接引导用户安装。
 
-## 2. 引擎路由（先做，不要跳）
+## 2. officecli 可用性检查（先做，不要跳）
 
 ```bash
 node <skill目录>/assets/pptx/detect-engine.cjs --json
 ```
 
-脚本按“本 skill 的安装路径 → 环境变量”识别宿主，扫描该宿主已装的 PPT 插件，再检查 `officecli`：
+所有环境统一使用 **officecli**。脚本只检查二进制是否可用，不识别 harness，不扫描宿主插件。缺失时立即向用户提供下面的安装指引，由用户安装二进制后再继续构建：
 
-| 宿主 | 路由 |
-|---|---|
-| Claude Code / Codex / ZCode | 有 **PPTX 能力**的默认插件 → `host-plugin`；没有 → **回退 `officecli`**，并在对话里明确告知发生了回退 |
-| DeepSeek Harness（dsh） | 有 PPTX 插件 → `host-plugin`；没有 → `officecli` |
-| 其他（Qoder、Cursor、VS Code、仓库开发副本等） | `officecli`（强制） |
-
-- `host-plugin`：用该插件的流程生成 PPTX。**本 skill 的 `lint.cjs` 不会跑在它的产物上**；只保证“骨架已审、内容不编造”，版式与对比度以插件自身能力为准，交付说明要降低验收承诺。
-- `officecli` 缺失时，**先征得用户同意**再安装二进制：
-  - Windows：`irm https://d.ai.officecli.ai/install.ps1 | iex`
-  - macOS / Linux：`curl -fsSL https://d.ai.officecli.ai/install.sh | bash`
-  - 或 `npm i -g @officecli/officecli` / `scoop install officecli` / `brew install officecli`
+- Windows：`irm https://d.ai.officecli.ai/install.ps1 | iex`
+- macOS / Linux：`curl -fsSL https://d.ai.officecli.ai/install.sh | bash`
+- 或 `npm i -g @officecli/officecli` / `scoop install officecli` / `brew install officecli`
 - **不要执行 `officecli install`**：它会顺带把 officecli 自己的 skills/MCP 装进所有检测到的 agent。只装二进制。
 - 要求 `officecli --version >= 1.0.159`；装完重开 shell 或用完整路径验证。仍失败就停，不手写 OOXML。
 - **动效要 1.0.160 起**：非 fade 的切页与所有页内动画只在 1.0.160 上实测过，`build.cjs` 在更低的版本上遇到它们会直接拒绝构建（升级二进制，或退回 `motion: "fade-400"` 并删掉每页 `animation`）。
@@ -52,6 +44,7 @@ node <skill目录>/assets/pptx/detect-engine.cjs --json
   "meta": {
     "title": "…", "author": "…", "lang": "zh-CN", "locale": "zh-CN",
     "skeleton": "<主题>-PPTX骨架.md", "slides": 12,
+    "evidence_chain": "off",
     "numberWhitelist": ["2026"]
   },
   "theme": {
@@ -77,7 +70,7 @@ node <skill目录>/assets/pptx/detect-engine.cjs --json
 
 - `theme` 直接抄第 2 步的风格决定块；`scale` 是 1280×720 的 px 值，构建时按 1px = 0.75pt 转成 pt（48/34/24/14 → 36/25.5/18/10.5pt），四档比例不变。
 - `emphasis`：`role` 是 `key | kpi | title`，`tone` 是 `accent | warn`；只能落在该页的主语上。
-- `source` 必填于含 `kpi` / `table` / `chart` / `compare` / `quote` 的页；会落到右下角页脚。
+- `source` 必填于含 `kpi` / `table` / `chart` / `compare` / `quote` 的页；始终写入备注供追溯。只有作者明确同意且 `meta.evidence_chain: "on"` 时才绘制来源页脚。
 - `notes` 来自骨架 §7，纯文本；`<strong>` / `<em>` 由构建器剥掉，强调格式只在 HTML 演讲者窗保留。
 
 ### 动效（`motion` 与逐页 `animation`）

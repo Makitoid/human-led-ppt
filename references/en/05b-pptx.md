@@ -9,27 +9,19 @@ Goal: compile the approved skeleton into a `.pptx` that **stays editable in Powe
 1. The skeleton was approved by the user (Step 4's gate), and §1 states that `target` includes `native-pptx`.
 2. You have read `04-skeleton.md` §1/§4/§7, and this file.
 3. The source notes are open beside you; every number in `PPTX-src.json` has to trace back to them.
-4. You have run the engine detection once (see §2) and confirmed this chain may use officecli.
+4. Check officecli availability (see §2); if missing, immediately guide the user to install it.
 
-## 2. Engine routing (do this first, do not skip)
+## 2. Check officecli availability (do this first)
 
 ```bash
 node <skill dir>/assets/pptx/detect-engine.cjs --json
 ```
 
-The script identifies the host from "this skill's install path → environment variables", scans that host for an installed PPT plugin, then checks for `officecli`:
+Every environment uses **officecli**. This script only checks binary availability; it does not identify the harness or scan host plugins. If missing, immediately give the user these installation instructions and resume building after the user installs the binary:
 
-| Host | Routing |
-|---|---|
-| Claude Code / Codex / ZCode | a default plugin with **PPTX capability** → `host-plugin`; if none → **fall back to `officecli`** and say clearly in the conversation that the fallback happened |
-| DeepSeek Harness (dsh) | a PPTX plugin → `host-plugin`; if none → `officecli` |
-| Anything else (Qoder, Cursor, VS Code, a repo dev copy, …) | `officecli` (mandatory) |
-
-- `host-plugin`: generate the PPTX through that plugin's flow. **This skill's `lint.cjs` will not run on its artifacts**; only "skeleton approved, nothing invented" is guaranteed — layout and contrast are whatever the plugin can do, and the delivery note must lower the acceptance promise.
-- When `officecli` is missing, **get the user's consent first**, then install the binary:
-  - Windows: `irm https://d.ai.officecli.ai/install.ps1 | iex`
-  - macOS / Linux: `curl -fsSL https://d.ai.officecli.ai/install.sh | bash`
-  - or `npm i -g @officecli/officecli` / `scoop install officecli` / `brew install officecli`
+- Windows: `irm https://d.ai.officecli.ai/install.ps1 | iex`
+- macOS / Linux: `curl -fsSL https://d.ai.officecli.ai/install.sh | bash`
+- or `npm i -g @officecli/officecli` / `scoop install officecli` / `brew install officecli`
 - **Never run `officecli install`**: it also drops officecli's own skills/MCP into every agent it detects. Install the binary only.
 - Require `officecli --version >= 1.0.159`; reopen the shell after installing or verify with the full path. If it still fails, stop — do not hand-write OOXML.
 - **Motion needs 1.0.160 or newer**: transitions other than fade and every in-page animation are verified only on 1.0.160, so `build.cjs` refuses to build them on anything lower — upgrade the binary, or fall back to `motion: "fade-400"` and drop every slide `animation`.
@@ -52,6 +44,7 @@ The script identifies the host from "this skill's install path → environment v
   "meta": {
     "title": "…", "author": "…", "lang": "en", "locale": "en-US",
     "skeleton": "<topic>-PPTX-skeleton.md", "slides": 12,
+    "evidence_chain": "off",
     "numberWhitelist": ["2026"]
   },
   "theme": {
@@ -77,7 +70,7 @@ The script identifies the host from "this skill's install path → environment v
 
 - `theme` is copied straight from Step 2's style decision block; `scale` holds the 1280×720 px values, converted to pt at build time by 1px = 0.75pt (48/34/24/14 → 36/25.5/18/10.5pt), with the four-tier ratios unchanged.
 - `emphasis`: `role` is `key | kpi | title`, `tone` is `accent | warn`; it may only land on that slide's primary.
-- `source` is mandatory on slides carrying `kpi` / `table` / `chart` / `compare` / `quote`; it lands in the bottom-right footer.
+- `source` is mandatory on slides carrying `kpi` / `table` / `chart` / `compare` / `quote`; it is always retained in speaker notes. Render a source footer only with explicit author approval and `meta.evidence_chain: "on"`.
 - `notes` comes from skeleton §7 and is plain text; `<strong>` / `<em>` are stripped by the builder — emphasis formatting survives only in the HTML presenter window.
 
 ### Motion (`motion` and per-slide `animation`)

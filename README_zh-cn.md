@@ -4,7 +4,7 @@
 
 **人主导、Agent 辅助的演示设计 skill。** 你决定主题、风格与措辞，Agent 负责证据、结构与构建。HTML 为主轨，支持原生 PPTX；骨架经你审核后才开始构建。
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Version 2.0.1](https://img.shields.io/badge/version-2.0.1-blue.svg) ![HTML dependencies: none](https://img.shields.io/badge/HTML%20dependencies-none-brightgreen.svg) ![PPTX engine: officecli](https://img.shields.io/badge/PPTX%20engine-officecli-blue)
 
 > [!note]
 > 本项目已经迁移到 Codeberg 开发。GitHub 只作为副本同步。
@@ -48,7 +48,7 @@
 
 ## PPTX 使用边界
 
-- 先运行 `assets/pptx/detect-engine.cjs`：Claude Code / Codex / ZCode / dsh 优先检查宿主 PPTX 插件，无则回退 officecli；其他宿主使用 officecli。
+- 所有环境统一使用 **officecli**。`assets/pptx/detect-engine.cjs` 只检查可用性；缺失时立即引导用户安装二进制。证据链与来源页脚默认隐藏，须先询问作者并获得明确同意。
 - officecli 最低 `1.0.159`；非 fade 切页和页内动画需 `1.0.160`。只安装二进制，不运行 `officecli install`。
 - 由 `PPTX-src.json` 编译原生对象；重编译会覆盖 PowerPoint 手工修改，交付后的改稿先确认处理方式。
 - 不支持任意旧 PPTX 的美化或企业母版套用；复杂图表可能降级。没有 PowerPoint 时，截图不代表像素或播放效果一致。

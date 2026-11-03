@@ -2,6 +2,8 @@
 
 Produce `<topic>-HTML-PPT-skeleton.md` or `<topic>-PPTX-skeleton.md`; for both formats, keep slide counts, types and figures aligned. The skeleton is the per-slide build specification; wait for user review when it is ready.
 
+Evidence badges and source footers default to off. For every deck type, ask the author and obtain explicit approval before setting `evidence_chain: on`. Without approval, omit HTML `data-evidence="1"` and visible source strips; do not add native PPTX source footers in any corner. Keep citations in source records and notes. Include sources pages only when specified in the approved skeleton.
+
 ## File shape
 
 ```markdown
@@ -50,17 +52,17 @@ deck:
     constraints: [<gradient fills, glassmorphism, stacked shadows, …>]
   charts: HTML inline SVG / pure CSS; PPTX native charts (2–12 categories, 1–3 series, linear axis), see 05b-pptx.md
   presenter: off | on (on = HTML runs step 8; PPTX is always off, §7 still goes into the native notes)
-  footnotes: citation bar bottom-right of every slide, "source · year", HTML 9–11px; PPTX ≥ 10.5pt
+  footnotes: only after explicit author approval; "source · year", HTML 9–11px; PPTX ≥10.5pt
   links: relative paths beside the .html only (subdirectories such as ./assets/ allowed); always target="_blank" rel="noopener"; external links http(s) only
-  evidence_chain: off | on          # HTML serious decks add data-evidence="1"; PPTX uses a source footer + a sources page
+  evidence_chain: off | on          # default off; on only with explicit author approval (HTML badge / PPTX footer)
   pptx:                             # only when target includes native-pptx
-    engine: officecli | host-plugin # the conclusion of step 5's detect-engine.cjs; host-plugin names the plugin
+    engine: officecli
     canvas: 16:9 (960×540pt)        # fixed; 4:3 and portrait are not supported
     fonts: {latin: <installed>, ea: <installed>}   # must be installed on the delivery machine
     motion: {transition: <a token, e.g. fade-400 / push-right-600 / morph>, discipline: calm | story, why: <one-sentence reason when not fade/cut>}
     animation: none | <slide>:<group>/<effect>/<class>[/why]   # per-slide opt-in, default none
     notes: from §7 (plain text, <strong>/<em> are stripped)
-    evidence: <which slides the source footer covers + the sources page number>
+    evidence: <off by default; after approval record footer coverage and sources page number>
   accessibility: ordered h1/h2 per slide; aria-live announcement on page change; body contrast ≥ 4.5:1
   motion: HTML entrance animation plays automatically on slide change, disabled under prefers-reduced-motion; PPTX page turns use a token string (default `fade-400`, changed only by the adjacent-page relation), in-page animation is declared per slide and off by default
 ```

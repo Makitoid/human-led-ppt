@@ -2,6 +2,8 @@
 
 产出 `<主题>-HTML-PPT骨架.md` 或 `<主题>-PPTX骨架.md`；两份交付时分别写，页数、页型和数字一致。骨架是逐页构建规格，完成后等待用户审核。
 
+证据链和来源页脚默认关闭。无论稿件类型，必须先询问作者并获得明确同意，才能将 `evidence_chain` 设为 `on`。未确认时，HTML 不加 `data-evidence="1"`，也不自动绘制来源引用条；原生 PPTX 不加任何角落的来源页脚。资料文件和备注继续保留来源，来源页只按已审核骨架生成。
+
 ## 文件骨架
 
 ```markdown
@@ -50,17 +52,17 @@ deck:
     禁止: <渐变填充、玻璃拟态、阴影堆叠…按第 2 步结论填>
   charts: HTML 内联 SVG / 纯 CSS；PPTX 原生图表（2–12 类别、1–3 序列、线性轴），见 05b-pptx.md
   presenter: off | on（on = HTML 走第 8 步；PPTX 固定 off，§7 仍写进原生备注）
-  footnotes: 每页右下角引用条，格式「来源 · 年份」，HTML 9–11px；PPTX ≥10.5pt
+  footnotes: 仅作者明确同意后显示；格式「来源 · 年份」，HTML 9–11px；PPTX ≥10.5pt
   links: 只放与 .html 同目录的相对路径（可下钻 ./assets/ 等子目录）；一律 target="_blank" rel="noopener"；外链仅限 http(s)
-  evidence_chain: off | on          # HTML 严肃稿加 data-evidence="1"；PPTX 用来源页脚 + 来源页
+  evidence_chain: off | on          # 默认 off；只有作者明确同意才 on（HTML 徽标 / PPTX 页脚）
   pptx:                             # 仅 target 含 native-pptx 时写
-    engine: officecli | host-plugin # 第 5 步 detect-engine.cjs 的结论；host-plugin 要注明插件名
+    engine: officecli
     canvas: 16:9（960×540pt）        # 固定；不支持 4:3 / 竖版
     fonts: {latin: <已装>, ea: <已装>} # 交付机必须已安装
     motion: {transition: <令牌，如 fade-400 / push-right-600 / morph>, discipline: calm | story, why: <非 fade/cut 时的一句话理由>}
     animation: none | <页号>:<元素组>/<效果>/<类别>[/why]   # 逐页 opt-in，默认 none
     notes: from §7（纯文本，<strong>/<em> 会被剥掉）
-    evidence: <来源页脚覆盖哪些页 + 来源页页码>
+    evidence: <默认关闭；明确同意后记录页脚覆盖页与来源页页码>
   accessibility: 每页 h1/h2 有序；翻页 aria-live 播报；正文对比度 ≥ 4.5:1
   motion: HTML 进场动画随切页自动播放、prefers-reduced-motion 时关闭；PPTX 切页用令牌串（默认 `fade-400`，只按相邻页关系换），页内动画按页声明、默认不加
 ```

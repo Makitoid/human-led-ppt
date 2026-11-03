@@ -85,7 +85,7 @@ officecli view <主题>.pptx screenshot --page 1-N --out <主题>-shots/all.png
 ## 5. 交付说明（模板）
 
 ```text
-引擎：officecli <版本>（或：宿主插件 <名字>，验收下限更低）
+引擎：officecli <版本>
 产物：<主题>.pptx（N 页，M 字节目录）；构建规格 <主题>-PPTX-src.json；QA <主题>-PPTX-qa.md
 已实测：规格检查 / validate / issues / 页数与页型对账 / 数字审计 / 逐页截图
 未验证：PowerPoint 里的最终观感（本机没有 PowerPoint，截图走 officecli 的 HTML 渲染路径）；
@@ -116,7 +116,7 @@ officecli view <主题>.pptx screenshot --page 1-N --out <主题>-shots/all.png
 | 媒体播放条 | 壳内置 | PowerPoint 原生 |
 | 备注 | `.notes` + 演讲者窗强调 | 原生备注，纯文本 |
 | 可编辑性 | 需改源码 | 原生形状/表格/图表可直接改 |
-| 证据链徽标 | 交互式（按稿开启） | 静态来源页脚 + 来源页 |
+| 证据链徽标 | 默认关闭；作者明确同意后开启 | 来源页脚默认关闭；来源保留于备注 |
 
 ## 7. 已知限制（交付时按需披露）
 
@@ -127,7 +127,6 @@ officecli view <主题>.pptx screenshot --page 1-N --out <主题>-shots/all.png
 - 模板/母版路线尚未纳入第一版；不要承诺“套用单位模板”。
 - 对数轴、瀑布、双单位图表会降级为表格或简单条形图。
 - 没有 PowerPoint 时无法做像素级验收；截图只证明版式结构。
-- 宿主插件路线的产物不跑本 skill 的 lint，验收下限更低。
 
 ## 8. 负例（改构建器后必须重跑）
 
@@ -162,3 +161,5 @@ officecli view <主题>.pptx screenshot --page 1-N --out <主题>-shots/all.png
 - 一轮只回修用户点名的那几处；改完把新旧 QA 报告对照着报，不要顺手重排全稿。
 - 用户已经在 PowerPoint / WPS 里动过这份文件时，**先问**要「回写 spec 重编」还是「在成品上点改」——重编译是删旧建新，会连用户手工加的动画一起没（详见 §12）。
 - 只是数字或措辞变了，先改资料总结与骨架，再改 spec；顺序反了就会造出第二真相。
+
+证据链和来源页脚默认关闭。无论稿件类型，必须先询问作者并获得明确同意，才能将 `evidence_chain` 设为 `on`。未确认时，HTML 不加 `data-evidence="1"`，也不自动绘制来源引用条；原生 PPTX 不加任何角落的来源页脚。资料文件和备注继续保留来源，来源页只按已审核骨架生成。

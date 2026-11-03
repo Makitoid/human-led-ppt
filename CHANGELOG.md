@@ -2,6 +2,12 @@
 
 **English** · [中文](CHANGELOG_zh-cn.md) · [日本語](CHANGELOG_ja.md)
 
+## v2.0.1 (2026-11-03)
+
+- Evidence badges and source footers now require explicit author approval; sources stay in records and PPTX notes.
+- Unified PPTX generation on officecli in every environment; removed harness/plugin routing and added immediate installation guidance.
+- Fixed presenter-triggered audience video fullscreen escaping slide scaling, clipping and width constraints; preserved remote controls and restoration on exit or paging.
+
 ## v2.0.0 (2026-11-02)
 
 - Expanded the gallery to 21 templates (11 charts, 10 diagrams) and four appearances: rounded, outline, blueprint and editorial. Added filters, search, light/dark previews and code copying with unique SVG ids.

@@ -5,6 +5,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const L = require('./lib.cjs');
 const { buildSlide } = require('./recipes.cjs');
+const { INSTALL_HINT } = require('./detect-engine.cjs');
 
 const LAYER_ORDER = { ground: 0, card: 1, content: 2, chrome: 3 };
 
@@ -12,7 +13,7 @@ function fail(msg) { process.stdout.write('pptx-build: FAIL — ' + msg + '\n');
 function officecli(args, opts = {}) {
   const exe = process.env.OFFICECLI_BIN || 'officecli';
   const r = spawnSync(exe, args, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, ...opts });
-  if (r.error) fail('cannot run officecli: ' + r.error.message);
+  if (r.error) fail('cannot run officecli: ' + r.error.message + '\n' + INSTALL_HINT);
   return r;
 }
 function officecliJson(args) {
@@ -216,7 +217,7 @@ function compile(spec, specDir) {
   const theme = spec.theme;
   const slides = spec.slides.map((s, i) => {
     let elements;
-    try { elements = buildSlide(s, theme, i + 1); }
+    try { elements = buildSlide(s, theme, i + 1, spec.meta.evidence_chain); }
     catch (e) { errors.push(`${s.id}: ${e.message}`); return null; }
     for (const b of s.blocks || []) {
       if (!['image', 'media'].includes(b.kind)) continue;
@@ -249,7 +250,8 @@ function compile(spec, specDir) {
       catch (e) { errors.push(`${slide.id}/${el.id}: ${e.message}`); }
     }
     batch.push(...animationCommands(slide, elements, slidePath, slide.id, errors));
-    if (slide.notes) batch.push({ command: 'add', parent: slidePath, type: 'notes', props: { text: L.stripTags(slide.notes) } });
+    const notes = [slide.notes, slide.source && 'Source: ' + slide.source].filter(Boolean).join('\n\n');
+    if (notes) batch.push({ command: 'add', parent: slidePath, type: 'notes', props: { text: L.stripTags(notes) } });
   });
   if (errors.length) return { errors };
   return { batch, slides };
@@ -333,7 +335,7 @@ function main() {
   const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
   const specDir = path.dirname(path.resolve(specPath));
   const vr = officecli(['--version']);
-  if (vr.status !== 0) fail('officecli not available. Install the BINARY only (never `officecli install`) and retry.');
+  if (vr.status !== 0) fail('officecli not available. ' + INSTALL_HINT);
   const version = (vr.stdout || '').trim();
   if (!L.versionAtLeast(version, '1.0.159')) fail(`officecli ${version} is older than 1.0.159; upgrade before building.`);
   const gate = motionGateError(version, spec);
